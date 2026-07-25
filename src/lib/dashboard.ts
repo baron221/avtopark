@@ -77,6 +77,61 @@ export function overlapDays(rangeFrom: Date, rangeTo: Date, start: Date, end: Da
   return Math.floor((to.getTime() - from.getTime()) / 86_400_000) + 1;
 }
 
+function dayIndex(date: Date, rangeStart: Date) {
+  return Math.round((startOfDay(date).getTime() - startOfDay(rangeStart).getTime()) / 86_400_000);
+}
+
+async function computeDailyChart(chartFrom: Date, chartTo: Date, days: number) {
+  const [trips, expenses, plans, rentals] = await Promise.all([
+    prisma.trip.findMany({
+      where: { tripDate: { gte: chartFrom, lte: chartTo } },
+      select: { tripDate: true, revenue: true },
+    }),
+    prisma.expense.findMany({
+      where: { expenseDate: { gte: chartFrom, lte: chartTo } },
+      select: { expenseDate: true, amount: true },
+    }),
+    prisma.dailyPlan.findMany({
+      where: { planDate: { gte: chartFrom, lte: chartTo } },
+      select: { planDate: true, paidAmount: true },
+    }),
+    prisma.rental.findMany({
+      where: { startDate: { lte: chartTo }, OR: [{ endDate: null }, { endDate: { gte: chartFrom } }] },
+    }),
+  ]);
+
+  const income = new Array(days).fill(0);
+  const expense = new Array(days).fill(0);
+
+  for (const t of trips) {
+    const i = dayIndex(t.tripDate, chartFrom);
+    if (i >= 0 && i < days) income[i] += Number(t.revenue);
+  }
+  for (const p of plans) {
+    const i = dayIndex(p.planDate, chartFrom);
+    if (i >= 0 && i < days) income[i] += Number(p.paidAmount);
+  }
+  for (const e of expenses) {
+    const i = dayIndex(e.expenseDate, chartFrom);
+    if (i >= 0 && i < days) expense[i] += Number(e.amount);
+  }
+  for (let i = 0; i < days; i++) {
+    const day = addDays(chartFrom, i);
+    for (const r of rentals) {
+      const rentalEnd = r.endDate ?? chartTo;
+      if (day >= startOfDay(r.startDate) && day <= endOfDay(rentalEnd)) {
+        income[i] += Number(r.monthlyAmount) / daysInMonth(day.getFullYear(), day.getMonth());
+      }
+    }
+  }
+
+  return Array.from({ length: days }).map((_, i) => ({
+    day: addDays(chartFrom, i),
+    income: income[i],
+    expense: expense[i],
+  }));
+}
+
 async function computeTotals(from: Date, to: Date) {
   const [tripsAgg, plansAgg, expensesAgg, rentals] = await Promise.all([
     prisma.trip.aggregate({ _sum: { revenue: true }, where: { tripDate: { gte: from, lte: to } } }),
@@ -104,28 +159,81 @@ export async function getOwnerDashboardVM(period: Period): Promise<OwnerDashboar
   const { from, to } = rangeForPeriod(period, now);
   const prev = previousRange(period, { from, to });
 
-  const [{ totalIncome, totalExpense }, prevTotals, vehicleCount, driverCount, expensesByCategory, dailyPlansToday, vehicles] =
-    await Promise.all([
-      computeTotals(from, to),
-      computeTotals(prev.from, prev.to),
-      prisma.vehicle.count(),
-      prisma.driver.count(),
-      prisma.expense.groupBy({
-        by: ["category"],
-        _sum: { amount: true },
-        where: { expenseDate: { gte: from, lte: to } },
-      }),
-      prisma.dailyPlan.findMany({ where: { planDate: { gte: startOfDay(now), lte: endOfDay(now) } } }),
-      prisma.vehicle.findMany({
-        include: {
-          driver: { include: { user: true } },
-          trips: { where: { tripDate: { gte: from, lte: to } } },
-          dailyPlans: { where: { planDate: { gte: from, lte: to } } },
-          rentals: { where: { startDate: { lte: to }, OR: [{ endDate: null }, { endDate: { gte: from } }] } },
-          expenses: { where: { expenseDate: { gte: from, lte: to } } },
-        },
-      }),
-    ]);
+  const chartFrom = startOfDay(addDays(now, -6));
+  const chartTo = endOfDay(now);
+
+  const [
+    { totalIncome, totalExpense },
+    prevTotals,
+    vehicleCount,
+    driverCount,
+    expensesByCategory,
+    dailyPlansToday,
+    vehiclesFlat,
+    driversFlat,
+    tripsFlat,
+    dailyPlansFlat,
+    rentalsFlat,
+    expensesFlat,
+    dailyChart,
+  ] = await Promise.all([
+    computeTotals(from, to),
+    computeTotals(prev.from, prev.to),
+    prisma.vehicle.count(),
+    prisma.driver.count(),
+    prisma.expense.groupBy({
+      by: ["category"],
+      _sum: { amount: true },
+      where: { expenseDate: { gte: from, lte: to } },
+    }),
+    prisma.dailyPlan.findMany({ where: { planDate: { gte: startOfDay(now), lte: endOfDay(now) } } }),
+    // Fetched flat (no nested `include`) and joined in JS below — a single
+    // vehicle.findMany with 5 nested relations was measured at ~1.9s against
+    // our high-latency DB region, vs ~200-700ms for these run concurrently.
+    prisma.vehicle.findMany(),
+    prisma.driver.findMany({ include: { user: true } }),
+    prisma.trip.findMany({
+      where: { tripDate: { gte: from, lte: to } },
+      select: { vehicleId: true, revenue: true },
+    }),
+    prisma.dailyPlan.findMany({
+      where: { planDate: { gte: from, lte: to } },
+      select: { vehicleId: true, paidAmount: true },
+    }),
+    prisma.rental.findMany({
+      where: { startDate: { lte: to }, OR: [{ endDate: null }, { endDate: { gte: from } }] },
+    }),
+    prisma.expense.findMany({
+      where: { expenseDate: { gte: from, lte: to } },
+      select: { vehicleId: true, amount: true },
+    }),
+    computeDailyChart(chartFrom, chartTo, 7),
+  ]);
+
+  const driverByVehicleId = new Map(driversFlat.filter((d) => d.vehicleId).map((d) => [d.vehicleId as string, d]));
+  const tripStatsByVehicle = new Map<string, { count: number; income: number }>();
+  for (const t of tripsFlat) {
+    const entry = tripStatsByVehicle.get(t.vehicleId) ?? { count: 0, income: 0 };
+    entry.count += 1;
+    entry.income += Number(t.revenue);
+    tripStatsByVehicle.set(t.vehicleId, entry);
+  }
+  const planIncomeByVehicle = new Map<string, number>();
+  const vehiclesWithPlan = new Set<string>();
+  for (const p of dailyPlansFlat) {
+    vehiclesWithPlan.add(p.vehicleId);
+    planIncomeByVehicle.set(p.vehicleId, (planIncomeByVehicle.get(p.vehicleId) ?? 0) + Number(p.paidAmount));
+  }
+  const rentalsByVehicle = new Map<string, typeof rentalsFlat>();
+  for (const r of rentalsFlat) {
+    const arr = rentalsByVehicle.get(r.vehicleId) ?? [];
+    arr.push(r);
+    rentalsByVehicle.set(r.vehicleId, arr);
+  }
+  const expenseByVehicle = new Map<string, number>();
+  for (const e of expensesFlat) {
+    expenseByVehicle.set(e.vehicleId, (expenseByVehicle.get(e.vehicleId) ?? 0) + Number(e.amount));
+  }
 
   const netProfit = totalIncome - totalExpense;
   const prevNetProfit = prevTotals.totalIncome - prevTotals.totalExpense;
@@ -157,26 +265,27 @@ export async function getOwnerDashboardVM(period: Period): Promise<OwnerDashboar
     })
     .sort((a, b) => b.amount - a.amount);
 
-  const vehicleRows: VehicleProfitRow[] = vehicles.map((v) => {
-    const tripIncome = v.trips.reduce((s, t) => s + Number(t.revenue), 0);
-    const planIncome = v.dailyPlans.reduce((s, p) => s + Number(p.paidAmount), 0);
-    const rentalIncome = v.rentals.reduce((s, r) => {
+  const vehicleRows: VehicleProfitRow[] = vehiclesFlat.map((v) => {
+    const tripStats = tripStatsByVehicle.get(v.id) ?? { count: 0, income: 0 };
+    const planIncome = planIncomeByVehicle.get(v.id) ?? 0;
+    const vehicleRentals = rentalsByVehicle.get(v.id) ?? [];
+    const rentalIncome = vehicleRentals.reduce((s, r) => {
       const days = overlapDays(from, to, r.startDate, r.endDate);
       const month = daysInMonth(r.startDate.getFullYear(), r.startDate.getMonth());
       return s + (Number(r.monthlyAmount) * days) / month;
     }, 0);
-    const expense = v.expenses.reduce((s, e) => s + Number(e.amount), 0);
+    const expense = expenseByVehicle.get(v.id) ?? 0;
 
     let incomeSource: VehicleProfitRow["incomeSource"] = "TRIPS";
-    let driverName = v.driver?.user.fullName ?? "—";
-    if (v.rentals.length > 0) {
+    let driverName = driverByVehicleId.get(v.id)?.user.fullName ?? "—";
+    if (vehicleRentals.length > 0) {
       incomeSource = "RENTAL";
-      driverName = `Ijara — ${v.rentals[0].renterName}`;
-    } else if (v.dailyPlans.length > 0) {
+      driverName = `Ijara — ${vehicleRentals[0].renterName}`;
+    } else if (vehiclesWithPlan.has(v.id)) {
       incomeSource = "PLAN";
     }
 
-    const income = tripIncome + planIncome + rentalIncome;
+    const income = tripStats.income + planIncome + rentalIncome;
 
     return {
       vehicleId: v.id,
@@ -189,20 +298,15 @@ export async function getOwnerDashboardVM(period: Period): Promise<OwnerDashboar
       expense,
       profit: income - expense,
       status: v.status,
-      tripCount: v.trips.length,
+      tripCount: tripStats.count,
     };
   });
 
-  const chart = Array.from({ length: 7 }).map((_, i) => {
-    const day = addDays(now, i - 6);
-    return { label: uzWeekdayShort(day), day };
-  });
-  const chartWithTotals = await Promise.all(
-    chart.map(async ({ label, day }) => {
-      const { totalIncome: inc, totalExpense: exp } = await computeTotals(startOfDay(day), endOfDay(day));
-      return { label, income: inc, expense: exp };
-    })
-  );
+  const chartWithTotals = dailyChart.map((d) => ({
+    label: uzWeekdayShort(d.day),
+    income: d.income,
+    expense: d.expense,
+  }));
 
   return {
     period,
@@ -224,22 +328,61 @@ export type MonthlyTrendPoint = { label: string; income: number; expense: number
 
 export async function getMonthlyTrend(monthsBack = 6): Promise<MonthlyTrendPoint[]> {
   const now = new Date();
-  const months = Array.from({ length: monthsBack }).map((_, i) => {
-    const offset = monthsBack - 1 - i;
-    return new Date(now.getFullYear(), now.getMonth() - offset, 1);
-  });
+  const rangeFrom = new Date(now.getFullYear(), now.getMonth() - (monthsBack - 1), 1);
+  const rangeTo = endOfDay(now);
 
-  return Promise.all(
-    months.map(async (monthStart) => {
-      const from = monthStart;
-      const to = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0, 23, 59, 59, 999);
-      const { totalIncome, totalExpense } = await computeTotals(from, to);
-      return {
-        label: uzMonthName(monthStart),
-        income: totalIncome,
-        expense: totalExpense,
-        profit: totalIncome - totalExpense,
-      };
-    })
-  );
+  const monthIndex = (date: Date) =>
+    (date.getFullYear() - rangeFrom.getFullYear()) * 12 + (date.getMonth() - rangeFrom.getMonth());
+
+  const [trips, expenses, plans, rentals] = await Promise.all([
+    prisma.trip.findMany({ where: { tripDate: { gte: rangeFrom, lte: rangeTo } }, select: { tripDate: true, revenue: true } }),
+    prisma.expense.findMany({
+      where: { expenseDate: { gte: rangeFrom, lte: rangeTo } },
+      select: { expenseDate: true, amount: true },
+    }),
+    prisma.dailyPlan.findMany({
+      where: { planDate: { gte: rangeFrom, lte: rangeTo } },
+      select: { planDate: true, paidAmount: true },
+    }),
+    prisma.rental.findMany({
+      where: { startDate: { lte: rangeTo }, OR: [{ endDate: null }, { endDate: { gte: rangeFrom } }] },
+    }),
+  ]);
+
+  const income = new Array(monthsBack).fill(0);
+  const expense = new Array(monthsBack).fill(0);
+
+  for (const t of trips) {
+    const i = monthIndex(t.tripDate);
+    if (i >= 0 && i < monthsBack) income[i] += Number(t.revenue);
+  }
+  for (const p of plans) {
+    const i = monthIndex(p.planDate);
+    if (i >= 0 && i < monthsBack) income[i] += Number(p.paidAmount);
+  }
+  for (const e of expenses) {
+    const i = monthIndex(e.expenseDate);
+    if (i >= 0 && i < monthsBack) expense[i] += Number(e.amount);
+  }
+
+  for (let i = 0; i < monthsBack; i++) {
+    const monthStart = new Date(rangeFrom.getFullYear(), rangeFrom.getMonth() + i, 1);
+    const monthEnd = new Date(rangeFrom.getFullYear(), rangeFrom.getMonth() + i + 1, 0, 23, 59, 59, 999);
+    for (const r of rentals) {
+      const days = overlapDays(monthStart, monthEnd, r.startDate, r.endDate);
+      if (days > 0) {
+        income[i] += (Number(r.monthlyAmount) * days) / daysInMonth(monthStart.getFullYear(), monthStart.getMonth());
+      }
+    }
+  }
+
+  return Array.from({ length: monthsBack }).map((_, i) => {
+    const monthStart = new Date(rangeFrom.getFullYear(), rangeFrom.getMonth() + i, 1);
+    return {
+      label: uzMonthName(monthStart),
+      income: income[i],
+      expense: expense[i],
+      profit: income[i] - expense[i],
+    };
+  });
 }
