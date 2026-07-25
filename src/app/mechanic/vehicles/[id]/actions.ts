@@ -85,3 +85,23 @@ export async function updateVehicleStatusAction(formData: FormData) {
   revalidatePath(`/mechanic/vehicles/${vehicleId}`);
   revalidatePath("/mechanic/vehicles");
 }
+
+export async function assignDriverAction(formData: FormData) {
+  await requireMechanic();
+
+  const vehicleId = String(formData.get("vehicleId") ?? "");
+  const driverId = String(formData.get("driverId") ?? "").trim() || null;
+  if (!vehicleId) return;
+
+  // Driver.vehicleId is unique, so free up this vehicle from whoever holds it
+  // first, then hand it to the newly selected driver (if any) in one go.
+  await prisma.$transaction(async (tx) => {
+    await tx.driver.updateMany({ where: { vehicleId }, data: { vehicleId: null } });
+    if (driverId) {
+      await tx.driver.update({ where: { id: driverId }, data: { vehicleId } });
+    }
+  });
+
+  revalidatePath(`/mechanic/vehicles/${vehicleId}`);
+  revalidatePath("/mechanic/vehicles");
+}

@@ -8,6 +8,7 @@ import { formatSom } from "@/lib/format";
 import { getOwnerDashboardVM } from "@/lib/dashboard";
 import { StatusSelect } from "./StatusSelect";
 import { ExpenseForm } from "./ExpenseForm";
+import { DriverSelect } from "./DriverSelect";
 
 const CATEGORY_LABELS: Record<string, string> = {
   FUEL: "Yoqilg'i",
@@ -26,15 +27,21 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
 
   const { id } = await params;
 
-  const [vehicle, vm, expenses] = await Promise.all([
+  const [vehicle, vm, expenses, drivers] = await Promise.all([
     prisma.vehicle.findUnique({ where: { id }, include: { driver: { include: { user: true } } } }),
     getOwnerDashboardVM("MONTH"),
     prisma.expense.findMany({ where: { vehicleId: id }, orderBy: { expenseDate: "desc" }, take: 10 }),
+    prisma.driver.findMany({ include: { user: true, vehicle: true }, orderBy: { user: { fullName: "asc" } } }),
   ]);
 
   if (!vehicle) notFound();
 
   const row = vm.vehicles.find((v) => v.vehicleId === id);
+  const driverOptions = drivers.map((d) => ({
+    id: d.id,
+    name: d.user.fullName,
+    currentPlate: d.vehicle?.plate ?? null,
+  }));
 
   return (
     <div className="max-w-[1000px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
@@ -54,9 +61,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
             Tahrirlash
           </Link>
         </div>
-        <div className="text-sm font-semibold text-body">
-          Haydovchi: <span className="text-heading font-extrabold">{vehicle.driver?.user.fullName ?? "—"}</span>
-        </div>
+        <DriverSelect vehicleId={vehicle.id} currentDriverId={vehicle.driver?.id ?? null} drivers={driverOptions} />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
