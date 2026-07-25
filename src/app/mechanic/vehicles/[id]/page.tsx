@@ -47,6 +47,12 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
             {vehicle.plate} · {vehicle.model}
           </div>
           <StatusSelect vehicleId={vehicle.id} status={vehicle.status} />
+          <Link
+            href={`/mechanic/vehicles/${vehicle.id}/edit`}
+            className="bg-page text-heading text-xs font-extrabold px-3 py-1.5 rounded-lg border border-border"
+          >
+            Tahrirlash
+          </Link>
         </div>
         <div className="text-sm font-semibold text-body">
           Haydovchi: <span className="text-heading font-extrabold">{vehicle.driver?.user.fullName ?? "—"}</span>

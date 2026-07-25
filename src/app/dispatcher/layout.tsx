@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/app/actions";
+import { getGrantedNavLinks } from "@/lib/access";
 import { DispatcherNavDesktop, DispatcherNavMobile } from "./DispatcherNav";
 
 const POINT_LABELS: Record<string, string> = {
@@ -14,6 +15,7 @@ export default async function DispatcherLayout({ children }: { children: React.R
   if (session.user.role !== "DISPATCHER" || !session.user.point) redirect("/coming-soon");
 
   const pointLabel = POINT_LABELS[session.user.point] ?? session.user.point;
+  const extra = await getGrantedNavLinks(session.user.role);
 
   return (
     <div className="min-h-screen flex flex-col pb-16 lg:pb-0">
@@ -31,7 +33,7 @@ export default async function DispatcherLayout({ children }: { children: React.R
         </div>
 
         <div className="hidden lg:block">
-          <DispatcherNavDesktop />
+          <DispatcherNavDesktop extra={extra} />
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -46,7 +48,7 @@ export default async function DispatcherLayout({ children }: { children: React.R
 
       <div className="flex-1">{children}</div>
 
-      <DispatcherNavMobile />
+      <DispatcherNavMobile extra={extra} />
     </div>
   );
 }

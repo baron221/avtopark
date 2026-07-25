@@ -1,12 +1,15 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/app/actions";
+import { getGrantedNavLinks } from "@/lib/access";
 import { MechanicNavDesktop, MechanicNavMobile } from "./MechanicNav";
 
 export default async function MechanicLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session) redirect("/login");
   if (session.user.role !== "MECHANIC") redirect("/coming-soon");
+
+  const extra = await getGrantedNavLinks(session.user.role);
 
   return (
     <div className="min-h-screen flex flex-col pb-16 lg:pb-0">
@@ -19,7 +22,7 @@ export default async function MechanicLayout({ children }: { children: React.Rea
         </div>
 
         <div className="hidden lg:block">
-          <MechanicNavDesktop />
+          <MechanicNavDesktop extra={extra} />
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -34,7 +37,7 @@ export default async function MechanicLayout({ children }: { children: React.Rea
 
       <div className="flex-1">{children}</div>
 
-      <MechanicNavMobile />
+      <MechanicNavMobile extra={extra} />
     </div>
   );
 }

@@ -90,6 +90,12 @@ export default async function AdminUsersPage({
             </div>
             <div className="flex gap-2">
               <Link
+                href={`/admin/users/${u.id}/edit`}
+                className="bg-page text-heading text-xs font-extrabold px-3 py-1.5 rounded-lg border border-border"
+              >
+                Tahrirlash
+              </Link>
+              <Link
                 href={`/admin/users/${u.id}/reset-password`}
                 className="bg-primary-tint text-primary text-xs font-extrabold px-3 py-1.5 rounded-lg"
               >
@@ -132,6 +138,12 @@ export default async function AdminUsersPage({
                 {u.isActive ? "Faol" : "Bloklangan"}
               </span>
               <div className="flex gap-2">
+                <Link
+                  href={`/admin/users/${u.id}/edit`}
+                  className="bg-page text-heading text-xs font-extrabold px-3 py-1.5 rounded-lg border border-border"
+                >
+                  Tahrirlash
+                </Link>
                 <Link
                   href={`/admin/users/${u.id}/reset-password`}
                   className="bg-primary-tint text-primary text-xs font-extrabold px-3 py-1.5 rounded-lg"

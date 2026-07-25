@@ -70,6 +70,61 @@ export async function createUserAction(_prevState: CreateUserState, formData: Fo
   redirect("/admin/users");
 }
 
+export type UpdateUserState = { error: string };
+
+export async function updateUserAction(
+  _prevState: UpdateUserState,
+  formData: FormData
+): Promise<UpdateUserState> {
+  await requireAdmin();
+
+  const userId = String(formData.get("userId") ?? "");
+  const fullName = String(formData.get("fullName") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim();
+  const point = (formData.get("point") as Point | null) || null;
+  const rawBaseSalary = formData.get("baseSalary");
+  const baseSalary =
+    rawBaseSalary !== null && String(rawBaseSalary).trim() !== "" ? Math.max(0, Math.round(Number(rawBaseSalary))) : null;
+
+  if (!userId || !fullName || !phone) {
+    return { error: "Barcha maydonlarni to'ldiring" };
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: userId }, include: { driver: true } });
+  if (!user) {
+    return { error: "Foydalanuvchi topilmadi" };
+  }
+
+  const existingPhone = await prisma.user.findUnique({ where: { phone } });
+  if (existingPhone && existingPhone.id !== userId) {
+    return { error: "Bu telefon raqam bilan boshqa foydalanuvchi allaqachon mavjud" };
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      fullName,
+      phone,
+      point: user.role === "DISPATCHER" ? point : null,
+      baseSalary: baseSalary !== null ? BigInt(baseSalary) : null,
+    },
+  });
+
+  if (user.role === "DRIVER" && user.driver) {
+    const licenseNo = String(formData.get("licenseNo") ?? "").trim();
+    const salaryType = (formData.get("salaryType") as SalaryType) || user.driver.salaryType;
+    const rawSalaryValue = Number(formData.get("salaryValue"));
+    const salaryValue = Number.isFinite(rawSalaryValue) ? Math.max(0, rawSalaryValue) : Number(user.driver.salaryValue);
+    await prisma.driver.update({
+      where: { id: user.driver.id },
+      data: { licenseNo: licenseNo || user.driver.licenseNo, salaryType, salaryValue },
+    });
+  }
+
+  revalidatePath("/admin/users");
+  redirect("/admin/users");
+}
+
 export async function toggleActiveAction(formData: FormData) {
   await requireAdmin();
   const userId = String(formData.get("userId") ?? "");

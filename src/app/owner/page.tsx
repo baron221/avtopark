@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { FleetDashboard } from "@/components/dashboard/FleetDashboard";
 import { getOwnerDashboardVM, type Period } from "@/lib/dashboard";
+import { getGrantedNavLinks } from "@/lib/access";
 
 function isPeriod(value: string | undefined): value is Period {
   return value === "DAY" || value === "WEEK" || value === "MONTH";
@@ -18,7 +19,7 @@ export default async function OwnerPage({
 
   const { period: periodParam } = await searchParams;
   const period: Period = isPeriod(periodParam) ? periodParam : "MONTH";
-  const vm = await getOwnerDashboardVM(period);
+  const [vm, grantedLinks] = await Promise.all([getOwnerDashboardVM(period), getGrantedNavLinks(session.user.role)]);
 
   return (
     <FleetDashboard
@@ -29,6 +30,7 @@ export default async function OwnerPage({
       extraLinks={[
         { href: "/owner/report", label: "Hisobot" },
         { href: "/owner/drivers", label: "Haydovchilar" },
+        ...grantedLinks.map((l) => ({ href: l.href, label: l.label })),
       ]}
     />
   );

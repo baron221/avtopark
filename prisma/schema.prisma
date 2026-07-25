@@ -467,3 +467,16 @@ model Advance {
   @@index([month])
   @@map("advances")
 }
+
+// Admin-grantable extra VIEW-only access for a role to a module that role
+// doesn't have by default (e.g. Dispatcher viewing the vehicles list).
+// Presence of a row = granted. Never widens write/OWN-scoped access.
+model RolePermission {
+  id        String   @id @default(uuid())
+  role      Role
+  module    String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([role, module])
+  @@map("role_permissions")
+}

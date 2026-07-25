@@ -1,9 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import type { ExpenseCategory, VehicleStatus } from "@prisma/client";
+import type { ExpenseCategory, Point, VehicleStatus, VehicleType } from "@prisma/client";
 
 async function requireMechanic() {
   const session = await auth();
@@ -11,6 +12,41 @@ async function requireMechanic() {
     throw new Error("Ruxsat yo'q");
   }
   return session.user.id;
+}
+
+export type UpdateVehicleState = { error: string };
+
+export async function updateVehicleAction(
+  _prevState: UpdateVehicleState,
+  formData: FormData
+): Promise<UpdateVehicleState> {
+  await requireMechanic();
+
+  const vehicleId = String(formData.get("vehicleId") ?? "");
+  const plate = String(formData.get("plate") ?? "").trim();
+  const model = String(formData.get("model") ?? "").trim();
+  const type = formData.get("type") as VehicleType;
+  const seats = Math.round(Number(formData.get("seats") ?? 0));
+  const purchasePrice = Math.round(Number(formData.get("purchasePrice") ?? 0));
+  const point = (formData.get("point") as Point | null) || null;
+
+  if (!vehicleId || !plate || !model || !(seats > 0) || !(purchasePrice > 0)) {
+    return { error: "Barcha maydonlarni to'g'ri to'ldiring" };
+  }
+
+  const existing = await prisma.vehicle.findUnique({ where: { plate } });
+  if (existing && existing.id !== vehicleId) {
+    return { error: "Bu davlat raqami bilan boshqa mashina allaqachon mavjud" };
+  }
+
+  await prisma.vehicle.update({
+    where: { id: vehicleId },
+    data: { plate, model, type, seats, point, purchasePrice: BigInt(purchasePrice) },
+  });
+
+  revalidatePath(`/mechanic/vehicles/${vehicleId}`);
+  revalidatePath("/mechanic/vehicles");
+  redirect(`/mechanic/vehicles/${vehicleId}`);
 }
 
 export async function addVehicleExpenseAction(formData: FormData) {

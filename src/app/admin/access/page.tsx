@@ -2,6 +2,10 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { ACCESS_MATRIX, ACCESS_ROLE_COLUMNS, type AccessLevel } from "@/lib/permissions";
+import { GRANTABLE_MODULES } from "@/lib/access";
+import { ROLE_LABELS } from "@/components/ui/RoleBadge";
+import { prisma } from "@/lib/prisma";
+import { toggleModuleGrantAction } from "./actions";
 
 const LEVEL_STYLE: Record<AccessLevel, { bg: string; color: string; label: string }> = {
   YES: { bg: "#E4F5EC", color: "#1B9E6B", label: "✓" },
@@ -13,6 +17,9 @@ export default async function AccessMatrixPage() {
   const session = await auth();
   if (!session) redirect("/login");
   if (session.user.role !== "ADMIN") redirect("/coming-soon");
+
+  const grants = await prisma.rolePermission.findMany();
+  const grantedSet = new Set(grants.map((g) => `${g.role}:${g.module}`));
 
   return (
     <div className="max-w-[1180px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
@@ -81,6 +88,42 @@ export default async function AccessMatrixPage() {
           </Card>
         ))}
       </div>
+
+      <div>
+        <div className="font-heading font-bold text-lg text-heading">Qo&apos;shimcha ko&apos;rish huquqlari</div>
+        <div className="text-[13px] text-muted-2 font-semibold mt-1">
+          Yuqoridagi jadvaldan tashqari, rolga qo&apos;shimcha bo&apos;limlarni <strong>faqat ko&apos;rish</strong> uchun
+          ochib berishingiz mumkin (yozish/o&apos;chirish huquqisiz).
+        </div>
+      </div>
+
+      <Card className="overflow-hidden">
+        {GRANTABLE_MODULES.map((mod) => (
+          <div key={mod.key} className="px-6 py-4 border-t border-row-divider first:border-t-0">
+            <div className="font-extrabold text-heading text-sm mb-2.5">{mod.label}</div>
+            <div className="flex flex-wrap gap-2">
+              {mod.grantableRoles.map((role) => {
+                const granted = grantedSet.has(`${role}:${mod.key}`);
+                return (
+                  <form key={role} action={toggleModuleGrantAction}>
+                    <input type="hidden" name="role" value={role} />
+                    <input type="hidden" name="module" value={mod.key} />
+                    <input type="hidden" name="nextGranted" value={granted ? "0" : "1"} />
+                    <button
+                      type="submit"
+                      className={`text-xs font-extrabold px-3 py-1.5 rounded-lg ${
+                        granted ? "bg-success-tint text-success" : "bg-page text-muted-2 border border-border"
+                      }`}
+                    >
+                      {ROLE_LABELS[role]} {granted ? "✓ berilgan" : "— berilmagan"}
+                    </button>
+                  </form>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </Card>
     </div>
   );
 }

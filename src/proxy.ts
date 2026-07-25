@@ -1,14 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-
-const ROLE_HOME: Record<string, string> = {
-  OWNER: "/owner",
-  ADMIN: "/admin/panel",
-  ACCOUNTANT: "/accountant/payroll",
-  DISPATCHER: "/dispatcher/point",
-  MECHANIC: "/mechanic/fuel",
-  DRIVER: "/driver",
-};
+import { ROLE_HOME } from "@/lib/roleHome";
 
 export default auth((req) => {
   const { nextUrl } = req;
