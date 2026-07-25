@@ -6,6 +6,16 @@ import { ACCOUNT_LOCKED_CODE, LOCKOUT_MINUTES } from "@/auth";
 
 export type LoginState = { error: string };
 
+// Dev-only convenience: skips the two-field form for quick role testing.
+// QuickLoginButtons never renders in production, so this has no prod exposure.
+export async function quickLoginAction(formData: FormData) {
+  await signIn("credentials", {
+    phone: formData.get("phone"),
+    password: formData.get("password"),
+    redirectTo: "/",
+  });
+}
+
 export async function loginAction(_prevState: LoginState, formData: FormData): Promise<LoginState> {
   try {
     await signIn("credentials", {

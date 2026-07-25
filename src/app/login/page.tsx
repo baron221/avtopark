@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/Card";
 import { LoginForm } from "./LoginForm";
+import { QuickLoginButtons } from "./QuickLoginButtons";
 
 export default function LoginPage() {
   return (
@@ -13,6 +14,7 @@ export default function LoginPage() {
           <div className="text-[13px] text-muted-2 font-semibold">Telefon raqamingiz bilan kiring</div>
         </div>
         <LoginForm />
+        <QuickLoginButtons />
       </Card>
     </div>
   );
