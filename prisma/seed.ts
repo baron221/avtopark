@@ -1,13 +1,9 @@
 import "dotenv/config";
 import { PrismaClient, VehicleType, VehicleStatus, SalaryType, ExpenseCategory, PlanStatus } from "@prisma/client";
-import { PrismaNeon } from "@prisma/adapter-neon";
-import { neonConfig } from "@neondatabase/serverless";
-import ws from "ws";
+import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 
-neonConfig.webSocketConstructor = ws;
-
-const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL! });
+const adapter = new PrismaPg(process.env.DATABASE_URL!);
 const prisma = new PrismaClient({ adapter });
 
 const DEFAULT_PASSWORD = "parol123";
