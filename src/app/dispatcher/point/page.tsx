@@ -1,10 +1,11 @@
+import Link from "next/link";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { formatSom } from "@/lib/format";
-import { collectPlanPaymentAction, addStaffExpenseAction, addLunchAction } from "../actions";
+import { collectPlanPaymentAction } from "../actions";
 
 function startOfDay(d: Date) {
   const x = new Date(d);
@@ -156,27 +157,13 @@ export default async function DispatcherPointPage() {
               Qabul qilish ✓
             </button>
           </form>
-
-          <div className="border-t border-row-divider pt-3 flex gap-2">
-            <form action={addStaffExpenseAction} className="flex-1">
-              <input type="hidden" name="category" value="BOSHQA" />
-              <input type="hidden" name="amount" value="15000" />
-              <button
-                type="submit"
-                className="w-full bg-danger-tint text-danger rounded-xl py-2.5 font-extrabold text-[13px]"
-              >
-                + Rasxod
-              </button>
-            </form>
-            <form action={addLunchAction} className="flex-1">
-              <button
-                type="submit"
-                className="w-full bg-warning-tint text-warning rounded-xl py-2.5 font-extrabold text-[13px]"
-              >
-                + Obed
-              </button>
-            </form>
-          </div>
+          <p className="text-xs text-muted-2 font-semibold text-center pt-1">
+            Rasxod va obed qo&apos;shish uchun{" "}
+            <Link href="/dispatcher/journal" className="text-primary font-extrabold hover:underline">
+              Jurnal
+            </Link>{" "}
+            bo&apos;limiga o&apos;ting
+          </p>
         </Card>
       </div>
     </div>

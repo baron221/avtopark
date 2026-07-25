@@ -1,10 +1,11 @@
 "use server";
 
+import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import type { ExpenseCategory, Point, VehicleStatus, VehicleType } from "@prisma/client";
+import type { ExpenseCategory, Point, SalaryType, VehicleStatus, VehicleType } from "@prisma/client";
 
 async function requireMechanic() {
   const session = await auth();
@@ -84,6 +85,62 @@ export async function updateVehicleStatusAction(formData: FormData) {
 
   revalidatePath(`/mechanic/vehicles/${vehicleId}`);
   revalidatePath("/mechanic/vehicles");
+}
+
+export type CreateDriverState = { error: string };
+
+export async function createDriverAction(
+  _prevState: CreateDriverState,
+  formData: FormData
+): Promise<CreateDriverState> {
+  await requireMechanic();
+
+  const vehicleId = String(formData.get("vehicleId") ?? "");
+  const fullName = String(formData.get("fullName") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+  const licenseNo = String(formData.get("licenseNo") ?? "").trim();
+  const salaryType = (formData.get("salaryType") as SalaryType) || "FIXED";
+  const rawSalaryValue = Number(formData.get("salaryValue"));
+  const salaryValue = Number.isFinite(rawSalaryValue) ? Math.max(0, rawSalaryValue) : 0;
+
+  if (!vehicleId || !fullName || !phone || !password) {
+    return { error: "Barcha maydonlarni to'ldiring" };
+  }
+  if (password.length < 6) {
+    return { error: "Parol kamida 6 belgidan iborat bo'lishi kerak" };
+  }
+
+  const existing = await prisma.user.findUnique({ where: { phone } });
+  if (existing) {
+    return { error: "Bu telefon raqam bilan foydalanuvchi allaqachon mavjud" };
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  await prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: { fullName, phone, role: "DRIVER", passwordHash },
+    });
+    // Same free-then-assign rule as assignDriverAction, in case this vehicle
+    // already had a driver.
+    await tx.driver.updateMany({ where: { vehicleId }, data: { vehicleId: null } });
+    await tx.driver.create({
+      data: {
+        userId: user.id,
+        vehicleId,
+        licenseNo: licenseNo || "—",
+        salaryType,
+        salaryValue,
+        hiredAt: new Date(),
+      },
+    });
+  });
+
+  revalidatePath(`/mechanic/vehicles/${vehicleId}`);
+  revalidatePath("/mechanic/vehicles");
+  revalidatePath("/admin/users");
+  redirect(`/mechanic/vehicles/${vehicleId}`);
 }
 
 export async function assignDriverAction(formData: FormData) {

@@ -9,6 +9,7 @@ import { getOwnerDashboardVM } from "@/lib/dashboard";
 import { StatusSelect } from "./StatusSelect";
 import { ExpenseForm } from "./ExpenseForm";
 import { DriverSelect } from "./DriverSelect";
+import { AddDriverForm } from "./AddDriverForm";
 
 const CATEGORY_LABELS: Record<string, string> = {
   FUEL: "Yoqilg'i",
@@ -61,7 +62,10 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
             Tahrirlash
           </Link>
         </div>
-        <DriverSelect vehicleId={vehicle.id} currentDriverId={vehicle.driver?.id ?? null} drivers={driverOptions} />
+        <div className="flex items-center gap-3 flex-wrap">
+          <DriverSelect vehicleId={vehicle.id} currentDriverId={vehicle.driver?.id ?? null} drivers={driverOptions} />
+          <AddDriverForm vehicleId={vehicle.id} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
