@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+:root {
+  --background: #F6F7FB;
+  --foreground: #1E1F2B;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-manrope);
+  --font-heading: var(--font-space-grotesk);
+
+  /* Avtopark design tokens — variant 1a "Indigo" (design_handoff_avtopark/README.md) */
+  --color-primary: #4F46E5;
+  --color-primary-dark: #3730A3;
+  --color-primary-tint: #EEF0F8;
+  --color-page: #F6F7FB;
+  --color-card: #ffffff;
+  --color-border: #E7E8F0;
+  --color-row-divider: #F0F1F7;
+  --color-heading: #1E1F2B;
+  --color-body: #4A4B5C;
+  --color-muted: #6B6D82;
+  --color-muted-2: #8A8CA0;
+  --color-success: #1B9E6B;
+  --color-success-tint: #E4F5EC;
+  --color-danger: #D9534F;
+  --color-danger-tint: #FDECEA;
+  --color-warning: #B26A00;
+  --color-warning-tint: #FFF3E0;
+  --color-accent: #FFB84D;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-manrope), sans-serif;
+}

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #101218; font-family: 'Manrope', sans-serif; }
+  a { color: #4F46E5; text-decoration: none; }
+  a:hover { color: #3730A3; }
+</style>
+</helmet>
+
+<x-import component-from-global-scope="deck-stage" from="./deck-stage.js" width="1920" height="1080" hint-size="100%,100%">
+
+  <!-- 1: Muqova -->
+  <section data-label="Muqova" data-speaker-notes="Salomlashish. Loyiha maqsadi: 20 mashinaning har biridan qancha foyda tushayotganini aniq bilish." style="background: #4F46E5; color: #fff; display: flex; flex-direction: column; justify-content: center; padding: 140px; font-family: 'Manrope', sans-serif;">
+    <div style="display: flex; align-items: center; gap: 20px;">
+      <div style="width: 72px; height: 72px; border-radius: 20px; background: #fff; color: #4F46E5; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 32px;">FQ</div>
+      <div style="font-size: 28px; font-weight: 700; opacity: .85;">Farg'ona–Quva yo'nalishi</div>
+    </div>
+    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 110px; font-weight: 700; line-height: 1.05; margin-top: 48px; max-width: 1300px;">Avtopark foyda tizimi</div>
+    <div style="font-size: 34px; font-weight: 600; margin-top: 36px; opacity: .85;">Har bir mashinadan qancha foyda tushayotganini aniq bilish</div>
+    <div style="margin-top: 80px; display: flex; gap: 40px; font-size: 24px; font-weight: 700; opacity: .8;">
+      <span>20 mashina</span><span>·</span><span>18 haydovchi</span><span>·</span><span>Iyul 2026</span>
+    </div>
+  </section>
+
+  <!-- 2: Muammo -->
+  <section data-label="Muammo" data-speaker-notes="Hozirgi holat: hisob daftar-qalamda, foyda taxminan biliniladi. Uchta asosiy og'riq." style="background: #F6F7FB; color: #1E1F2B; display: flex; flex-direction: column; justify-content: center; padding: 120px 140px;">
+    <div style="font-size: 24px; font-weight: 800; color: #4F46E5; text-transform: uppercase; letter-spacing: .08em;">Muammo</div>
+    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; margin-top: 24px; max-width: 1400px;">Bugun foyda «taxminan» ma'lum</div>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; margin-top: 80px;">
+      <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 24px; padding: 48px;">
+        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 56px; font-weight: 700; color: #D9534F;">?</div>
+        <div style="font-size: 30px; font-weight: 800; margin-top: 20px;">Qaysi mashina foyda, qaysi biri zarar keltiryapti — noma'lum</div>
+      </div>
+      <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 24px; padding: 48px;">
+        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 56px; font-weight: 700; color: #D9534F;">✎</div>
+        <div style="font-size: 30px; font-weight: 800; margin-top: 20px;">Hisob daftarda — xatolar, yo'qolgan yozuvlar, vaqt sarfi</div>
+      </div>
+      <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 24px; padding: 48px;">
+        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 56px; font-weight: 700; color: #D9534F;">⏱</div>
+        <div style="font-size: 30px; font-weight: 800; margin-top: 20px;">Kim planni topshirdi, kim topshirmadi — kechqurungacha aniq emas</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3: Yechim -->
+  <section data-label="Yechim" data-speaker-notes="Bitta tizim: 3 xil daromad turi va barcha xarajatlar bir joyda. Telefonda ham kompyuterda ham ishlaydi." style="background: #101218; color: #F2F3F7; display: flex; flex-direction: column; justify-content: center; padding: 120px 140px;">
+    <div style="font-size: 24px; font-weight: 800; color: #C6F432; text-transform: uppercase; letter-spacing: .08em;">Yechim</div>
+    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; margin-top: 24px; max-width: 1500px;">Hamma hisob bitta tizimda — telefonda ham, kompyuterda ham</div>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; margin-top: 80px;">
+      <div style="background: #16181F; border: 1px solid #23262F; border-radius: 24px; padding: 44px;">
+        <div style="font-size: 26px; font-weight: 800; color: #C6F432;">3 xil daromad</div>
+        <div style="font-size: 26px; font-weight: 600; margin-top: 16px; color: #C6C8D4; line-height: 1.5;">Reys tushumi · kunlik plan · oylik ijara — hammasi avtomatik yig'iladi</div>
+      </div>
+      <div style="background: #16181F; border: 1px solid #23262F; border-radius: 24px; padding: 44px;">
+        <div style="font-size: 26px; font-weight: 800; color: #C6F432;">7 toifa xarajat</div>
+        <div style="font-size: 26px; font-weight: 600; margin-top: 16px; color: #C6C8D4; line-height: 1.5;">Yoqilg'i, maosh, ta'mir, soliq… — har biri mashinaga bog'lanadi</div>
+      </div>
+      <div style="background: #16181F; border: 1px solid #23262F; border-radius: 24px; padding: 44px;">
+        <div style="font-size: 26px; font-weight: 800; color: #C6F432;">Jonli nazorat</div>
+        <div style="font-size: 26px; font-weight: 600; margin-top: 16px; color: #C6C8D4; line-height: 1.5;">Plan holati kun davomida ko'rinadi: 16/20 topshirdi — kim qoldi, darhol ma'lum</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4: Rollar -->
+  <section data-label="Rollar" data-speaker-notes="Uch rol: egasi faqat ko'radi, dispetcher boshqaradi, haydovchi o'z reysini kiritadi. Har kim faqat o'ziga keraklisini ko'radi." style="background: #F6F7FB; color: #1E1F2B; display: flex; flex-direction: column; justify-content: center; padding: 120px 140px;">
+    <div style="font-size: 24px; font-weight: 800; color: #4F46E5; text-transform: uppercase; letter-spacing: .08em;">Qanday ishlaydi</div>
+    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; margin-top: 24px;">Uch rol — har kimga o'z oynasi</div>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; margin-top: 80px;">
+      <div style="background: #4F46E5; color: #fff; border-radius: 24px; padding: 48px;">
+        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 40px; font-weight: 700;">Egasi</div>
+        <div style="font-size: 26px; font-weight: 600; margin-top: 20px; line-height: 1.55; opacity: .9;">Foyda panelini ko'radi: kun · hafta · oy, har bir mashina va haydovchi bo'yicha. Hech narsa kiritmaydi.</div>
+      </div>
+      <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 24px; padding: 48px;">
+        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 40px; font-weight: 700; color: #4F46E5;">Dispetcher</div>
+        <div style="font-size: 26px; font-weight: 600; margin-top: 20px; line-height: 1.55; color: #4A4B5C;">Plan topshirig'ini qabul qiladi, xarajatlarni kiritadi, mashina va haydovchilarni boshqaradi.</div>
+      </div>
+      <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 24px; padding: 48px;">
+        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 40px; font-weight: 700; color: #4F46E5;">Haydovchi</div>
+        <div style="font-size: 26px; font-weight: 600; margin-top: 20px; line-height: 1.55; color: #4A4B5C;">Telefonda 30 soniyada reys tushumini kiritadi, plan holatini ko'radi.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5: Egasi paneli -->
+  <section data-label="Egasi paneli" data-speaker-notes="Egasi har kuni shu raqamlarni ko'radi: tushum, xarajat, sof foyda. Iyul misolida." style="background: #101218; color: #F2F3F7; display: flex; flex-direction: column; justify-content: center; padding: 120px 140px;">
+    <div style="font-size: 24px; font-weight: 800; color: #C6F432; text-transform: uppercase; letter-spacing: .08em;">Egasi paneli</div>
+    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; margin-top: 24px;">Bir qarashda butun avtopark</div>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; margin-top: 80px;">
+      <div style="background: #16181F; border: 1px solid #23262F; border-radius: 24px; padding: 48px;">
+        <div style="font-size: 24px; color: #9FA2B2; font-weight: 700;">Jami tushum · Iyul</div>
+        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; margin-top: 16px;">142,3 <span style="font-size: 32px; color: #9FA2B2;">mln</span></div>
+      </div>
+      <div style="background: #16181F; border: 1px solid #23262F; border-radius: 24px; padding: 48px;">
+        <div style="font-size: 24px; color: #9FA2B2; font-weight: 700;">Jami xarajat</div>
+        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; margin-top: 16px; color: #FF7A6B;">57,7 <span style="font-size: 32px; color: #9FA2B2;">mln</span></div>
+      </div>
+      <div style="background: #16181F; border: 2px solid #C6F432; border-radius: 24px; padding: 48px;">
+        <div style="font-size: 24px; color: #9FA2B2; font-weight: 700;">Sof foyda</div>
+        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; margin-top: 16px; color: #C6F432;">84,6 <span style="font-size: 32px; color: #9FA2B2;">mln</span></div>
+      </div>
+    </div>
+    <div style="margin-top: 48px; background: #16181F; border: 1px solid #23262F; border-radius: 24px; padding: 36px 48px; display: flex; justify-content: space-between; align-items: center;">
+      <div style="font-size: 28px; font-weight: 800;">Eng foydali mashina: <span style="color: #C6F432;">01 A 245 BA — +6,3 mln</span></div>
+      <div style="font-size: 28px; font-weight: 800;">E'tibor kerak: <span style="color: #FF7A6B;">01 D 574 EA — 9 kun ta'mirda</span></div>
+    </div>
+  </section>
+
+  <!-- 6: Telefon -->
+  <section data-label="Telefon ilovasi" data-speaker-notes="Haydovchi uchun juda sodda: yo'nalish, summa, saqlash. O'qimagan odam ham ishlata oladi." style="background: #F6F7FB; color: #1E1F2B; display: flex; align-items: center; gap: 120px; padding: 120px 140px;">
+    <div style="flex: 1;">
+      <div style="font-size: 24px; font-weight: 800; color: #4F46E5; text-transform: uppercase; letter-spacing: .08em;">Telefon ilovasi</div>
+      <div style="font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; margin-top: 24px;">Haydovchi reysni 30 soniyada kiritadi</div>
+      <div style="display: flex; flex-direction: column; gap: 24px; margin-top: 56px; font-size: 30px; font-weight: 700; color: #4A4B5C;">
+        <div style="display: flex; gap: 20px; align-items: center;"><span style="color: #4F46E5; font-family: 'Space Grotesk', sans-serif;">1</span><span>Yo'nalishni tanlaydi: Farg'ona → Quva</span></div>
+        <div style="display: flex; gap: 20px; align-items: center;"><span style="color: #4F46E5; font-family: 'Space Grotesk', sans-serif;">2</span><span>Yo'lovchi soni va summani kiritadi</span></div>
+        <div style="display: flex; gap: 20px; align-items: center;"><span style="color: #4F46E5; font-family: 'Space Grotesk', sans-serif;">3</span><span>Saqlaydi — egasi darhol ko'radi</span></div>
+      </div>
+    </div>
+    <div style="width: 440px; background: #fff; border-radius: 48px; border: 10px solid #1E1F2B; padding: 32px; flex-shrink: 0;">
+      <div style="font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700;">Tushum kiritish</div>
+      <div style="margin-top: 24px; display: flex; gap: 12px;">
+        <div style="flex: 1; background: #4F46E5; color: #fff; border-radius: 14px; padding: 16px; text-align: center; font-weight: 800; font-size: 18px;">Farg'ona → Quva</div>
+        <div style="flex: 1; background: #F6F7FB; border: 2px solid #E7E8F0; color: #8A8CA0; border-radius: 14px; padding: 16px; text-align: center; font-weight: 800; font-size: 18px;">Quva → Farg'ona</div>
+      </div>
+      <div style="margin-top: 20px; background: #F6F7FB; border: 3px solid #4F46E5; border-radius: 18px; padding: 24px; font-family: 'Space Grotesk', sans-serif; font-size: 44px; font-weight: 700;">120 000</div>
+      <div style="margin-top: 20px; background: #1E1F2B; color: #fff; border-radius: 16px; padding: 22px; text-align: center; font-weight: 800; font-size: 22px;">Saqlash ✓</div>
+    </div>
+  </section>
+
+  <!-- 7: Keyingi qadamlar -->
+  <section data-label="Keyingi qadamlar" data-speaker-notes="Dizayn tasdiqlansa — dasturlash bosqichi. Bosqichma-bosqich topshiriladi." style="background: #4F46E5; color: #fff; display: flex; flex-direction: column; justify-content: center; padding: 120px 140px;">
+    <div style="font-size: 24px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; opacity: .8;">Keyingi qadamlar</div>
+    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 80px; font-weight: 700; margin-top: 24px;">Ishga tushirish rejasi</div>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; margin-top: 80px;">
+      <div style="background: rgba(255,255,255,.12); border-radius: 24px; padding: 48px;">
+        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700;">1 · Dizaynni tasdiqlash</div>
+        <div style="font-size: 26px; font-weight: 600; margin-top: 16px; opacity: .85; line-height: 1.5;">Variantni tanlash, oynalarni ko'rib chiqish</div>
+      </div>
+      <div style="background: rgba(255,255,255,.12); border-radius: 24px; padding: 48px;">
+        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700;">2 · Dasturlash</div>
+        <div style="font-size: 26px; font-weight: 600; margin-top: 16px; opacity: .85; line-height: 1.5;">Baza + panel + telefon ilovasi (PWA)</div>
+      </div>
+      <div style="background: rgba(255,255,255,.12); border-radius: 24px; padding: 48px;">
+        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700;">3 · Sinov va o'qitish</div>
+        <div style="font-size: 26px; font-weight: 600; margin-top: 16px; opacity: .85; line-height: 1.5;">Avval 3-5 mashinada sinab, keyin butun parkka</div>
+      </div>
+    </div>
+  </section>
+
+</x-import>
+
+</x-dc>
+</body>
+</html>

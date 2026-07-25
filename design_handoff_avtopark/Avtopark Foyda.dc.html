@@ -1,0 +1,1813 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #E9EAF0; font-family: 'Manrope', sans-serif; }
+  a { color: #4F46E5; text-decoration: none; }
+  a:hover { color: #3730A3; }
+</style>
+</helmet>
+
+<section style="padding: 48px; display: flex; flex-direction: column; gap: 40px;">
+  <div style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; color: #1E1F2B;">4-tur: responsive — barcha rollar telefonda (bir tizim, moslashuvchan ko'rinish)</div>
+
+  <!-- ============ 4A : Telefon ko'rinishlari ============ -->
+  <div id="4a" style="display: flex; flex-direction: column; gap: 16px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <a href="#4a" style="background: #4F46E5; color: #fff; font-weight: 800; font-size: 13px; padding: 4px 10px; border-radius: 6px;">4a</a>
+      <span style="font-weight: 700; color: #1E1F2B;">Kompyuterdagi oynalar telefonda shunday moslashadi — jadval o'rniga kartochkalar, pastda rol menyusi</span>
+    </div>
+    <div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start;">
+
+      <!-- Buxgalter mobil -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Vedomost telefonda · <span style="color: #4F46E5;">buxgalter</span></div>
+        <div style="width: 375px; background: #F6F7FB; border-radius: 36px; overflow: hidden; box-shadow: 0 12px 40px rgba(30,31,43,.16); border: 8px solid #1E1F2B;" data-screen-label="4a Telefon — buxgalter vedomost">
+          <div style="padding: 20px 20px 0;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #8A8CA0;"><span>09:41</span><span>●●●</span></div>
+            <div style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; color: #1E1F2B; margin-top: 14px;">Vedomost · Iyul</div>
+            <div style="display: flex; gap: 8px; margin-top: 12px;">
+              <div style="flex: 1; background: #4F46E5; color: #fff; border-radius: 12px; padding: 10px; text-align: center;">
+                <div style="font-size: 11px; opacity: .8; font-weight: 700;">Sof foyda</div>
+                <div style="font-size: 16px; font-weight: 800;">72,7 mln</div>
+              </div>
+              <div style="flex: 1; background: #fff; border: 1px solid #E7E8F0; border-radius: 12px; padding: 10px; text-align: center;">
+                <div style="font-size: 11px; color: #8A8CA0; font-weight: 700;">Avanslar</div>
+                <div style="font-size: 16px; font-weight: 800; color: #4F46E5;">−1,6 mln</div>
+              </div>
+              <div style="flex: 1; background: #fff; border: 1px solid #E7E8F0; border-radius: 12px; padding: 10px; text-align: center;">
+                <div style="font-size: 11px; color: #8A8CA0; font-weight: 700;">Jarima</div>
+                <div style="font-size: 16px; font-weight: 800; color: #D9534F;">−2,1 mln</div>
+              </div>
+            </div>
+          </div>
+          <div style="padding: 14px 20px; display: flex; flex-direction: column; gap: 10px; max-height: 430px; overflow: hidden;">
+            <sc-for list="{{ payroll }}" as="p" hint-placeholder-count="4">
+              <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 14px; padding: 13px 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <div style="font-weight: 800; font-size: 14px; color: #1E1F2B;">{{ p.name }}</div>
+                  <div style="font-weight: 800; font-size: 15px; color: #1E1F2B; font-family: 'Space Grotesk', sans-serif;">{{ p.total }}</div>
+                </div>
+                <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2px 10px; margin-top: 6px; font-size: 12px; font-weight: 700;">
+                  <span style="color: #8A8CA0; white-space: nowrap;">{{ p.role }} · {{ p.salary }}</span>
+                  <span style="display: flex; gap: 6px;"><span style="color: #4F46E5; white-space: nowrap;">{{ p.advance }}</span><span style="color: #D9534F; white-space: nowrap;">{{ p.fines }}</span><span style="color: #B26A00; white-space: nowrap;">{{ p.lunch }}</span></span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display: flex; border-top: 1px solid #E7E8F0; background: #fff; padding: 10px 8px 16px;">
+            <div style="flex: 1; text-align: center; font-size: 11px; font-weight: 800; color: #4F46E5;">▤<br>Vedomost</div>
+            <div style="flex: 1; text-align: center; font-size: 11px; font-weight: 800; color: #8A8CA0;">◈<br>Avanslar</div>
+            <div style="flex: 1; text-align: center; font-size: 11px; font-weight: 800; color: #8A8CA0;">▥<br>Jarimalar</div>
+            <div style="flex: 1; text-align: center; font-size: 11px; font-weight: 800; color: #8A8CA0;">▨<br>Hisobot</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dispetcher mobil -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Kirim-chiqim telefonda · <span style="color: #4F46E5;">dispetcher</span></div>
+        <div style="width: 375px; background: #F6F7FB; border-radius: 36px; overflow: hidden; box-shadow: 0 12px 40px rgba(30,31,43,.16); border: 8px solid #1E1F2B;" data-screen-label="4a Telefon — dispetcher kirim-chiqim">
+          <div style="padding: 20px 20px 0;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #8A8CA0;"><span>09:41</span><span>●●●</span></div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px;">
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; color: #1E1F2B;">Farg'ona punkti</div>
+              <span style="background: #E4F5EC; color: #1B9E6B; font-size: 12px; font-weight: 800; padding: 4px 12px; border-radius: 20px;">5/11 mashina</span>
+            </div>
+            <div style="background: #4F46E5; border-radius: 14px; padding: 14px 16px; color: #fff; margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-size: 12px; opacity: .8; font-weight: 700;">Bugungi qoldiq</div>
+                <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700;">1 014 000</div>
+              </div>
+              <div style="font-size: 12px; font-weight: 800; text-align: right; opacity: .9;">Kirim +1 060 000<br>Chiqim −46 000</div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 12px;">
+              <div style="flex: 1; background: #1B9E6B; color: #fff; border-radius: 12px; padding: 13px; text-align: center; font-weight: 800; font-size: 14px;">+ Kirim</div>
+              <div style="flex: 1; background: #D9534F; color: #fff; border-radius: 12px; padding: 13px; text-align: center; font-weight: 800; font-size: 14px;">− Chiqim</div>
+            </div>
+          </div>
+          <div style="padding: 14px 20px; display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow: hidden;">
+            <div style="font-size: 12px; font-weight: 800; color: #8A8CA0; text-transform: uppercase; letter-spacing: .04em;">Bugungi jurnal</div>
+            <sc-for list="{{ dispDayLog }}" as="l" hint-placeholder-count="5">
+              <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 12px; padding: 11px 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                <div style="min-width: 0;">
+                  <div style="display: flex; gap: 8px; align-items: center;">
+                    <span style="font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 20px; background: {{ l.kindBg }}; color: {{ l.kindColor }};">{{ l.kind }}</span>
+                    <span style="font-size: 11px; color: #8A8CA0; font-weight: 700;">{{ l.time }}</span>
+                  </div>
+                  <div style="font-size: 12px; color: #4A4B5C; font-weight: 600; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ l.detail }}</div>
+                </div>
+                <div style="font-weight: 800; font-size: 14px; color: {{ l.sumColor }}; flex-shrink: 0;">{{ l.sum }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display: flex; border-top: 1px solid #E7E8F0; background: #fff; padding: 10px 8px 16px;">
+            <div style="flex: 1; text-align: center; font-size: 11px; font-weight: 800; color: #4F46E5;">◉<br>Punkt</div>
+            <div style="flex: 1; text-align: center; font-size: 11px; font-weight: 800; color: #8A8CA0;">▤<br>Jurnal</div>
+            <div style="flex: 1; text-align: center; font-size: 11px; font-weight: 800; color: #8A8CA0;">▥<br>Smenalar</div>
+            <div style="flex: 1; text-align: center; font-size: 11px; font-weight: 800; color: #8A8CA0;">◈<br>Profil</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mexanik mobil -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Yoqilg'i hisobi telefonda · <span style="color: #4F46E5;">mexanik</span></div>
+        <div style="width: 375px; background: #F6F7FB; border-radius: 36px; overflow: hidden; box-shadow: 0 12px 40px rgba(30,31,43,.16); border: 8px solid #1E1F2B;" data-screen-label="4a Telefon — mexanik">
+          <div style="padding: 20px 20px 0;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #8A8CA0;"><span>09:41</span><span>●●●</span></div>
+            <div style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; color: #1E1F2B; margin-top: 14px;">Yoqilg'i · 1–15 iyul</div>
+            <div style="background: #1E1F2B; border-radius: 14px; padding: 14px 16px; color: #fff; margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
+              <div style="font-size: 13px; font-weight: 700;">Davr bo'yicha jami</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700;">14 943 000</div>
+            </div>
+          </div>
+          <div style="padding: 14px 20px; display: flex; flex-direction: column; gap: 10px;">
+            <sc-for list="{{ stations }}" as="s" hint-placeholder-count="3">
+              <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 14px; padding: 13px 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                  <div style="font-weight: 800; font-size: 14px; color: #1E1F2B; min-width: 0;">{{ s.name }}</div>
+                  <span style="font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 20px; background: {{ s.stBg }}; color: {{ s.stColor }}; flex-shrink: 0;">{{ s.status }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 12px; font-weight: 700; color: #8A8CA0;">
+                  <span>{{ s.contract }} · {{ s.volume }}</span>
+                  <span style="color: #1E1F2B; font-weight: 800;">{{ s.amount }}</span>
+                </div>
+              </div>
+            </sc-for>
+            <div style="background: #4F46E5; color: #fff; border-radius: 14px; padding: 14px; text-align: center; font-weight: 800; font-size: 15px;">+ Quyish yozuvi</div>
+            <div style="font-size: 12px; font-weight: 800; color: #8A8CA0; text-transform: uppercase; letter-spacing: .04em; margin-top: 4px;">Oxirgi quyishlar</div>
+            <sc-for list="{{ fuelLog }}" as="f" hint-placeholder-count="2">
+              <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 12px; padding: 11px 14px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <div style="font-weight: 800; font-size: 13px; color: #4F46E5; font-family: 'Space Grotesk', sans-serif;">{{ f.plate }}</div>
+                  <div style="font-size: 11px; color: #8A8CA0; font-weight: 700; margin-top: 2px;">{{ f.date }} · {{ f.fuel }}</div>
+                </div>
+                <div style="font-weight: 800; font-size: 13px; color: #1E1F2B;">{{ f.sum }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display: flex; border-top: 1px solid #E7E8F0; background: #fff; padding: 10px 8px 16px;">
+            <div style="flex: 1; text-align: center; font-size: 11px; font-weight: 800; color: #4F46E5;">◉<br>Yoqilg'i</div>
+            <div style="flex: 1; text-align: center; font-size: 11px; font-weight: 800; color: #8A8CA0;">▤<br>Mashinalar</div>
+            <div style="flex: 1; text-align: center; font-size: 11px; font-weight: 800; color: #8A8CA0;">▥<br>To'lovlar</div>
+            <div style="flex: 1; text-align: center; font-size: 11px; font-weight: 800; color: #8A8CA0;">◈<br>Profil</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin mobil -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Boshqaruv telefonda · <span style="color: #4F46E5;">admin</span></div>
+        <div style="width: 375px; background: #F6F7FB; border-radius: 36px; overflow: hidden; box-shadow: 0 12px 40px rgba(30,31,43,.16); border: 8px solid #1E1F2B;" data-screen-label="4a Telefon — admin">
+          <div style="padding: 20px 20px 0;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #8A8CA0;"><span>09:41</span><span>●●●</span></div>
+            <div style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; color: #1E1F2B; margin-top: 14px;">Boshqaruv</div>
+            <div style="display: flex; gap: 8px; margin-top: 12px;">
+              <div style="flex: 1; background: #4F46E5; color: #fff; border-radius: 12px; padding: 12px; text-align: center;">
+                <div style="font-size: 18px; font-weight: 800; font-family: 'Space Grotesk', sans-serif;">41</div>
+                <div style="font-size: 11px; opacity: .85; font-weight: 700;">Xodimlar</div>
+              </div>
+              <div style="flex: 1; background: #fff; border: 1px solid #E7E8F0; border-radius: 12px; padding: 12px; text-align: center;">
+                <div style="font-size: 18px; font-weight: 800; font-family: 'Space Grotesk', sans-serif; color: #1E1F2B;">20</div>
+                <div style="font-size: 11px; color: #8A8CA0; font-weight: 700;">Mashinalar</div>
+              </div>
+              <div style="flex: 1; background: #fff; border: 1px solid #E7E8F0; border-radius: 12px; padding: 12px; text-align: center;">
+                <div style="font-size: 18px; font-weight: 800; font-family: 'Space Grotesk', sans-serif; color: #D9534F;">2</div>
+                <div style="font-size: 11px; color: #8A8CA0; font-weight: 700;">Ta'mirda</div>
+              </div>
+            </div>
+          </div>
+          <div style="padding: 14px 20px; display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow: hidden;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="font-size: 12px; font-weight: 800; color: #8A8CA0; text-transform: uppercase; letter-spacing: .04em;">Foydalanuvchilar</div>
+              <div style="background: #EEF0F8; color: #4F46E5; font-size: 11px; font-weight: 800; padding: 5px 12px; border-radius: 8px;">+ Qo'shish</div>
+            </div>
+            <sc-for list="{{ adminUsers }}" as="u" hint-placeholder-count="5">
+              <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 12px; padding: 11px 14px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                <div style="min-width: 0;">
+                  <div style="font-weight: 800; font-size: 13px; color: #1E1F2B;">{{ u.name }}</div>
+                  <div style="font-size: 11px; color: #8A8CA0; font-weight: 700; margin-top: 2px;">{{ u.phone }}</div>
+                </div>
+                <span style="font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 20px; background: {{ u.roleBg }}; color: {{ u.roleColor }}; flex-shrink: 0;">{{ u.role }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display: flex; border-top: 1px solid #E7E8F0; background: #fff; padding: 10px 8px 16px;">
+            <div style="flex: 1; text-align: center; font-size: 11px; font-weight: 800; color: #8A8CA0;">◉<br>Panel</div>
+            <div style="flex: 1; text-align: center; font-size: 11px; font-weight: 800; color: #4F46E5;">◈<br>Xodimlar</div>
+            <div style="flex: 1; text-align: center; font-size: 11px; font-weight: 800; color: #8A8CA0;">▤<br>Smenalar</div>
+            <div style="flex: 1; text-align: center; font-size: 11px; font-weight: 800; color: #8A8CA0;">▨<br>Hisobot</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Planshet: egasi paneli -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Planshet (768px) · <span style="color: #4F46E5;">egasi paneli — 2 ustunli moslashuv</span></div>
+        <div style="width: 768px; background: #F6F7FB; border-radius: 24px; overflow: hidden; box-shadow: 0 12px 40px rgba(30,31,43,.16); border: 8px solid #1E1F2B;" data-screen-label="4a Planshet — egasi">
+          <div style="padding: 20px 24px; background: #fff; border-bottom: 1px solid #E7E8F0; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 32px; height: 32px; border-radius: 9px; background: #4F46E5; color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 14px;">FQ</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; color: #1E1F2B;">FQ Avtopark</div>
+            </div>
+            <div style="display: flex; gap: 5px; background: #EEF0F8; padding: 3px; border-radius: 9px;">
+              <div style="padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 700; color: #6B6D82;">Kun</div>
+              <div style="padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 700; color: #6B6D82;">Hafta</div>
+              <div style="padding: 6px 14px; border-radius: 7px; background: #4F46E5; color: #fff; font-size: 12px; font-weight: 800;">Oy</div>
+            </div>
+          </div>
+          <div style="padding: 20px 24px; display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+              <div style="background: #4F46E5; border-radius: 14px; padding: 18px; color: #fff;">
+                <div style="font-size: 12px; opacity: .8; font-weight: 700;">Sof foyda · Iyul</div>
+                <div style="font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; margin-top: 6px;">84,6 mln</div>
+              </div>
+              <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 14px; padding: 18px;">
+                <div style="font-size: 12px; color: #8A8CA0; font-weight: 700;">Bugun plan topshirdi</div>
+                <div style="font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; margin-top: 6px; color: #1E1F2B;">16 / 20</div>
+              </div>
+            </div>
+            <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 14px; overflow: hidden;">
+              <div style="display: grid; grid-template-columns: 1.2fr 1.2fr 1fr .9fr; padding: 10px 18px; background: #F6F7FB; font-size: 11px; font-weight: 800; color: #8A8CA0; text-transform: uppercase; letter-spacing: .04em;">
+                <div>Mashina</div><div>Haydovchi</div><div>Foyda</div><div>Holat</div>
+              </div>
+              <sc-for list="{{ shifts }}" as="s" hint-placeholder-count="4">
+                <div style="display: grid; grid-template-columns: 1.2fr 1.2fr 1fr .9fr; padding: 11px 18px; border-top: 1px solid #F0F1F7; font-size: 13px; align-items: center;">
+                  <div style="font-weight: 800; color: #4F46E5; font-family: 'Space Grotesk', sans-serif;">{{ s.plate }}</div>
+                  <div style="font-weight: 700; color: #1E1F2B;">{{ s.morning }}</div>
+                  <div style="font-weight: 800; color: #1B9E6B;">+4,2 mln</div>
+                  <div><span style="font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 20px; background: {{ s.mBg }}; color: {{ s.mColor }};">{{ s.mStatus }}</span></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; color: #1E1F2B; border-top: 2px solid #D8DAE5; padding-top: 32px;">3-tur: yangi rollar — Admin · Buxgalter · Dispetcher (Farg'ona/Quva) · Mexanik + smena boshqaruvi</div>
+
+  <!-- ============ 3A : Yangi rollar oynalari ============ -->
+  <div id="3a" style="display: flex; flex-direction: column; gap: 16px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <a href="#3a" style="background: #4F46E5; color: #fff; font-weight: 800; font-size: 13px; padding: 4px 10px; border-radius: 6px;">3a</a>
+      <span style="font-weight: 700; color: #1E1F2B;">Yangi rollar oynalari (indigo uslubida)</span>
+    </div>
+    <div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start;">
+
+      <!-- Admin: foydalanuvchilar -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Foydalanuvchilar boshqaruvi · <span style="color: #4F46E5;">faqat admin</span></div>
+        <div style="width: 1100px; background: #F6F7FB; border-radius: 20px; box-shadow: 0 12px 40px rgba(30,31,43,.14); padding: 24px 28px; display: flex; flex-direction: column; gap: 18px;" data-screen-label="3a Admin — foydalanuvchilar">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; color: #1E1F2B;">Foydalanuvchilar va rollar</div>
+              <div style="font-size: 13px; color: #8A8CA0; font-weight: 600;">1 admin · 1 buxgalter · 2 dispetcher · 1 mexanik · 36 haydovchi</div>
+            </div>
+            <div style="background: #4F46E5; color: #fff; border-radius: 10px; padding: 10px 18px; font-weight: 800; font-size: 13px;">+ Foydalanuvchi qo'shish</div>
+          </div>
+          <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 16px; overflow: hidden;">
+            <div style="display: grid; grid-template-columns: 1.4fr 1.3fr 1.1fr .7fr .9fr; padding: 12px 24px; background: #F6F7FB; font-size: 12px; font-weight: 800; color: #8A8CA0; text-transform: uppercase; letter-spacing: .04em;">
+              <div>F.I.Sh.</div><div>Rol</div><div>Telefon (login)</div><div>Holat</div><div>Amallar</div>
+            </div>
+            <sc-for list="{{ adminUsers }}" as="u" hint-placeholder-count="7">
+              <div style="display: grid; grid-template-columns: 1.4fr 1.3fr 1.1fr .7fr .9fr; padding: 13px 24px; border-top: 1px solid #F0F1F7; font-size: 14px; align-items: center;">
+                <div style="font-weight: 800; color: #1E1F2B;">{{ u.name }}</div>
+                <div><span style="font-size: 12px; font-weight: 800; padding: 4px 12px; border-radius: 20px; background: {{ u.roleBg }}; color: {{ u.roleColor }};">{{ u.role }}</span></div>
+                <div style="color: #4A4B5C; font-weight: 700;">{{ u.phone }}</div>
+                <div><span style="font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 20px; background: {{ u.stBg }}; color: {{ u.stColor }};">{{ u.status }}</span></div>
+                <div style="display: flex; gap: 8px;">
+                  <span style="background: #EEF0F8; color: #4F46E5; font-size: 12px; font-weight: 800; padding: 5px 12px; border-radius: 8px;">Parol</span>
+                  <span style="background: #FDECEA; color: #D9534F; font-size: 12px; font-weight: 800; padding: 5px 12px; border-radius: 8px;">Bloklash</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kirish huquqlari matritsasi -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Kirish huquqlari · <span style="color: #4F46E5;">har kim faqat o'ziga tegishlini ko'radi (dispetcher — faqat o'z punktini)</span></div>
+        <div style="width: 1100px; background: #F6F7FB; border-radius: 20px; box-shadow: 0 12px 40px rgba(30,31,43,.14); padding: 24px 28px; display: flex; flex-direction: column; gap: 18px;" data-screen-label="3a Kirish huquqlari">
+          <div>
+            <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; color: #1E1F2B;">Rollar va kirish huquqlari</div>
+            <div style="font-size: 13px; color: #8A8CA0; font-weight: 600;">«Faqat o'ziniki» — o'z yozuvlari / o'z punkti / o'z smenasi. Farg'ona dispetcheri Quva punktini ko'rmaydi va aksincha.</div>
+          </div>
+          <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 16px; overflow: hidden;">
+            <div style="display: grid; grid-template-columns: 1.8fr .7fr .7fr .9fr 1.1fr .9fr 1.1fr; padding: 12px 24px; background: #F6F7FB; font-size: 12px; font-weight: 800; color: #8A8CA0; text-transform: uppercase; letter-spacing: .04em;">
+              <div>Bo'lim</div><div>Admin</div><div>Egasi</div><div>Buxgalter</div><div>Dispetcher</div><div>Mexanik</div><div>Haydovchi</div>
+            </div>
+            <sc-for list="{{ accessMatrix }}" as="r" hint-placeholder-count="9">
+              <div style="display: grid; grid-template-columns: 1.8fr .7fr .7fr .9fr 1.1fr .9fr 1.1fr; padding: 11px 24px; border-top: 1px solid #F0F1F7; font-size: 13px; align-items: center;">
+                <div style="font-weight: 700; color: #1E1F2B;">{{ r.module }}</div>
+                <div><span style="font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 20px; background: {{ r.admin.bg }}; color: {{ r.admin.c }};">{{ r.admin.t }}</span></div>
+                <div><span style="font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 20px; background: {{ r.owner.bg }}; color: {{ r.owner.c }};">{{ r.owner.t }}</span></div>
+                <div><span style="font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 20px; background: {{ r.acc.bg }}; color: {{ r.acc.c }};">{{ r.acc.t }}</span></div>
+                <div><span style="font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 20px; background: {{ r.disp.bg }}; color: {{ r.disp.c }};">{{ r.disp.t }}</span></div>
+                <div><span style="font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 20px; background: {{ r.mech.bg }}; color: {{ r.mech.c }};">{{ r.mech.t }}</span></div>
+                <div><span style="font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 20px; background: {{ r.drv.bg }}; color: {{ r.drv.c }};">{{ r.drv.t }}</span></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <!-- Smena boshqaruvi -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Smena boshqaruvi · <span style="color: #4F46E5;">admin · dispetcher</span></div>
+        <div style="width: 1100px; background: #F6F7FB; border-radius: 20px; box-shadow: 0 12px 40px rgba(30,31,43,.14); padding: 24px 28px; display: flex; flex-direction: column; gap: 18px;" data-screen-label="3a Smena boshqaruvi">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; color: #1E1F2B;">Smenalar · 23-iyul</div>
+              <div style="font-size: 13px; color: #8A8CA0; font-weight: 600;">Har mashinada 2 haydovchi smena almashadi — tushum va yoqilg'i smena bo'yicha yoziladi</div>
+            </div>
+            <div style="display: flex; gap: 6px; background: #EEF0F8; padding: 4px; border-radius: 10px;">
+              <div style="padding: 7px 18px; border-radius: 8px; background: #4F46E5; color: #fff; font-size: 13px; font-weight: 800;">Ertalab 06:00–14:00</div>
+              <div style="padding: 7px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; color: #6B6D82;">Kech 14:00–22:00</div>
+            </div>
+          </div>
+          <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 16px; overflow: hidden;">
+            <div style="display: grid; grid-template-columns: 1fr 1.2fr 1.2fr .8fr; padding: 12px 24px; background: #F6F7FB; font-size: 12px; font-weight: 800; color: #8A8CA0; text-transform: uppercase; letter-spacing: .04em;">
+              <div>Mashina</div><div>Ertalabki smena</div><div>Kechki smena</div><div>Holat</div>
+            </div>
+            <sc-for list="{{ shifts }}" as="s" hint-placeholder-count="5">
+              <div style="display: grid; grid-template-columns: 1fr 1.2fr 1.2fr .8fr; padding: 13px 24px; border-top: 1px solid #F0F1F7; font-size: 14px; align-items: center;">
+                <div style="font-weight: 800; color: #4F46E5; font-family: 'Space Grotesk', sans-serif;">{{ s.plate }}</div>
+                <div style="font-weight: 700; color: #1E1F2B;">{{ s.morning }}</div>
+                <div style="font-weight: 700; color: #4A4B5C;">{{ s.evening }}</div>
+                <div><span style="font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 20px; background: {{ s.mBg }}; color: {{ s.mColor }};">{{ s.mStatus }}</span></div>
+              </div>
+            </sc-for>
+            <div style="padding: 14px 24px; border-top: 1px solid #F0F1F7; font-size: 13px; font-weight: 800; color: #4F46E5; text-align: center;">Yana 15 ta mashina ↓ &nbsp;·&nbsp; ✎ Smenani almashtirish</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Buxgalter: oylik hisob-kitob -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Oylik hisob-kitob (maosh · jarima · obed) · <span style="color: #4F46E5;">buxgalter</span></div>
+        <div style="width: 1100px; background: #F6F7FB; border-radius: 20px; box-shadow: 0 12px 40px rgba(30,31,43,.14); padding: 24px 28px; display: flex; flex-direction: column; gap: 18px;" data-screen-label="3a Buxgalter — oylik hisob">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; color: #1E1F2B;">Oylik hisob-kitob · Iyul 2026</div>
+              <div style="font-size: 13px; color: #8A8CA0; font-weight: 600;">Maosh + bonus − avans − jarima − obed = qo'lga tegadi</div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+              <div style="background: #E4F5EC; color: #1B9E6B; border-radius: 10px; padding: 10px 18px; font-weight: 800; font-size: 13px;">+ Avans berish</div>
+              <div style="background: #fff; border: 1px solid #E7E8F0; color: #4A4B5C; border-radius: 10px; padding: 10px 18px; font-weight: 800; font-size: 13px;">⬇ Vedomost (Excel)</div>
+              <div style="background: #4F46E5; color: #fff; border-radius: 10px; padding: 10px 18px; font-weight: 800; font-size: 13px;">To'lovni tasdiqlash</div>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px;">
+            <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 14px; padding: 16px;">
+              <div style="font-size: 12px; color: #8A8CA0; font-weight: 700;">Jami maosh fondi</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-top: 6px; color: #1E1F2B;">124,3 mln</div>
+            </div>
+            <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 14px; padding: 16px;">
+              <div style="font-size: 12px; color: #8A8CA0; font-weight: 700;">Berilgan avanslar</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-top: 6px; color: #4F46E5;">−1,6 mln</div>
+            </div>
+            <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 14px; padding: 16px;">
+              <div style="font-size: 12px; color: #8A8CA0; font-weight: 700;">Jarimalar (ushlab qolinadi)</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-top: 6px; color: #D9534F;">−2,1 mln</div>
+            </div>
+            <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 14px; padding: 16px;">
+              <div style="font-size: 12px; color: #8A8CA0; font-weight: 700;">Obed xarajati</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-top: 6px; color: #B26A00;">−9,8 mln</div>
+            </div>
+            <div style="background: #4F46E5; border-radius: 14px; padding: 16px; color: #fff;">
+              <div style="font-size: 12px; opacity: .8; font-weight: 700;">Sof foyda (barcha hisobdan keyin)</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-top: 6px;">72,7 mln</div>
+            </div>
+          </div>
+          <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 16px; overflow: hidden;">
+            <div style="display: grid; grid-template-columns: 1.3fr .9fr .85fr .8fr .75fr .75fr .75fr 1fr; padding: 12px 24px; background: #F6F7FB; font-size: 12px; font-weight: 800; color: #8A8CA0; text-transform: uppercase; letter-spacing: .04em;">
+              <div>Xodim</div><div>Rol</div><div>Maosh</div><div>Avans</div><div>Jarima</div><div>Obed</div><div>Bonus</div><div>Qo'lga tegadi</div>
+            </div>
+            <sc-for list="{{ payroll }}" as="p" hint-placeholder-count="6">
+              <div style="display: grid; grid-template-columns: 1.3fr .9fr .85fr .8fr .75fr .75fr .75fr 1fr; padding: 13px 24px; border-top: 1px solid #F0F1F7; font-size: 14px; align-items: center;">
+                <div style="font-weight: 800; color: #1E1F2B;">{{ p.name }}</div>
+                <div style="color: #6B6D82; font-weight: 700;">{{ p.role }}</div>
+                <div style="font-weight: 700; color: #1E1F2B;">{{ p.salary }}</div>
+                <div style="font-weight: 800; color: #4F46E5;">{{ p.advance }}</div>
+                <div style="font-weight: 800; color: #D9534F;">{{ p.fines }}</div>
+                <div style="font-weight: 700; color: #B26A00;">{{ p.lunch }}</div>
+                <div style="font-weight: 700; color: #1B9E6B;">{{ p.bonus }}</div>
+                <div style="font-weight: 800; color: #1E1F2B; font-family: 'Space Grotesk', sans-serif;">{{ p.total }}</div>
+              </div>
+            </sc-for>
+            <div style="padding: 14px 24px; border-top: 1px solid #F0F1F7; font-size: 13px; font-weight: 800; color: #4F46E5; text-align: center;">Barcha xodimlar (41) ↓</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dispetcher: pul yig'ish punkti -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Pul yig'ish punkti · <span style="color: #4F46E5;">dispetcher (Farg'ona yoki Quva)</span></div>
+        <div style="width: 1100px; background: #F6F7FB; border-radius: 20px; box-shadow: 0 12px 40px rgba(30,31,43,.14); padding: 24px 28px; display: flex; flex-direction: column; gap: 18px;" data-screen-label="3a Dispetcher — pul yig'ish">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; color: #1E1F2B;">Farg'ona punkti · 23-iyul</div>
+              <div style="font-size: 13px; color: #8A8CA0; font-weight: 600;">Muzaffar To'rayev · kelgan har mashinadan pul qabul qilinadi</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="background: #EEF0F8; color: #4F46E5; font-size: 13px; font-weight: 800; padding: 8px 18px; border-radius: 20px;">📍 Farg'ona punkti</span>
+              <span style="font-size: 12px; color: #8A8CA0; font-weight: 700;">Dispetcher faqat o'z punktini ko'radi</span>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;">
+            <div style="background: #4F46E5; border-radius: 14px; padding: 16px; color: #fff;">
+              <div style="font-size: 12px; opacity: .8; font-weight: 700;">Bugun yig'ildi</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-top: 6px;">1 218 000</div>
+            </div>
+            <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 14px; padding: 16px;">
+              <div style="font-size: 12px; color: #8A8CA0; font-weight: 700;">Qabul qilingan mashina</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-top: 6px; color: #1E1F2B;">5 / 11</div>
+            </div>
+            <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 14px; padding: 16px;">
+              <div style="font-size: 12px; color: #8A8CA0; font-weight: 700;">Mening rasxodim (bugun)</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-top: 6px; color: #D9534F;">−38 000</div>
+            </div>
+            <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 14px; padding: 16px;">
+              <div style="font-size: 12px; color: #8A8CA0; font-weight: 700;">Obed</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-top: 6px; color: #B26A00;">−12 000</div>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 340px; gap: 14px; align-items: start;">
+            <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 16px; overflow: hidden;">
+              <div style="display: grid; grid-template-columns: .6fr 1fr 1.2fr .9fr 1.1fr; padding: 12px 24px; background: #F6F7FB; font-size: 12px; font-weight: 800; color: #8A8CA0; text-transform: uppercase; letter-spacing: .04em;">
+                <div>Vaqt</div><div>Mashina</div><div>Haydovchi</div><div>Summa</div><div>Izoh</div>
+              </div>
+              <sc-for list="{{ collections }}" as="c" hint-placeholder-count="5">
+                <div style="display: grid; grid-template-columns: .6fr 1fr 1.2fr .9fr 1.1fr; padding: 13px 24px; border-top: 1px solid #F0F1F7; font-size: 14px; align-items: center;">
+                  <div style="color: #8A8CA0; font-weight: 700;">{{ c.time }}</div>
+                  <div style="font-weight: 800; color: #4F46E5; font-family: 'Space Grotesk', sans-serif;">{{ c.plate }}</div>
+                  <div style="font-weight: 700; color: #1E1F2B;">{{ c.driver }}</div>
+                  <div style="font-weight: 800; color: #1E1F2B;">{{ c.sum }}</div>
+                  <div><span style="font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 20px; background: {{ c.stBg }}; color: {{ c.stColor }};">{{ c.note }}</span></div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; color: #1E1F2B;">Pul qabul qilish</div>
+              <div style="background: #F6F7FB; border: 2px solid #E7E8F0; border-radius: 10px; padding: 11px 14px; font-weight: 800; color: #1E1F2B; display: flex; justify-content: space-between; font-size: 14px;"><span>01 E 908 FA · Ijara</span><span style="color: #8A8CA0;">▾</span></div>
+              <div style="background: #F6F7FB; border: 2px solid #4F46E5; border-radius: 12px; padding: 14px; font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; color: #1E1F2B;">450 000</div>
+              <div style="background: #4F46E5; color: #fff; border-radius: 10px; padding: 13px; text-align: center; font-weight: 800; font-size: 14px;">Qabul qilish ✓</div>
+              <div style="border-top: 1px solid #F0F1F7; padding-top: 12px; display: flex; gap: 8px;">
+                <div style="flex: 1; background: #FDECEA; color: #D9534F; border-radius: 10px; padding: 10px; text-align: center; font-weight: 800; font-size: 13px;">+ Rasxod</div>
+                <div style="flex: 1; background: #FFF3E0; color: #B26A00; border-radius: 10px; padding: 10px; text-align: center; font-weight: 800; font-size: 13px;">+ Obed</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dispetcher: kirim-chiqim kiritish -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Kirim-chiqim kiritish · <span style="color: #4F46E5;">dispetcher</span></div>
+        <div style="width: 1100px; background: #F6F7FB; border-radius: 20px; box-shadow: 0 12px 40px rgba(30,31,43,.14); padding: 24px 28px; display: flex; flex-direction: column; gap: 18px;" data-screen-label="3a Dispetcher — kirim-chiqim">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; color: #1E1F2B;">Kirim-chiqim · 23-iyul</div>
+              <div style="font-size: 13px; color: #8A8CA0; font-weight: 600;">Muzaffar To'rayev · Farg'ona punkti</div>
+            </div>
+            <div style="display: flex; gap: 16px; font-size: 14px; font-weight: 800;">
+              <span style="color: #1B9E6B;">Kirim: +1 060 000</span>
+              <span style="color: #D9534F;">Chiqim: −46 000</span>
+              <span style="color: #1E1F2B;">Qoldiq: 1 014 000</span>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 340px 340px 1fr; gap: 14px; align-items: start;">
+            <!-- Kirim form -->
+            <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; color: #1B9E6B;">+ Kirim kiritish</div>
+              <div style="display: flex; gap: 8px;">
+                <sc-for list="{{ dispIncomeTypes }}" as="t" hint-placeholder-count="2">
+                  <sc-if value="{{ t.active }}" hint-placeholder-val="{{ true }}">
+                    <div style="flex: 1; background: #1B9E6B; color: #fff; border-radius: 10px; padding: 10px; text-align: center; font-weight: 800; font-size: 13px;">{{ t.name }}</div>
+                  </sc-if>
+                  <sc-if value="{{ t.inactive }}" hint-placeholder-val="{{ false }}">
+                    <div style="flex: 1; background: #F6F7FB; border: 2px solid #E7E8F0; color: #6B6D82; border-radius: 10px; padding: 10px; text-align: center; font-weight: 800; font-size: 13px;">{{ t.name }}</div>
+                  </sc-if>
+                </sc-for>
+              </div>
+              <div style="background: #F6F7FB; border: 2px solid #E7E8F0; border-radius: 10px; padding: 11px 14px; font-weight: 800; color: #1E1F2B; display: flex; justify-content: space-between; font-size: 14px;"><span>01 A 245 BA · Olim K.</span><span style="color: #8A8CA0;">▾</span></div>
+              <div style="background: #F6F7FB; border: 2px solid #1B9E6B; border-radius: 12px; padding: 14px; font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; color: #1E1F2B;">260 000</div>
+              <div style="background: #F6F7FB; border: 2px solid #E7E8F0; border-radius: 10px; padding: 11px 14px; font-weight: 600; color: #8A8CA0; font-size: 14px;">Izoh (zakaz bo'lsa: qayerga, kimga)</div>
+              <div style="background: #1B9E6B; color: #fff; border-radius: 10px; padding: 13px; text-align: center; font-weight: 800; font-size: 14px;">Saqlash ✓</div>
+            </div>
+            <!-- Chiqim form -->
+            <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; color: #D9534F;">− Chiqim kiritish</div>
+              <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                <sc-for list="{{ dispExpenseTypes }}" as="c" hint-placeholder-count="4">
+                  <div style="background: #F6F7FB; border: 2px solid #E7E8F0; border-radius: 20px; padding: 8px 14px; font-size: 13px; font-weight: 800; color: #6B6D82;">{{ c }}</div>
+                </sc-for>
+              </div>
+              <div style="background: #F6F7FB; border: 2px solid #D9534F; border-radius: 12px; padding: 14px; font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; color: #1E1F2B;">15 000</div>
+              <div style="background: #F6F7FB; border: 2px solid #E7E8F0; border-radius: 10px; padding: 11px 14px; font-weight: 600; color: #8A8CA0; font-size: 14px;">Izoh</div>
+              <div style="background: #D9534F; color: #fff; border-radius: 10px; padding: 13px; text-align: center; font-weight: 800; font-size: 14px;">Saqlash ✓</div>
+            </div>
+            <!-- Kunlik jurnal -->
+            <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 16px; overflow: hidden;">
+              <div style="padding: 14px 20px; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; color: #1E1F2B;">Bugungi jurnal</div>
+              <sc-for list="{{ dispDayLog }}" as="l" hint-placeholder-count="6">
+                <div style="display: grid; grid-template-columns: 52px 110px 1fr auto; gap: 10px; padding: 10px 20px; border-top: 1px solid #F0F1F7; font-size: 13px; align-items: center;">
+                  <div style="color: #8A8CA0; font-weight: 700;">{{ l.time }}</div>
+                  <div><span style="font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 20px; background: {{ l.kindBg }}; color: {{ l.kindColor }};">{{ l.kind }}</span></div>
+                  <div style="color: #4A4B5C; font-weight: 600; min-width: 0; overflow-wrap: anywhere;">{{ l.detail }}</div>
+                  <div style="font-weight: 800; color: {{ l.sumColor }};">{{ l.sum }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mexanik: yoqilg'i va shartnomalar -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Yoqilg'i hisobi va zapravka shartnomalari · <span style="color: #4F46E5;">mexanik</span></div>
+        <div style="width: 1100px; background: #F6F7FB; border-radius: 20px; box-shadow: 0 12px 40px rgba(30,31,43,.14); padding: 24px 28px; display: flex; flex-direction: column; gap: 18px;" data-screen-label="3a Mexanik — yoqilg'i">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; color: #1E1F2B;">Yoqilg'i hisobi · 1–15 iyul</div>
+              <div style="font-size: 13px; color: #8A8CA0; font-weight: 600;">G'ayrat Usmonov · 3 ta zapravka bilan shartnoma · mashinalar ro'yxati va ta'mir ham mexanik zimmasida</div>
+            </div>
+            <div style="display: flex; gap: 6px; background: #EEF0F8; padding: 4px; border-radius: 10px;">
+              <div style="padding: 7px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; color: #6B6D82;">Hafta</div>
+              <div style="padding: 7px 18px; border-radius: 8px; background: #4F46E5; color: #fff; font-size: 13px; font-weight: 800;">15 kun</div>
+              <div style="padding: 7px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; color: #6B6D82;">Oy</div>
+            </div>
+          </div>
+          <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 16px; overflow: hidden;">
+            <div style="display: grid; grid-template-columns: 1.4fr .9fr .8fr .9fr 1fr 1fr; padding: 12px 24px; background: #F6F7FB; font-size: 12px; font-weight: 800; color: #8A8CA0; text-transform: uppercase; letter-spacing: .04em;">
+              <div>Zapravka</div><div>Shartnoma</div><div>Davr</div><div>Hajm</div><div>Summa (so'm)</div><div>To'lov holati</div>
+            </div>
+            <sc-for list="{{ stations }}" as="s" hint-placeholder-count="3">
+              <div style="display: grid; grid-template-columns: 1.4fr .9fr .8fr .9fr 1fr 1fr; padding: 14px 24px; border-top: 1px solid #F0F1F7; font-size: 14px; align-items: center;">
+                <div style="font-weight: 800; color: #1E1F2B;">{{ s.name }}</div>
+                <div style="color: #4F46E5; font-weight: 800;">{{ s.contract }}</div>
+                <div style="color: #8A8CA0; font-weight: 700;">{{ s.period }}</div>
+                <div style="font-weight: 700; color: #1E1F2B;">{{ s.volume }}</div>
+                <div style="font-weight: 800; color: #1E1F2B; font-family: 'Space Grotesk', sans-serif;">{{ s.amount }}</div>
+                <div><span style="font-size: 12px; font-weight: 800; padding: 4px 12px; border-radius: 20px; background: {{ s.stBg }}; color: {{ s.stColor }};">{{ s.status }}</span></div>
+              </div>
+            </sc-for>
+            <div style="display: flex; justify-content: space-between; padding: 14px 24px; border-top: 1px solid #F0F1F7; background: #F6F7FB;">
+              <span style="font-weight: 800; font-size: 14px; color: #1E1F2B;">Jami davr bo'yicha</span>
+              <span style="font-weight: 800; font-size: 14px; color: #1E1F2B; font-family: 'Space Grotesk', sans-serif;">14 943 000 so'm</span>
+            </div>
+          </div>
+          <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 16px; overflow: hidden;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px;">
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px; color: #1E1F2B;">Quyish jurnali (mashina bo'yicha)</div>
+              <div style="background: #EEF0F8; color: #4F46E5; border-radius: 10px; padding: 8px 16px; font-weight: 800; font-size: 13px;">+ Quyish yozuvi</div>
+            </div>
+            <sc-for list="{{ fuelLog }}" as="f" hint-placeholder-count="4">
+              <div style="display: grid; grid-template-columns: 1fr .9fr .8fr 1.1fr 1fr .7fr; padding: 12px 24px; border-top: 1px solid #F0F1F7; font-size: 14px; align-items: center;">
+                <div style="color: #8A8CA0; font-weight: 700;">{{ f.date }}</div>
+                <div style="font-weight: 800; color: #4F46E5; font-family: 'Space Grotesk', sans-serif;">{{ f.plate }}</div>
+                <div style="color: #4A4B5C; font-weight: 700;">{{ f.driver }}</div>
+                <div style="color: #4A4B5C; font-weight: 600;">{{ f.station }}</div>
+                <div style="font-weight: 700; color: #1E1F2B;">{{ f.fuel }}</div>
+                <div style="font-weight: 800; color: #1E1F2B; text-align: right;">{{ f.sum }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; color: #1E1F2B; border-top: 2px solid #D8DAE5; padding-top: 32px;">2-tur: qolgan oynalar — har uch variant uchun (login, mashinalar, mashina sahifasi, haydovchilar, hisobot, xarajat kiritish)</div>
+
+  <!-- ============ 2A : Indigo — qolgan oynalar ============ -->
+  <div id="2a" style="display: flex; flex-direction: column; gap: 16px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <a href="#2a" style="background: #4F46E5; color: #fff; font-weight: 800; font-size: 13px; padding: 4px 10px; border-radius: 6px;">2a</a>
+      <span style="font-weight: 700; color: #1E1F2B;">Indigo uslubida qolgan oynalar</span>
+    </div>
+    <div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start;">
+
+      <!-- Login 2a -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Kirish · <span style="color: #4F46E5;">barcha rollar</span></div>
+        <div style="width: 420px; background: #F6F7FB; border-radius: 20px; box-shadow: 0 12px 40px rgba(30,31,43,.14); padding: 40px 36px; display: flex; flex-direction: column; gap: 18px;" data-screen-label="2a Login">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+            <div style="width: 52px; height: 52px; border-radius: 14px; background: #4F46E5; color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 22px;">FQ</div>
+            <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; color: #1E1F2B;">Farg'ona–Quva Avtopark</div>
+            <div style="font-size: 13px; color: #8A8CA0; font-weight: 600;">Telefon raqamingiz bilan kiring</div>
+          </div>
+          <div>
+            <div style="font-size: 13px; font-weight: 800; color: #4A4B5C; margin-bottom: 6px;">Telefon raqam</div>
+            <div style="background: #fff; border: 2px solid #4F46E5; border-radius: 12px; padding: 13px 16px; font-size: 16px; font-weight: 700; color: #1E1F2B;">+998 91 234 56 78</div>
+          </div>
+          <div>
+            <div style="font-size: 13px; font-weight: 800; color: #4A4B5C; margin-bottom: 6px;">Parol</div>
+            <div style="background: #fff; border: 2px solid #E7E8F0; border-radius: 12px; padding: 13px 16px; font-size: 16px; font-weight: 700; color: #8A8CA0;">••••••••</div>
+          </div>
+          <div style="background: #4F46E5; color: #fff; border-radius: 12px; padding: 15px; text-align: center; font-weight: 800; font-size: 15px;">Kirish</div>
+          <div style="font-size: 12px; color: #8A8CA0; font-weight: 600; text-align: center;">Rol tizim tomonidan aniqlanadi: egasi · dispetcher · haydovchi</div>
+        </div>
+      </div>
+
+      <!-- Xarajat kiritish 2a (mobile) -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Xarajat kiritish · <span style="color: #4F46E5;">dispetcher / haydovchi</span></div>
+        <div style="width: 375px; background: #F6F7FB; border-radius: 36px; overflow: hidden; box-shadow: 0 12px 40px rgba(30,31,43,.16); border: 8px solid #1E1F2B;" data-screen-label="2a Telefon — xarajat kiritish">
+          <div style="padding: 20px;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #8A8CA0;"><span>09:41</span><span>●●●</span></div>
+            <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; color: #1E1F2B; margin-top: 16px;">Xarajat kiritish</div>
+            <div style="margin-top: 18px; display: flex; flex-direction: column; gap: 14px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 800; color: #4A4B5C; margin-bottom: 6px;">Mashina</div>
+                <div style="background: #fff; border: 2px solid #E7E8F0; border-radius: 12px; padding: 13px 16px; font-weight: 800; color: #1E1F2B; display: flex; justify-content: space-between;"><span>01 A 245 BA · Isuzu</span><span style="color: #8A8CA0;">▾</span></div>
+              </div>
+              <div>
+                <div style="font-size: 13px; font-weight: 800; color: #4A4B5C; margin-bottom: 8px;">Toifa</div>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                  <sc-for list="{{ expCats }}" as="c" hint-placeholder-count="7">
+                    <div style="background: #fff; border: 2px solid #E7E8F0; border-radius: 20px; padding: 8px 14px; font-size: 13px; font-weight: 800; color: #6B6D82;">{{ c }}</div>
+                  </sc-for>
+                </div>
+              </div>
+              <div>
+                <div style="font-size: 13px; font-weight: 800; color: #4A4B5C; margin-bottom: 6px;">Summa (so'm)</div>
+                <div style="background: #fff; border: 2px solid #4F46E5; border-radius: 14px; padding: 16px; font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; color: #1E1F2B;">180 000</div>
+              </div>
+              <div>
+                <div style="font-size: 13px; font-weight: 800; color: #4A4B5C; margin-bottom: 6px;">Izoh</div>
+                <div style="background: #fff; border: 2px solid #E7E8F0; border-radius: 12px; padding: 13px 16px; font-weight: 600; color: #8A8CA0;">Metan 120 m³</div>
+              </div>
+              <div style="background: #4F46E5; color: #fff; border-radius: 14px; padding: 16px; text-align: center; font-weight: 800; font-size: 16px;">Saqlash ✓</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mashinalar ro'yxati 2a -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Mashinalar ro'yxati · <span style="color: #4F46E5;">mexanik (qo'shadi, boshqaradi) · egasi (ko'radi)</span></div>
+        <div style="width: 1100px; background: #F6F7FB; border-radius: 20px; box-shadow: 0 12px 40px rgba(30,31,43,.14); padding: 24px 28px; display: flex; flex-direction: column; gap: 18px;" data-screen-label="2a Mashinalar ro'yxati">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; color: #1E1F2B;">Mashinalar</div>
+            <div style="background: #4F46E5; color: #fff; border-radius: 10px; padding: 10px 18px; font-weight: 800; font-size: 13px;">+ Mashina qo'shish</div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <div style="background: #4F46E5; color: #fff; border-radius: 20px; padding: 7px 16px; font-size: 13px; font-weight: 800;">Barchasi · 20</div>
+            <div style="background: #fff; border: 1px solid #E7E8F0; color: #6B6D82; border-radius: 20px; padding: 7px 16px; font-size: 13px; font-weight: 800;">Liniyada · 14</div>
+            <div style="background: #fff; border: 1px solid #E7E8F0; color: #6B6D82; border-radius: 20px; padding: 7px 16px; font-size: 13px; font-weight: 800;">Ijarada · 4</div>
+            <div style="background: #fff; border: 1px solid #E7E8F0; color: #6B6D82; border-radius: 20px; padding: 7px 16px; font-size: 13px; font-weight: 800;">Ta'mirda · 2</div>
+          </div>
+          <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 16px; overflow: hidden;">
+            <div style="display: grid; grid-template-columns: 1.3fr 1fr .7fr .7fr 1.2fr .9fr .9fr .8fr; padding: 12px 24px; background: #F6F7FB; font-size: 12px; font-weight: 800; color: #8A8CA0; text-transform: uppercase; letter-spacing: .04em;">
+              <div>Raqam</div><div>Model</div><div>Turi</div><div>Rejim</div><div>Haydovchi / ijarachi</div><div>Tushum</div><div>Foyda</div><div>Holat</div>
+            </div>
+            <sc-for list="{{ fleetA }}" as="c" hint-placeholder-count="8">
+              <div style="display: grid; grid-template-columns: 1.3fr 1fr .7fr .7fr 1.2fr .9fr .9fr .8fr; padding: 13px 24px; border-top: 1px solid #F0F1F7; font-size: 14px; align-items: center;">
+                <div style="font-weight: 800; color: #4F46E5; font-family: 'Space Grotesk', sans-serif;">{{ c.plate }}</div>
+                <div style="font-weight: 600; color: #1E1F2B;">{{ c.model }}</div>
+                <div style="color: #6B6D82; font-weight: 600;">{{ c.type }}</div>
+                <div style="color: #6B6D82; font-weight: 700;">{{ c.mode }}</div>
+                <div style="color: #4A4B5C; font-weight: 600;">{{ c.driver }}</div>
+                <div style="font-weight: 700; color: #1E1F2B;">{{ c.income }}</div>
+                <div style="font-weight: 800; color: #1B9E6B;">{{ c.profit }}</div>
+                <div><span style="font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 20px; background: {{ c.stBg }}; color: {{ c.stColor }};">{{ c.status }}</span></div>
+              </div>
+            </sc-for>
+            <div style="padding: 14px 24px; border-top: 1px solid #F0F1F7; font-size: 13px; font-weight: 800; color: #4F46E5; text-align: center;">Yana 12 ta mashinani ko'rish ↓</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mashina sahifasi 2a -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Mashina sahifasi · <span style="color: #4F46E5;">mexanik · egasi</span></div>
+        <div style="width: 1100px; background: #F6F7FB; border-radius: 20px; box-shadow: 0 12px 40px rgba(30,31,43,.14); padding: 24px 28px; display: flex; flex-direction: column; gap: 18px;" data-screen-label="2a Mashina sahifasi">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div style="font-size: 13px; font-weight: 800; color: #8A8CA0;">← Mashinalar</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 22px; color: #1E1F2B;">01 A 245 BA · Isuzu HC40</div>
+              <span style="font-size: 12px; font-weight: 800; padding: 5px 12px; border-radius: 20px; background: #E4F5EC; color: #1B9E6B;">Liniyada</span>
+            </div>
+            <div style="font-size: 14px; font-weight: 700; color: #4A4B5C;">Haydovchi: <span style="color: #1E1F2B; font-weight: 800;">Olim Karimov</span></div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;">
+            <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 14px; padding: 16px;">
+              <div style="font-size: 12px; color: #8A8CA0; font-weight: 700;">Tushum · Iyul</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-top: 6px; color: #1E1F2B;">9,4 mln</div>
+            </div>
+            <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 14px; padding: 16px;">
+              <div style="font-size: 12px; color: #8A8CA0; font-weight: 700;">Xarajat · Iyul</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-top: 6px; color: #D9534F;">3,1 mln</div>
+            </div>
+            <div style="background: #4F46E5; border-radius: 14px; padding: 16px; color: #fff;">
+              <div style="font-size: 12px; opacity: .8; font-weight: 700;">Sof foyda · Iyul</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-top: 6px;">+6,3 mln</div>
+            </div>
+            <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 14px; padding: 16px;">
+              <div style="font-size: 12px; color: #8A8CA0; font-weight: 700;">Reyslar · Iyul</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-top: 6px; color: #1E1F2B;">128</div>
+            </div>
+          </div>
+          <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 16px; overflow: hidden;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px;">
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px; color: #1E1F2B;">Oxirgi xarajatlar</div>
+              <div style="background: #EEF0F8; color: #4F46E5; border-radius: 10px; padding: 8px 16px; font-weight: 800; font-size: 13px;">+ Xarajat qo'shish</div>
+            </div>
+            <sc-for list="{{ vehExpenses }}" as="e" hint-placeholder-count="5">
+              <div style="display: grid; grid-template-columns: .6fr .9fr 2fr 1fr; padding: 12px 24px; border-top: 1px solid #F0F1F7; font-size: 14px; align-items: center;">
+                <div style="color: #8A8CA0; font-weight: 700;">{{ e.date }}</div>
+                <div><span style="background: #EEF0F8; color: #4F46E5; font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 20px;">{{ e.cat }}</span></div>
+                <div style="color: #4A4B5C; font-weight: 600;">{{ e.note }}</div>
+                <div style="font-weight: 800; color: #1E1F2B; text-align: right;">−{{ e.amount }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <!-- Haydovchilar 2a -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Haydovchilar · <span style="color: #4F46E5;">egasi · dispetcher</span></div>
+        <div style="width: 1100px; background: #F6F7FB; border-radius: 20px; box-shadow: 0 12px 40px rgba(30,31,43,.14); padding: 24px 28px; display: flex; flex-direction: column; gap: 18px;" data-screen-label="2a Haydovchilar">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; color: #1E1F2B;">Haydovchilar · 18</div>
+            <div style="background: #4F46E5; color: #fff; border-radius: 10px; padding: 10px 18px; font-weight: 800; font-size: 13px;">+ Haydovchi qo'shish</div>
+          </div>
+          <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 16px; overflow: hidden;">
+            <div style="display: grid; grid-template-columns: 1.4fr 1.1fr .7fr 1.3fr .8fr 1fr; padding: 12px 24px; background: #F6F7FB; font-size: 12px; font-weight: 800; color: #8A8CA0; text-transform: uppercase; letter-spacing: .04em;">
+              <div>Haydovchi</div><div>Mashina</div><div>Reyslar</div><div>Plan bajarilishi</div><div>Maosh</div><div>Sof hissa</div>
+            </div>
+            <sc-for list="{{ driversList }}" as="d" hint-placeholder-count="5">
+              <div style="display: grid; grid-template-columns: 1.4fr 1.1fr .7fr 1.3fr .8fr 1fr; padding: 14px 24px; border-top: 1px solid #F0F1F7; font-size: 14px; align-items: center;">
+                <div style="font-weight: 800; color: #1E1F2B;">{{ d.name }}</div>
+                <div style="font-weight: 700; color: #4F46E5; font-family: 'Space Grotesk', sans-serif;">{{ d.plate }}</div>
+                <div style="color: #4A4B5C; font-weight: 700;">{{ d.trips }}</div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div style="flex: 1; height: 8px; background: #EEF0F8; border-radius: 6px; overflow: hidden;"><div style="height: 100%; background: #4F46E5; border-radius: 6px; width: {{ d.planPct }};"></div></div>
+                  <span style="font-size: 12px; font-weight: 800; color: #6B6D82; width: 38px;">{{ d.planPct }}</span>
+                </div>
+                <div style="color: #4A4B5C; font-weight: 700;">{{ d.salary }}</div>
+                <div style="font-weight: 800; color: #1B9E6B;">{{ d.contrib }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hisobot 2a -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Oylik hisobot · <span style="color: #4F46E5;">faqat egasi</span></div>
+        <div style="width: 1100px; background: #F6F7FB; border-radius: 20px; box-shadow: 0 12px 40px rgba(30,31,43,.14); padding: 24px 28px; display: flex; flex-direction: column; gap: 18px;" data-screen-label="2a Hisobot">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; color: #1E1F2B;">Oylik hisobot · Iyul 2026</div>
+              <div style="font-size: 13px; color: #8A8CA0; font-weight: 600;">20 mashina · 18 haydovchi · 1 247 reys</div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+              <div style="background: #fff; border: 1px solid #E7E8F0; color: #4A4B5C; border-radius: 10px; padding: 10px 18px; font-weight: 800; font-size: 13px;">⬇ Excel</div>
+              <div style="background: #4F46E5; color: #fff; border-radius: 10px; padding: 10px 18px; font-weight: 800; font-size: 13px;">⬇ PDF</div>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;">
+            <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 14px; padding: 16px;">
+              <div style="font-size: 12px; color: #8A8CA0; font-weight: 700;">Jami tushum</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-top: 6px; color: #1E1F2B;">142,3 mln</div>
+            </div>
+            <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 14px; padding: 16px;">
+              <div style="font-size: 12px; color: #8A8CA0; font-weight: 700;">Jami xarajat</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-top: 6px; color: #D9534F;">57,7 mln</div>
+            </div>
+            <div style="background: #4F46E5; border-radius: 14px; padding: 16px; color: #fff;">
+              <div style="font-size: 12px; opacity: .8; font-weight: 700;">Sof foyda</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-top: 6px;">84,6 mln</div>
+            </div>
+            <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 14px; padding: 16px;">
+              <div style="font-size: 12px; color: #8A8CA0; font-weight: 700;">Rentabellik</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-top: 6px; color: #1B9E6B;">59%</div>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 16px; padding: 18px 24px;">
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; color: #1E1F2B; margin-bottom: 12px;">Daromad manbalari</div>
+              <sc-for list="{{ incomeSplit }}" as="i" hint-placeholder-count="3">
+                <div style="display: flex; justify-content: space-between; padding: 9px 0; border-top: 1px solid #F0F1F7; font-size: 14px;">
+                  <span style="font-weight: 700; color: #4A4B5C;">{{ i.name }}</span>
+                  <span style="font-weight: 800; color: #1E1F2B;">{{ i.amount }} <span style="color: #8A8CA0; font-weight: 700;">· {{ i.pct }}</span></span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 16px; padding: 18px 24px;">
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; color: #1E1F2B; margin-bottom: 12px;">Xarajat toifalari</div>
+              <sc-for list="{{ reportCats }}" as="r" hint-placeholder-count="5">
+                <div style="display: flex; justify-content: space-between; padding: 9px 0; border-top: 1px solid #F0F1F7; font-size: 14px;">
+                  <span style="font-weight: 700; color: #4A4B5C;">{{ r.name }}</span>
+                  <span style="font-weight: 800; color: #1E1F2B;">{{ r.amount }} <span style="color: #8A8CA0; font-weight: 700;">· {{ r.pct }}</span></span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <!-- ============ 2B : Tungi rejim — qolgan oynalar ============ -->
+  <div id="2b" style="display: flex; flex-direction: column; gap: 16px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <a href="#2b" style="background: #16181F; color: #C6F432; font-weight: 800; font-size: 13px; padding: 4px 10px; border-radius: 6px;">2b</a>
+      <span style="font-weight: 700; color: #1E1F2B;">Tungi rejim uslubida qolgan oynalar</span>
+    </div>
+    <div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start;">
+
+      <!-- Login 2b -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Kirish · <span style="color: #4F46E5;">barcha rollar</span></div>
+        <div style="width: 420px; background: #101218; border-radius: 20px; box-shadow: 0 12px 40px rgba(0,0,0,.35); padding: 40px 36px; display: flex; flex-direction: column; gap: 18px; color: #F2F3F7;" data-screen-label="2b Login">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+            <div style="width: 52px; height: 52px; border-radius: 14px; background: #C6F432; color: #101218; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 22px;">FQ</div>
+            <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px;">FQ Avtopark</div>
+            <div style="font-size: 13px; color: #9FA2B2; font-weight: 600;">Telefon raqamingiz bilan kiring</div>
+          </div>
+          <div>
+            <div style="font-size: 13px; font-weight: 800; color: #9FA2B2; margin-bottom: 6px;">Telefon raqam</div>
+            <div style="background: #16181F; border: 2px solid #C6F432; border-radius: 12px; padding: 13px 16px; font-size: 16px; font-weight: 700;">+998 91 234 56 78</div>
+          </div>
+          <div>
+            <div style="font-size: 13px; font-weight: 800; color: #9FA2B2; margin-bottom: 6px;">Parol</div>
+            <div style="background: #16181F; border: 2px solid #23262F; border-radius: 12px; padding: 13px 16px; font-size: 16px; font-weight: 700; color: #9FA2B2;">••••••••</div>
+          </div>
+          <div style="background: #C6F432; color: #101218; border-radius: 12px; padding: 15px; text-align: center; font-weight: 800; font-size: 15px;">Kirish</div>
+          <div style="font-size: 12px; color: #9FA2B2; font-weight: 600; text-align: center;">Rol tizim tomonidan aniqlanadi: egasi · dispetcher · haydovchi</div>
+        </div>
+      </div>
+
+      <!-- Xarajat kiritish 2b -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Xarajat kiritish · <span style="color: #4F46E5;">dispetcher / haydovchi</span></div>
+        <div style="width: 375px; background: #101218; border-radius: 36px; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,.4); border: 8px solid #16181F; color: #F2F3F7;" data-screen-label="2b Telefon — xarajat kiritish">
+          <div style="padding: 20px;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #9FA2B2;"><span>09:41</span><span>●●●</span></div>
+            <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-top: 16px;">Xarajat kiritish</div>
+            <div style="margin-top: 18px; display: flex; flex-direction: column; gap: 14px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 800; color: #9FA2B2; margin-bottom: 6px;">Mashina</div>
+                <div style="background: #16181F; border: 2px solid #23262F; border-radius: 12px; padding: 13px 16px; font-weight: 800; display: flex; justify-content: space-between;"><span>01 A 245 BA · Isuzu</span><span style="color: #9FA2B2;">▾</span></div>
+              </div>
+              <div>
+                <div style="font-size: 13px; font-weight: 800; color: #9FA2B2; margin-bottom: 8px;">Toifa</div>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                  <sc-for list="{{ expCats }}" as="c" hint-placeholder-count="7">
+                    <div style="background: #16181F; border: 2px solid #23262F; border-radius: 20px; padding: 8px 14px; font-size: 13px; font-weight: 800; color: #9FA2B2;">{{ c }}</div>
+                  </sc-for>
+                </div>
+              </div>
+              <div>
+                <div style="font-size: 13px; font-weight: 800; color: #9FA2B2; margin-bottom: 6px;">Summa (so'm)</div>
+                <div style="background: #16181F; border: 2px solid #C6F432; border-radius: 14px; padding: 16px; font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700;">180 000</div>
+              </div>
+              <div style="background: #C6F432; color: #101218; border-radius: 14px; padding: 16px; text-align: center; font-weight: 800; font-size: 16px;">Saqlash ✓</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mashinalar ro'yxati 2b -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Mashinalar ro'yxati · <span style="color: #4F46E5;">mexanik (qo'shadi, boshqaradi) · egasi (ko'radi)</span></div>
+        <div style="width: 1100px; background: #101218; border-radius: 20px; box-shadow: 0 12px 40px rgba(0,0,0,.35); padding: 24px 28px; display: flex; flex-direction: column; gap: 18px; color: #F2F3F7;" data-screen-label="2b Mashinalar ro'yxati">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px;">Mashinalar</div>
+            <div style="background: #C6F432; color: #101218; border-radius: 10px; padding: 10px 18px; font-weight: 800; font-size: 13px;">+ Mashina qo'shish</div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <div style="background: #C6F432; color: #101218; border-radius: 20px; padding: 7px 16px; font-size: 13px; font-weight: 800;">Barchasi · 20</div>
+            <div style="background: #16181F; border: 1px solid #23262F; color: #9FA2B2; border-radius: 20px; padding: 7px 16px; font-size: 13px; font-weight: 800;">Liniyada · 14</div>
+            <div style="background: #16181F; border: 1px solid #23262F; color: #9FA2B2; border-radius: 20px; padding: 7px 16px; font-size: 13px; font-weight: 800;">Ijarada · 4</div>
+            <div style="background: #16181F; border: 1px solid #23262F; color: #9FA2B2; border-radius: 20px; padding: 7px 16px; font-size: 13px; font-weight: 800;">Ta'mirda · 2</div>
+          </div>
+          <div style="background: #16181F; border: 1px solid #23262F; border-radius: 16px; overflow: hidden;">
+            <div style="display: grid; grid-template-columns: 1.3fr 1fr .7fr .7fr 1.2fr .9fr .9fr .8fr; padding: 12px 24px; font-size: 12px; font-weight: 800; color: #9FA2B2; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid #23262F;">
+              <div>Raqam</div><div>Model</div><div>Turi</div><div>Rejim</div><div>Haydovchi / ijarachi</div><div>Tushum</div><div>Foyda</div><div>Holat</div>
+            </div>
+            <sc-for list="{{ fleetB }}" as="c" hint-placeholder-count="8">
+              <div style="display: grid; grid-template-columns: 1.3fr 1fr .7fr .7fr 1.2fr .9fr .9fr .8fr; padding: 13px 24px; border-bottom: 1px solid #1D2029; font-size: 14px; align-items: center;">
+                <div style="font-weight: 800; font-family: 'Space Grotesk', sans-serif;">{{ c.plate }}</div>
+                <div style="font-weight: 600; color: #C6C8D4;">{{ c.model }}</div>
+                <div style="color: #9FA2B2; font-weight: 600;">{{ c.type }}</div>
+                <div style="color: #9FA2B2; font-weight: 700;">{{ c.mode }}</div>
+                <div style="color: #C6C8D4; font-weight: 600;">{{ c.driver }}</div>
+                <div style="font-weight: 700;">{{ c.income }}</div>
+                <div style="font-weight: 800; color: #C6F432;">{{ c.profit }}</div>
+                <div><span style="font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 20px; background: {{ c.stBg }}; color: {{ c.stColor }};">{{ c.status }}</span></div>
+              </div>
+            </sc-for>
+            <div style="padding: 14px 24px; font-size: 13px; font-weight: 800; color: #C6F432; text-align: center;">Yana 12 ta mashinani ko'rish ↓</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Haydovchilar 2b -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Haydovchilar · <span style="color: #4F46E5;">egasi · dispetcher</span></div>
+        <div style="width: 1100px; background: #101218; border-radius: 20px; box-shadow: 0 12px 40px rgba(0,0,0,.35); padding: 24px 28px; display: flex; flex-direction: column; gap: 18px; color: #F2F3F7;" data-screen-label="2b Haydovchilar">
+          <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px;">Haydovchilar · 18</div>
+          <div style="background: #16181F; border: 1px solid #23262F; border-radius: 16px; overflow: hidden;">
+            <div style="display: grid; grid-template-columns: 1.4fr 1.1fr .7fr 1.3fr .8fr 1fr; padding: 12px 24px; font-size: 12px; font-weight: 800; color: #9FA2B2; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid #23262F;">
+              <div>Haydovchi</div><div>Mashina</div><div>Reyslar</div><div>Plan bajarilishi</div><div>Maosh</div><div>Sof hissa</div>
+            </div>
+            <sc-for list="{{ driversList }}" as="d" hint-placeholder-count="5">
+              <div style="display: grid; grid-template-columns: 1.4fr 1.1fr .7fr 1.3fr .8fr 1fr; padding: 14px 24px; border-bottom: 1px solid #1D2029; font-size: 14px; align-items: center;">
+                <div style="font-weight: 800;">{{ d.name }}</div>
+                <div style="font-weight: 700; font-family: 'Space Grotesk', sans-serif; color: #C6C8D4;">{{ d.plate }}</div>
+                <div style="color: #C6C8D4; font-weight: 700;">{{ d.trips }}</div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div style="flex: 1; height: 8px; background: #23262F; border-radius: 6px; overflow: hidden;"><div style="height: 100%; background: #C6F432; border-radius: 6px; width: {{ d.planPct }};"></div></div>
+                  <span style="font-size: 12px; font-weight: 800; color: #9FA2B2; width: 38px;">{{ d.planPct }}</span>
+                </div>
+                <div style="color: #C6C8D4; font-weight: 700;">{{ d.salary }}</div>
+                <div style="font-weight: 800; color: #C6F432;">{{ d.contrib }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hisobot 2b -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Oylik hisobot · <span style="color: #4F46E5;">faqat egasi</span></div>
+        <div style="width: 1100px; background: #101218; border-radius: 20px; box-shadow: 0 12px 40px rgba(0,0,0,.35); padding: 24px 28px; display: flex; flex-direction: column; gap: 18px; color: #F2F3F7;" data-screen-label="2b Hisobot">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px;">Oylik hisobot · Iyul 2026</div>
+              <div style="font-size: 13px; color: #9FA2B2; font-weight: 600;">20 mashina · 18 haydovchi · 1 247 reys</div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+              <div style="background: #16181F; border: 1px solid #23262F; color: #C6C8D4; border-radius: 10px; padding: 10px 18px; font-weight: 800; font-size: 13px;">⬇ Excel</div>
+              <div style="background: #C6F432; color: #101218; border-radius: 10px; padding: 10px 18px; font-weight: 800; font-size: 13px;">⬇ PDF</div>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;">
+            <div style="background: #16181F; border: 1px solid #23262F; border-radius: 14px; padding: 16px;">
+              <div style="font-size: 12px; color: #9FA2B2; font-weight: 700;">Jami tushum</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-top: 6px;">142,3 mln</div>
+            </div>
+            <div style="background: #16181F; border: 1px solid #23262F; border-radius: 14px; padding: 16px;">
+              <div style="font-size: 12px; color: #9FA2B2; font-weight: 700;">Jami xarajat</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-top: 6px; color: #FF7A6B;">57,7 mln</div>
+            </div>
+            <div style="background: #16181F; border: 1px solid #C6F432; border-radius: 14px; padding: 16px;">
+              <div style="font-size: 12px; color: #9FA2B2; font-weight: 700;">Sof foyda</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-top: 6px; color: #C6F432;">84,6 mln</div>
+            </div>
+            <div style="background: #16181F; border: 1px solid #23262F; border-radius: 14px; padding: 16px;">
+              <div style="font-size: 12px; color: #9FA2B2; font-weight: 700;">Rentabellik</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-top: 6px;">59%</div>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div style="background: #16181F; border: 1px solid #23262F; border-radius: 16px; padding: 18px 24px;">
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; margin-bottom: 12px;">Daromad manbalari</div>
+              <sc-for list="{{ incomeSplit }}" as="i" hint-placeholder-count="3">
+                <div style="display: flex; justify-content: space-between; padding: 9px 0; border-top: 1px solid #1D2029; font-size: 14px;">
+                  <span style="font-weight: 700; color: #C6C8D4;">{{ i.name }}</span>
+                  <span style="font-weight: 800;">{{ i.amount }} <span style="color: #9FA2B2; font-weight: 700;">· {{ i.pct }}</span></span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="background: #16181F; border: 1px solid #23262F; border-radius: 16px; padding: 18px 24px;">
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; margin-bottom: 12px;">Xarajat toifalari</div>
+              <sc-for list="{{ reportCats }}" as="r" hint-placeholder-count="5">
+                <div style="display: flex; justify-content: space-between; padding: 9px 0; border-top: 1px solid #1D2029; font-size: 14px;">
+                  <span style="font-weight: 700; color: #C6C8D4;">{{ r.name }}</span>
+                  <span style="font-weight: 800;">{{ r.amount }} <span style="color: #9FA2B2; font-weight: 700;">· {{ r.pct }}</span></span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <!-- ============ 2C : Iliq — qolgan oynalar ============ -->
+  <div id="2c" style="display: flex; flex-direction: column; gap: 16px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <a href="#2c" style="background: #E86A33; color: #fff; font-weight: 800; font-size: 13px; padding: 4px 10px; border-radius: 6px;">2c</a>
+      <span style="font-weight: 700; color: #1E1F2B;">Iliq uslubda qolgan oynalar</span>
+    </div>
+    <div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start;">
+
+      <!-- Login 2c -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Kirish · <span style="color: #4F46E5;">barcha rollar</span></div>
+        <div style="width: 420px; background: #FBF6EF; border-radius: 20px; box-shadow: 0 12px 40px rgba(60,40,20,.14); padding: 40px 36px; display: flex; flex-direction: column; gap: 18px;" data-screen-label="2c Login">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+            <div style="width: 52px; height: 52px; border-radius: 50%; background: #E86A33; color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 22px;">FQ</div>
+            <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; color: #33261A;">Farg'ona–Quva Avtopark</div>
+            <div style="font-size: 13px; color: #8C7A64; font-weight: 700;">Telefon raqamingiz bilan kiring</div>
+          </div>
+          <div>
+            <div style="font-size: 13px; font-weight: 800; color: #33261A; margin-bottom: 6px;">Telefon raqam</div>
+            <div style="background: #fff; border: 2px solid #E86A33; border-radius: 12px; padding: 13px 16px; font-size: 16px; font-weight: 700; color: #33261A;">+998 91 234 56 78</div>
+          </div>
+          <div>
+            <div style="font-size: 13px; font-weight: 800; color: #33261A; margin-bottom: 6px;">Parol</div>
+            <div style="background: #fff; border: 2px solid #EFE5D6; border-radius: 12px; padding: 13px 16px; font-size: 16px; font-weight: 700; color: #8C7A64;">••••••••</div>
+          </div>
+          <div style="background: #33261A; color: #FBF6EF; border-radius: 12px; padding: 15px; text-align: center; font-weight: 800; font-size: 15px;">Kirish</div>
+          <div style="font-size: 12px; color: #8C7A64; font-weight: 700; text-align: center;">Rol tizim tomonidan aniqlanadi: egasi · dispetcher · haydovchi</div>
+        </div>
+      </div>
+
+      <!-- Xarajat kiritish 2c -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Xarajat kiritish · <span style="color: #4F46E5;">dispetcher / haydovchi</span></div>
+        <div style="width: 375px; background: #FBF6EF; border-radius: 36px; overflow: hidden; box-shadow: 0 12px 40px rgba(60,40,20,.18); border: 8px solid #33261A;" data-screen-label="2c Telefon — xarajat kiritish">
+          <div style="padding: 20px;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #8C7A64;"><span>09:41</span><span>●●●</span></div>
+            <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; color: #33261A; margin-top: 16px;">Xarajat kiritish</div>
+            <div style="margin-top: 18px; display: flex; flex-direction: column; gap: 14px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 800; color: #33261A; margin-bottom: 6px;">Mashina</div>
+                <div style="background: #fff; border: 2px solid #EFE5D6; border-radius: 12px; padding: 13px 16px; font-weight: 800; color: #33261A; display: flex; justify-content: space-between;"><span>01 A 245 BA · Isuzu</span><span style="color: #8C7A64;">▾</span></div>
+              </div>
+              <div>
+                <div style="font-size: 13px; font-weight: 800; color: #33261A; margin-bottom: 8px;">Toifa</div>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                  <sc-for list="{{ expCats }}" as="c" hint-placeholder-count="7">
+                    <div style="background: #fff; border: 2px solid #EFE5D6; border-radius: 20px; padding: 8px 14px; font-size: 13px; font-weight: 800; color: #8C7A64;">{{ c }}</div>
+                  </sc-for>
+                </div>
+              </div>
+              <div>
+                <div style="font-size: 13px; font-weight: 800; color: #33261A; margin-bottom: 6px;">Summa (so'm)</div>
+                <div style="background: #fff; border: 2px solid #E86A33; border-radius: 14px; padding: 16px; font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; color: #33261A;">180 000</div>
+              </div>
+              <div style="background: #33261A; color: #FBF6EF; border-radius: 14px; padding: 16px; text-align: center; font-weight: 800; font-size: 16px;">Saqlash ✓</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mashinalar ro'yxati 2c -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Mashinalar ro'yxati · <span style="color: #4F46E5;">mexanik (qo'shadi, boshqaradi) · egasi (ko'radi)</span></div>
+        <div style="width: 1100px; background: #FBF6EF; border-radius: 20px; box-shadow: 0 12px 40px rgba(60,40,20,.14); padding: 24px 28px; display: flex; flex-direction: column; gap: 18px;" data-screen-label="2c Mashinalar ro'yxati">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 22px; color: #33261A;">Mashinalar</div>
+            <div style="background: #E86A33; color: #fff; border-radius: 12px; padding: 10px 18px; font-weight: 800; font-size: 14px;">+ Mashina qo'shish</div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <div style="background: #33261A; color: #FBF6EF; border-radius: 20px; padding: 8px 16px; font-size: 14px; font-weight: 800;">Barchasi · 20</div>
+            <div style="background: #fff; border: 2px solid #EFE5D6; color: #8C7A64; border-radius: 20px; padding: 8px 16px; font-size: 14px; font-weight: 800;">Liniyada · 14</div>
+            <div style="background: #fff; border: 2px solid #EFE5D6; color: #8C7A64; border-radius: 20px; padding: 8px 16px; font-size: 14px; font-weight: 800;">Ijarada · 4</div>
+            <div style="background: #fff; border: 2px solid #EFE5D6; color: #8C7A64; border-radius: 20px; padding: 8px 16px; font-size: 14px; font-weight: 800;">Ta'mirda · 2</div>
+          </div>
+          <div style="background: #fff; border: 2px solid #EFE5D6; border-radius: 16px; overflow: hidden;">
+            <div style="display: grid; grid-template-columns: 1.3fr 1fr .7fr .7fr 1.2fr .9fr .9fr .8fr; padding: 12px 24px; background: #FBF6EF; font-size: 13px; font-weight: 800; color: #8C7A64; text-transform: uppercase; letter-spacing: .04em;">
+              <div>Raqam</div><div>Model</div><div>Turi</div><div>Rejim</div><div>Haydovchi / ijarachi</div><div>Tushum</div><div>Foyda</div><div>Holat</div>
+            </div>
+            <sc-for list="{{ fleetC }}" as="c" hint-placeholder-count="8">
+              <div style="display: grid; grid-template-columns: 1.3fr 1fr .7fr .7fr 1.2fr .9fr .9fr .8fr; padding: 14px 24px; border-top: 2px solid #F7F0E5; font-size: 15px; align-items: center;">
+                <div style="font-weight: 800; color: #33261A; font-family: 'Space Grotesk', sans-serif;">{{ c.plate }}</div>
+                <div style="font-weight: 700; color: #33261A;">{{ c.model }}</div>
+                <div style="color: #8C7A64; font-weight: 700;">{{ c.type }}</div>
+                <div style="color: #8C7A64; font-weight: 700;">{{ c.mode }}</div>
+                <div style="color: #33261A; font-weight: 600;">{{ c.driver }}</div>
+                <div style="font-weight: 700; color: #33261A;">{{ c.income }}</div>
+                <div style="font-weight: 800; color: #2E7D4F;">{{ c.profit }}</div>
+                <div><span style="font-size: 13px; font-weight: 800; padding: 4px 10px; border-radius: 20px; background: {{ c.stBg }}; color: {{ c.stColor }};">{{ c.status }}</span></div>
+              </div>
+            </sc-for>
+            <div style="padding: 14px 24px; border-top: 2px solid #F7F0E5; font-size: 14px; font-weight: 800; color: #E86A33; text-align: center;">Yana 12 ta mashinani ko'rish ↓</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Haydovchilar 2c -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Haydovchilar · <span style="color: #4F46E5;">egasi · dispetcher</span></div>
+        <div style="width: 1100px; background: #FBF6EF; border-radius: 20px; box-shadow: 0 12px 40px rgba(60,40,20,.14); padding: 24px 28px; display: flex; flex-direction: column; gap: 18px;" data-screen-label="2c Haydovchilar">
+          <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 22px; color: #33261A;">Haydovchilar · 18</div>
+          <div style="background: #fff; border: 2px solid #EFE5D6; border-radius: 16px; overflow: hidden;">
+            <div style="display: grid; grid-template-columns: 1.4fr 1.1fr .7fr 1.3fr .8fr 1fr; padding: 12px 24px; background: #FBF6EF; font-size: 13px; font-weight: 800; color: #8C7A64; text-transform: uppercase; letter-spacing: .04em;">
+              <div>Haydovchi</div><div>Mashina</div><div>Reyslar</div><div>Plan bajarilishi</div><div>Maosh</div><div>Sof hissa</div>
+            </div>
+            <sc-for list="{{ driversList }}" as="d" hint-placeholder-count="5">
+              <div style="display: grid; grid-template-columns: 1.4fr 1.1fr .7fr 1.3fr .8fr 1fr; padding: 15px 24px; border-top: 2px solid #F7F0E5; font-size: 15px; align-items: center;">
+                <div style="font-weight: 800; color: #33261A;">{{ d.name }}</div>
+                <div style="font-weight: 700; color: #8C7A64; font-family: 'Space Grotesk', sans-serif;">{{ d.plate }}</div>
+                <div style="color: #33261A; font-weight: 700;">{{ d.trips }}</div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div style="flex: 1; height: 10px; background: #EFE5D6; border-radius: 6px; overflow: hidden;"><div style="height: 100%; background: #E86A33; border-radius: 6px; width: {{ d.planPct }};"></div></div>
+                  <span style="font-size: 13px; font-weight: 800; color: #8C7A64; width: 40px;">{{ d.planPct }}</span>
+                </div>
+                <div style="color: #33261A; font-weight: 700;">{{ d.salary }}</div>
+                <div style="font-weight: 800; color: #2E7D4F;">{{ d.contrib }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hisobot 2c -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 800; color: #6B6D82;">Oylik hisobot · <span style="color: #4F46E5;">faqat egasi</span></div>
+        <div style="width: 1100px; background: #FBF6EF; border-radius: 20px; box-shadow: 0 12px 40px rgba(60,40,20,.14); padding: 24px 28px; display: flex; flex-direction: column; gap: 18px;" data-screen-label="2c Hisobot">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 22px; color: #33261A;">Oylik hisobot · Iyul 2026</div>
+              <div style="font-size: 14px; color: #8C7A64; font-weight: 700;">20 mashina · 18 haydovchi · 1 247 reys</div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+              <div style="background: #fff; border: 2px solid #EFE5D6; color: #33261A; border-radius: 12px; padding: 10px 18px; font-weight: 800; font-size: 14px;">⬇ Excel</div>
+              <div style="background: #E86A33; color: #fff; border-radius: 12px; padding: 10px 18px; font-weight: 800; font-size: 14px;">⬇ PDF</div>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;">
+            <div style="background: #fff; border: 2px solid #EFE5D6; border-radius: 16px; padding: 18px;">
+              <div style="font-size: 13px; color: #8C7A64; font-weight: 700;">Jami tushum</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; margin-top: 6px; color: #2E7D4F;">142,3 mln</div>
+            </div>
+            <div style="background: #fff; border: 2px solid #EFE5D6; border-radius: 16px; padding: 18px;">
+              <div style="font-size: 13px; color: #8C7A64; font-weight: 700;">Jami xarajat</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; margin-top: 6px; color: #C64B2E;">57,7 mln</div>
+            </div>
+            <div style="background: #33261A; border-radius: 16px; padding: 18px; color: #FBF6EF;">
+              <div style="font-size: 13px; opacity: .75; font-weight: 700;">Sof foyda</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; margin-top: 6px;">84,6 mln</div>
+            </div>
+            <div style="background: #fff; border: 2px solid #EFE5D6; border-radius: 16px; padding: 18px;">
+              <div style="font-size: 13px; color: #8C7A64; font-weight: 700;">Rentabellik</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; margin-top: 6px; color: #33261A;">59%</div>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div style="background: #fff; border: 2px solid #EFE5D6; border-radius: 16px; padding: 18px 24px;">
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 17px; color: #33261A; margin-bottom: 12px;">Daromad manbalari</div>
+              <sc-for list="{{ incomeSplit }}" as="i" hint-placeholder-count="3">
+                <div style="display: flex; justify-content: space-between; padding: 10px 0; border-top: 2px solid #F7F0E5; font-size: 15px;">
+                  <span style="font-weight: 700; color: #33261A;">{{ i.name }}</span>
+                  <span style="font-weight: 800; color: #33261A;">{{ i.amount }} <span style="color: #8C7A64; font-weight: 700;">· {{ i.pct }}</span></span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="background: #fff; border: 2px solid #EFE5D6; border-radius: 16px; padding: 18px 24px;">
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 17px; color: #33261A; margin-bottom: 12px;">Xarajat toifalari</div>
+              <sc-for list="{{ reportCats }}" as="r" hint-placeholder-count="5">
+                <div style="display: flex; justify-content: space-between; padding: 10px 0; border-top: 2px solid #F7F0E5; font-size: 15px;">
+                  <span style="font-weight: 700; color: #33261A;">{{ r.name }}</span>
+                  <span style="font-weight: 800; color: #33261A;">{{ r.amount }} <span style="color: #8C7A64; font-weight: 700;">· {{ r.pct }}</span></span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <!-- END TURN 2 -->
+
+  <div style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; color: #1E1F2B; border-top: 2px solid #D8DAE5; padding-top: 32px;">1-tur: Avtopark foyda tizimi — 3 variant (kompyuter + telefon)</div>
+
+  <div style="display: flex; gap: 56px; flex-wrap: wrap; align-items: flex-start;">
+
+    <!-- ============ OPTION 1A : Yorqin indigo, och fon ============ -->
+    <div id="1a" style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <a href="#1a" style="background: #4F46E5; color: #fff; font-weight: 800; font-size: 13px; padding: 4px 10px; border-radius: 6px;">1a</a>
+        <span style="font-weight: 700; color: #1E1F2B;">Indigo — yorqin va tartibli</span>
+      </div>
+      <div style="display: flex; gap: 24px; align-items: flex-start;">
+
+        <!-- Desktop 1a -->
+        <div style="width: 1180px; background: #F6F7FB; border-radius: 20px; overflow: hidden; box-shadow: 0 12px 40px rgba(30,31,43,.14); font-family: 'Manrope', sans-serif;" data-screen-label="1a Desktop panel">
+          <!-- Top bar -->
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 18px 28px; background: #fff; border-bottom: 1px solid #E7E8F0;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 36px; height: 36px; border-radius: 10px; background: #4F46E5; color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px;">FQ</div>
+              <div>
+                <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px; color: #1E1F2B;">Farg'ona–Quva Avtopark</div>
+                <div style="font-size: 12px; color: #8A8CA0;">20 ta mashina · 18 haydovchi</div>
+              </div>
+            </div>
+            <div style="display: flex; gap: 6px; background: #EEF0F8; padding: 4px; border-radius: 10px;">
+              <div style="padding: 7px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; color: #6B6D82;">Kun</div>
+              <div style="padding: 7px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; color: #6B6D82;">Hafta</div>
+              <div style="padding: 7px 18px; border-radius: 8px; background: #4F46E5; color: #fff; font-size: 13px; font-weight: 700;">Oy</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="font-size: 13px; font-weight: 600; color: #1E1F2B;">Baxtiyor aka</div>
+              <div style="width: 34px; height: 34px; border-radius: 50%; background: #FFB84D; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px;">B</div>
+            </div>
+          </div>
+
+          <div style="padding: 24px 28px; display: flex; flex-direction: column; gap: 20px;">
+            <!-- KPI row -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+              <div style="background: #4F46E5; border-radius: 16px; padding: 20px; color: #fff;">
+                <div style="font-size: 13px; opacity: .8; font-weight: 600;">Sof foyda · Iyul</div>
+                <div style="font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700; margin-top: 8px;">84,6 mln so'm</div>
+                <div style="font-size: 12px; margin-top: 8px; background: rgba(255,255,255,.18); display: inline-block; padding: 3px 10px; border-radius: 20px; font-weight: 700;">↑ 12% o'tgan oyga nisbatan</div>
+              </div>
+              <div style="background: #fff; border-radius: 16px; padding: 20px; border: 1px solid #E7E8F0;">
+                <div style="font-size: 13px; color: #8A8CA0; font-weight: 600;">Jami tushum</div>
+                <div style="font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700; margin-top: 8px; color: #1E1F2B;">142,3 mln</div>
+                <div style="font-size: 12px; margin-top: 8px; color: #1B9E6B; font-weight: 700;">↑ 8% · reys + plan + ijara</div>
+              </div>
+              <div style="background: #fff; border-radius: 16px; padding: 20px; border: 1px solid #E7E8F0;">
+                <div style="font-size: 13px; color: #8A8CA0; font-weight: 600;">Jami xarajat</div>
+                <div style="font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700; margin-top: 8px; color: #1E1F2B;">57,7 mln</div>
+                <div style="font-size: 12px; margin-top: 8px; color: #D9534F; font-weight: 700;">↑ 4% · yoqilg'i qimmatlashdi</div>
+              </div>
+              <div style="background: #fff; border-radius: 16px; padding: 20px; border: 1px solid #E7E8F0;">
+                <div style="font-size: 13px; color: #8A8CA0; font-weight: 600;">Bugun plan topshirdi</div>
+                <div style="font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700; margin-top: 8px; color: #1E1F2B;">16 / 20</div>
+                <div style="font-size: 12px; margin-top: 8px; color: #8A8CA0; font-weight: 600;">4 ta mashina kutilmoqda</div>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 360px; gap: 20px;">
+              <!-- Chart card -->
+              <div style="background: #fff; border-radius: 16px; padding: 20px 24px; border: 1px solid #E7E8F0;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px; color: #1E1F2B;">Haftalik foyda dinamikasi</div>
+                  <div style="display: flex; gap: 14px; font-size: 12px; font-weight: 700;">
+                    <span style="color: #4F46E5;">● Tushum</span>
+                    <span style="color: #C9CBE3;">● Xarajat</span>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: flex-end; gap: 18px; height: 180px; margin-top: 20px;">
+                  <sc-for list="{{ week1a }}" as="d" hint-placeholder-count="7">
+                    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; height: 100%; justify-content: flex-end;">
+                      <div style="display: flex; gap: 5px; align-items: flex-end; width: 100%; justify-content: center; height: 100%;">
+                        <div style="width: 22px; border-radius: 6px 6px 0 0; background: #4F46E5; height: {{ d.inH }};"></div>
+                        <div style="width: 22px; border-radius: 6px 6px 0 0; background: #C9CBE3; height: {{ d.outH }};"></div>
+                      </div>
+                      <div style="font-size: 12px; color: #8A8CA0; font-weight: 700;">{{ d.day }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+
+              <!-- Expense breakdown -->
+              <div style="background: #fff; border-radius: 16px; padding: 20px 24px; border: 1px solid #E7E8F0; display: flex; flex-direction: column; gap: 14px;">
+                <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px; color: #1E1F2B;">Xarajatlar tarkibi · Iyul</div>
+                <div style="display: flex; height: 14px; border-radius: 8px; overflow: hidden;">
+                  <div style="width: 46%; background: #4F46E5;"></div>
+                  <div style="width: 24%; background: #FFB84D;"></div>
+                  <div style="width: 16%; background: #1B9E6B;"></div>
+                  <div style="width: 9%; background: #D9534F;"></div>
+                  <div style="width: 5%; background: #C9CBE3;"></div>
+                </div>
+                <sc-for list="{{ exp1a }}" as="e" hint-placeholder-count="5">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <div style="width: 10px; height: 10px; border-radius: 3px; background: {{ e.color }};"></div>
+                      <span style="font-size: 13px; font-weight: 600; color: #4A4B5C;">{{ e.name }}</span>
+                    </div>
+                    <span style="font-size: 13px; font-weight: 800; color: #1E1F2B;">{{ e.amount }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <!-- Vehicles table -->
+            <div style="background: #fff; border-radius: 16px; border: 1px solid #E7E8F0; overflow: hidden;">
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 18px 24px;">
+                <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px; color: #1E1F2B;">Mashinalar bo'yicha foyda</div>
+                <div style="font-size: 13px; font-weight: 700; color: #4F46E5;">Barchasi (20) →</div>
+              </div>
+              <div style="display: grid; grid-template-columns: 1.4fr 1.2fr 1fr 1fr 1fr .8fr; padding: 10px 24px; background: #F6F7FB; font-size: 12px; font-weight: 800; color: #8A8CA0; text-transform: uppercase; letter-spacing: .04em;">
+                <div>Mashina</div><div>Haydovchi</div><div>Tushum</div><div>Xarajat</div><div>Foyda</div><div>Holat</div>
+              </div>
+              <sc-for list="{{ cars1a }}" as="c" hint-placeholder-count="6">
+                <div style="display: grid; grid-template-columns: 1.4fr 1.2fr 1fr 1fr 1fr .8fr; padding: 13px 24px; border-top: 1px solid #F0F1F7; font-size: 14px; align-items: center;">
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="background: #EEF0F8; border-radius: 6px; padding: 3px 8px; font-weight: 800; font-size: 12px; color: #4F46E5; font-family: 'Space Grotesk', sans-serif;">{{ c.plate }}</div>
+                    <span style="font-weight: 600; color: #1E1F2B;">{{ c.model }}</span>
+                  </div>
+                  <div style="color: #4A4B5C; font-weight: 600;">{{ c.driver }}</div>
+                  <div style="font-weight: 700; color: #1E1F2B;">{{ c.income }}</div>
+                  <div style="color: #8A8CA0; font-weight: 600;">{{ c.expense }}</div>
+                  <div style="font-weight: 800; color: #1B9E6B;">{{ c.profit }}</div>
+                  <div><span style="font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 20px; background: {{ c.stBg }}; color: {{ c.stColor }};">{{ c.status }}</span></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile 1a : haydovchi ilovasi -->
+        <div style="width: 375px; background: #F6F7FB; border-radius: 36px; overflow: hidden; box-shadow: 0 12px 40px rgba(30,31,43,.16); border: 8px solid #1E1F2B;" data-screen-label="1a Telefon — haydovchi">
+          <div style="background: #4F46E5; padding: 20px 20px 24px; color: #fff;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; opacity: .85;"><span>09:41</span><span>●●●</span></div>
+            <div style="margin-top: 16px; font-size: 13px; opacity: .8; font-weight: 600;">Assalomu alaykum, Olim aka</div>
+            <div style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; margin-top: 4px;">01 A 245 BA · Isuzu</div>
+            <div style="margin-top: 16px; background: rgba(255,255,255,.14); border-radius: 14px; padding: 14px 16px;">
+              <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700;"><span>Bugungi plan</span><span>350 000 so'm</span></div>
+              <div style="height: 8px; background: rgba(255,255,255,.2); border-radius: 6px; margin-top: 10px; overflow: hidden;">
+                <div style="height: 100%; width: 74%; background: #FFB84D; border-radius: 6px;"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 12px; margin-top: 8px; opacity: .85; font-weight: 600;"><span>Yig'ildi: 260 000</span><span>Qoldi: 90 000</span></div>
+            </div>
+          </div>
+          <div style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+            <div style="background: #4F46E5; color: #fff; border-radius: 14px; padding: 16px; text-align: center; font-weight: 800; font-size: 16px;">+ Reys tushumini kiritish</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 14px; padding: 14px; text-align: center;">
+                <div style="font-size: 22px; font-weight: 800; color: #1E1F2B; font-family: 'Space Grotesk', sans-serif;">4</div>
+                <div style="font-size: 12px; color: #8A8CA0; font-weight: 700;">Bugungi reyslar</div>
+              </div>
+              <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 14px; padding: 14px; text-align: center;">
+                <div style="font-size: 22px; font-weight: 800; color: #D9534F; font-family: 'Space Grotesk', sans-serif;">85 000</div>
+                <div style="font-size: 12px; color: #8A8CA0; font-weight: 700;">Yoqilg'i xarajati</div>
+              </div>
+            </div>
+            <div style="font-size: 13px; font-weight: 800; color: #8A8CA0; text-transform: uppercase; letter-spacing: .04em; margin-top: 4px;">Bugungi reyslar</div>
+            <sc-for list="{{ trips1a }}" as="t" hint-placeholder-count="3">
+              <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 14px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <div style="font-weight: 800; font-size: 14px; color: #1E1F2B;">{{ t.route }}</div>
+                  <div style="font-size: 12px; color: #8A8CA0; font-weight: 600;">{{ t.time }}</div>
+                </div>
+                <div style="font-weight: 800; color: #1B9E6B; font-size: 15px;">{{ t.sum }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ OPTION 1B : Tungi rejim, lime aksent ============ -->
+    <div id="1b" style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <a href="#1b" style="background: #16181F; color: #C6F432; font-weight: 800; font-size: 13px; padding: 4px 10px; border-radius: 6px;">1b</a>
+        <span style="font-weight: 700; color: #1E1F2B;">Tungi rejim — zamonaviy, kontrastli</span>
+      </div>
+      <div style="display: flex; gap: 24px; align-items: flex-start;">
+
+        <!-- Desktop 1b -->
+        <div style="width: 1180px; background: #101218; border-radius: 20px; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,.35); font-family: 'Manrope', sans-serif; color: #F2F3F7;" data-screen-label="1b Desktop panel">
+          <div style="display: flex;">
+            <!-- Sidebar -->
+            <div style="width: 220px; background: #16181F; padding: 24px 16px; display: flex; flex-direction: column; gap: 6px; min-height: 780px;">
+              <div style="display: flex; align-items: center; gap: 10px; padding: 0 10px 20px;">
+                <div style="width: 34px; height: 34px; border-radius: 10px; background: #C6F432; color: #101218; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700;">FQ</div>
+                <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px;">FQ Avtopark</div>
+              </div>
+              <div style="padding: 11px 14px; border-radius: 10px; background: #C6F432; color: #101218; font-weight: 800; font-size: 14px;">◉ Umumiy panel</div>
+              <div style="padding: 11px 14px; border-radius: 10px; color: #9FA2B2; font-weight: 700; font-size: 14px;">▤ Mashinalar</div>
+              <div style="padding: 11px 14px; border-radius: 10px; color: #9FA2B2; font-weight: 700; font-size: 14px;">◈ Haydovchilar</div>
+              <div style="padding: 11px 14px; border-radius: 10px; color: #9FA2B2; font-weight: 700; font-size: 14px;">▥ Xarajatlar</div>
+              <div style="padding: 11px 14px; border-radius: 10px; color: #9FA2B2; font-weight: 700; font-size: 14px;">▨ Hisobotlar</div>
+              <div style="margin-top: auto; padding: 14px; border-radius: 12px; background: #1D2029;">
+                <div style="font-size: 12px; color: #9FA2B2; font-weight: 700;">Oylik ijara</div>
+                <div style="font-size: 13px; font-weight: 800; margin-top: 4px;">5 ta mashina ijarada</div>
+                <div style="font-size: 12px; color: #C6F432; font-weight: 800; margin-top: 2px;">27,5 mln so'm/oy</div>
+              </div>
+            </div>
+
+            <!-- Main -->
+            <div style="flex: 1; padding: 24px 28px; display: flex; flex-direction: column; gap: 20px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <div style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700;">Umumiy panel</div>
+                  <div style="font-size: 13px; color: #9FA2B2; font-weight: 600;">Farg'ona–Quva yo'nalishi · 10-iyul, 2026</div>
+                </div>
+                <div style="display: flex; gap: 6px; background: #16181F; padding: 4px; border-radius: 10px;">
+                  <div style="padding: 7px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; color: #9FA2B2;">Kun</div>
+                  <div style="padding: 7px 16px; border-radius: 8px; background: #C6F432; color: #101218; font-size: 13px; font-weight: 800;">Hafta</div>
+                  <div style="padding: 7px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; color: #9FA2B2;">Oy</div>
+                </div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                <div style="background: #16181F; border-radius: 16px; padding: 20px; border: 1px solid #23262F;">
+                  <div style="font-size: 13px; color: #9FA2B2; font-weight: 700;">Sof foyda · hafta</div>
+                  <div style="font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 700; margin-top: 8px; color: #C6F432;">21,4 mln</div>
+                  <div style="font-size: 12px; margin-top: 6px; color: #9FA2B2; font-weight: 600;">↑ 2,3 mln o'tgan haftaga</div>
+                </div>
+                <div style="background: #16181F; border-radius: 16px; padding: 20px; border: 1px solid #23262F;">
+                  <div style="font-size: 13px; color: #9FA2B2; font-weight: 700;">Tushum</div>
+                  <div style="font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 700; margin-top: 8px;">35,8 mln</div>
+                  <div style="font-size: 12px; margin-top: 6px; color: #9FA2B2; font-weight: 600;">312 reys · 5 ijara · 14 plan</div>
+                </div>
+                <div style="background: #16181F; border-radius: 16px; padding: 20px; border: 1px solid #23262F;">
+                  <div style="font-size: 13px; color: #9FA2B2; font-weight: 700;">Xarajat</div>
+                  <div style="font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 700; margin-top: 8px; color: #FF7A6B;">14,4 mln</div>
+                  <div style="font-size: 12px; margin-top: 6px; color: #9FA2B2; font-weight: 600;">62% — yoqilg'i</div>
+                </div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 340px; gap: 16px;">
+                <div style="background: #16181F; border-radius: 16px; padding: 20px 24px; border: 1px solid #23262F;">
+                  <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px;">Kunlik sof foyda</div>
+                  <div style="display: flex; align-items: flex-end; gap: 16px; height: 150px; margin-top: 18px;">
+                    <sc-for list="{{ week1b }}" as="d" hint-placeholder-count="7">
+                      <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; height: 100%; justify-content: flex-end;">
+                        <div style="width: 100%; max-width: 44px; border-radius: 8px; background: {{ d.color }}; height: {{ d.h }};"></div>
+                        <div style="font-size: 12px; color: #9FA2B2; font-weight: 700;">{{ d.day }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="background: #16181F; border-radius: 16px; padding: 20px; border: 1px solid #23262F; display: flex; flex-direction: column; gap: 12px;">
+                  <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px;">Eng foydali mashinalar</div>
+                  <sc-for list="{{ top1b }}" as="c" hint-placeholder-count="4">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                      <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: #C6F432; width: 20px;">{{ c.rank }}</div>
+                      <div style="flex: 1;">
+                        <div style="font-weight: 800; font-size: 13px;">{{ c.plate }} · {{ c.driver }}</div>
+                        <div style="height: 6px; background: #23262F; border-radius: 4px; margin-top: 6px; overflow: hidden;">
+                          <div style="height: 100%; background: #C6F432; border-radius: 4px; width: {{ c.w }};"></div>
+                        </div>
+                      </div>
+                      <div style="font-weight: 800; font-size: 13px;">{{ c.profit }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+
+              <div style="background: #16181F; border-radius: 16px; border: 1px solid #23262F; overflow: hidden;">
+                <div style="display: grid; grid-template-columns: 1.3fr 1.2fr 1fr 1fr .9fr; padding: 14px 24px; font-size: 12px; font-weight: 800; color: #9FA2B2; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid #23262F;">
+                  <div>Mashina</div><div>Haydovchi</div><div>Bugungi plan</div><div>Topshirdi</div><div>Holat</div>
+                </div>
+                <sc-for list="{{ plan1b }}" as="p" hint-placeholder-count="5">
+                  <div style="display: grid; grid-template-columns: 1.3fr 1.2fr 1fr 1fr .9fr; padding: 13px 24px; font-size: 14px; align-items: center; border-bottom: 1px solid #1D2029;">
+                    <div style="font-weight: 800; font-family: 'Space Grotesk', sans-serif;">{{ p.plate }}</div>
+                    <div style="color: #C6C8D4; font-weight: 600;">{{ p.driver }}</div>
+                    <div style="color: #9FA2B2; font-weight: 700;">{{ p.plan }}</div>
+                    <div style="font-weight: 800;">{{ p.paid }}</div>
+                    <div><span style="font-size: 12px; font-weight: 800; padding: 4px 12px; border-radius: 20px; background: {{ p.stBg }}; color: {{ p.stColor }};">{{ p.status }}</span></div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile 1b -->
+        <div style="width: 375px; background: #101218; border-radius: 36px; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,.4); border: 8px solid #16181F; color: #F2F3F7;" data-screen-label="1b Telefon — egasi">
+          <div style="padding: 20px;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #9FA2B2;"><span>09:41</span><span>●●●</span></div>
+            <div style="margin-top: 18px; font-size: 13px; color: #9FA2B2; font-weight: 700;">Egasi rejimi · bugun</div>
+            <div style="font-family: 'Space Grotesk', sans-serif; font-size: 36px; font-weight: 700; color: #C6F432; margin-top: 6px;">+3 240 000</div>
+            <div style="font-size: 13px; color: #9FA2B2; font-weight: 600;">bugungi sof foyda, so'm</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 18px;">
+              <div style="background: #16181F; border: 1px solid #23262F; border-radius: 14px; padding: 14px;">
+                <div style="font-size: 12px; color: #9FA2B2; font-weight: 700;">Tushum</div>
+                <div style="font-size: 19px; font-weight: 800; margin-top: 4px;">5,1 mln</div>
+              </div>
+              <div style="background: #16181F; border: 1px solid #23262F; border-radius: 14px; padding: 14px;">
+                <div style="font-size: 12px; color: #9FA2B2; font-weight: 700;">Xarajat</div>
+                <div style="font-size: 19px; font-weight: 800; margin-top: 4px; color: #FF7A6B;">1,9 mln</div>
+              </div>
+            </div>
+            <div style="margin-top: 18px; font-size: 12px; font-weight: 800; color: #9FA2B2; text-transform: uppercase; letter-spacing: .04em;">Plan holati · 16/20</div>
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px;">
+              <sc-for list="{{ mplan1b }}" as="p" hint-placeholder-count="4">
+                <div style="background: #16181F; border: 1px solid #23262F; border-radius: 14px; padding: 13px 16px; display: flex; justify-content: space-between; align-items: center;">
+                  <div>
+                    <div style="font-weight: 800; font-size: 14px;">{{ p.plate }}</div>
+                    <div style="font-size: 12px; color: #9FA2B2; font-weight: 600;">{{ p.driver }}</div>
+                  </div>
+                  <span style="font-size: 12px; font-weight: 800; padding: 4px 12px; border-radius: 20px; background: {{ p.stBg }}; color: {{ p.stColor }};">{{ p.status }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ OPTION 1C : Iliq, sodda, katta yozuvlar ============ -->
+    <div id="1c" style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <a href="#1c" style="background: #E86A33; color: #fff; font-weight: 800; font-size: 13px; padding: 4px 10px; border-radius: 6px;">1c</a>
+        <span style="font-weight: 700; color: #1E1F2B;">Iliq va sodda — katta raqamlar, oson o'qiladi</span>
+      </div>
+      <div style="display: flex; gap: 24px; align-items: flex-start;">
+
+        <!-- Desktop 1c -->
+        <div style="width: 1180px; background: #FBF6EF; border-radius: 20px; overflow: hidden; box-shadow: 0 12px 40px rgba(60,40,20,.14);" data-screen-label="1c Desktop panel">
+          <div style="padding: 26px 32px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #EFE5D6;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 40px; height: 40px; border-radius: 50%; background: #E86A33; color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 17px;">FQ</div>
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; color: #33261A;">Farg'ona–Quva Avtopark</div>
+            </div>
+            <div style="display: flex; gap: 24px; font-size: 15px; font-weight: 700; color: #8C7A64;">
+              <span style="color: #E86A33; border-bottom: 3px solid #E86A33; padding-bottom: 4px;">Foyda</span>
+              <span>Mashinalar</span><span>Haydovchilar</span><span>Xarajatlar</span>
+            </div>
+            <div style="background: #fff; border: 2px solid #EFE5D6; border-radius: 12px; padding: 8px 16px; font-weight: 800; font-size: 14px; color: #33261A;">Iyul 2026 ▾</div>
+          </div>
+
+          <div style="padding: 28px 32px; display: flex; flex-direction: column; gap: 24px;">
+            <div style="display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 20px;">
+              <div style="background: #33261A; border-radius: 20px; padding: 28px; color: #FBF6EF;">
+                <div style="font-size: 15px; font-weight: 700; opacity: .75;">Bu oy sof foyda</div>
+                <div style="font-family: 'Space Grotesk', sans-serif; font-size: 46px; font-weight: 700; margin-top: 10px;">84 600 000 <span style="font-size: 20px; opacity: .7;">so'm</span></div>
+                <div style="margin-top: 14px; display: flex; gap: 10px;">
+                  <span style="background: #E86A33; padding: 5px 14px; border-radius: 20px; font-size: 13px; font-weight: 800;">↑ 12%</span>
+                  <span style="opacity: .7; font-size: 13px; font-weight: 700; align-self: center;">iyunga nisbatan</span>
+                </div>
+              </div>
+              <div style="background: #fff; border: 2px solid #EFE5D6; border-radius: 20px; padding: 28px;">
+                <div style="font-size: 15px; font-weight: 700; color: #8C7A64;">Kirdi (tushum)</div>
+                <div style="font-family: 'Space Grotesk', sans-serif; font-size: 38px; font-weight: 700; margin-top: 10px; color: #2E7D4F;">142,3 mln</div>
+                <div style="font-size: 13px; font-weight: 700; color: #8C7A64; margin-top: 10px;">Reys 96,4 · Plan 18,4 · Ijara 27,5</div>
+              </div>
+              <div style="background: #fff; border: 2px solid #EFE5D6; border-radius: 20px; padding: 28px;">
+                <div style="font-size: 15px; font-weight: 700; color: #8C7A64;">Chiqdi (xarajat)</div>
+                <div style="font-family: 'Space Grotesk', sans-serif; font-size: 38px; font-weight: 700; margin-top: 10px; color: #C64B2E;">57,7 mln</div>
+                <div style="font-size: 13px; font-weight: 700; color: #8C7A64; margin-top: 10px;">Yoqilg'i 26,5 · Maosh 17,2 · Ta'mir 8,1</div>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+              <div style="background: #fff; border: 2px solid #EFE5D6; border-radius: 20px; padding: 24px 28px;">
+                <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px; color: #33261A;">Oxirgi 6 oy foydasi</div>
+                <div style="display: flex; align-items: flex-end; gap: 20px; height: 170px; margin-top: 20px;">
+                  <sc-for list="{{ months1c }}" as="m" hint-placeholder-count="6">
+                    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; height: 100%; justify-content: flex-end;">
+                      <div style="font-size: 13px; font-weight: 800; color: #33261A;">{{ m.val }}</div>
+                      <div style="width: 100%; max-width: 52px; border-radius: 10px 10px 0 0; background: {{ m.color }}; height: {{ m.h }};"></div>
+                      <div style="font-size: 13px; color: #8C7A64; font-weight: 700;">{{ m.name }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="background: #fff; border: 2px solid #EFE5D6; border-radius: 20px; padding: 24px 28px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px; color: #33261A;">Mashinalar reytingi</div>
+                  <span style="font-size: 13px; font-weight: 800; color: #E86A33;">20 tasi ham →</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 18px;">
+                  <sc-for list="{{ rating1c }}" as="r" hint-placeholder-count="5">
+                    <div style="display: flex; align-items: center; gap: 14px;">
+                      <div style="width: 30px; height: 30px; border-radius: 50%; background: {{ r.badgeBg }}; color: {{ r.badgeColor }}; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px;">{{ r.rank }}</div>
+                      <div style="flex: 1;">
+                        <div style="font-weight: 800; font-size: 15px; color: #33261A;">{{ r.plate }} — {{ r.driver }}</div>
+                        <div style="font-size: 12px; color: #8C7A64; font-weight: 700;">{{ r.note }}</div>
+                      </div>
+                      <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 17px; color: {{ r.valColor }};">{{ r.profit }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile 1c : dispetcher kiritish -->
+        <div style="width: 375px; background: #FBF6EF; border-radius: 36px; overflow: hidden; box-shadow: 0 12px 40px rgba(60,40,20,.18); border: 8px solid #33261A;" data-screen-label="1c Telefon — kiritish">
+          <div style="padding: 20px;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #8C7A64;"><span>09:41</span><span>●●●</span></div>
+            <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; color: #33261A; margin-top: 16px;">Tushum kiritish</div>
+            <div style="font-size: 13px; color: #8C7A64; font-weight: 700; margin-top: 2px;">10-iyul · 01 A 245 BA</div>
+
+            <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 14px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 800; color: #33261A; margin-bottom: 8px;">Yo'nalish</div>
+                <div style="display: flex; gap: 10px;">
+                  <div style="flex: 1; background: #E86A33; color: #fff; border-radius: 12px; padding: 13px; text-align: center; font-weight: 800; font-size: 14px;">Farg'ona → Quva</div>
+                  <div style="flex: 1; background: #fff; border: 2px solid #EFE5D6; color: #8C7A64; border-radius: 12px; padding: 13px; text-align: center; font-weight: 800; font-size: 14px;">Quva → Farg'ona</div>
+                </div>
+              </div>
+              <div>
+                <div style="font-size: 13px; font-weight: 800; color: #33261A; margin-bottom: 8px;">Summa (so'm)</div>
+                <div style="background: #fff; border: 2px solid #E86A33; border-radius: 14px; padding: 18px; font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700; color: #33261A;">120 000</div>
+              </div>
+              <div>
+                <div style="font-size: 13px; font-weight: 800; color: #33261A; margin-bottom: 8px;">Yo'lovchilar soni</div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                  <div style="width: 52px; height: 52px; background: #fff; border: 2px solid #EFE5D6; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; color: #8C7A64;">−</div>
+                  <div style="flex: 1; text-align: center; font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; color: #33261A;">14</div>
+                  <div style="width: 52px; height: 52px; background: #fff; border: 2px solid #EFE5D6; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; color: #E86A33;">+</div>
+                </div>
+              </div>
+              <div style="background: #33261A; color: #FBF6EF; border-radius: 14px; padding: 17px; text-align: center; font-weight: 800; font-size: 16px; margin-top: 6px;">Saqlash ✓</div>
+              <div style="text-align: center; font-size: 13px; font-weight: 700; color: #8C7A64;">Bugun kiritilgan: 4 reys · 470 000 so'm</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const fleetBase = [
+      { plate: "01 A 245 BA", model: "Isuzu HC40", type: "Avtobus", mode: "Reys", driver: "Olim Karimov", income: "9,4 mln", expense: "3,1 mln", profit: "+6,3 mln", status: "Liniyada", stKey: "on" },
+      { plate: "01 B 812 CA", model: "Isuzu HC40", type: "Avtobus", mode: "Reys", driver: "Sardor Aliyev", income: "8,9 mln", expense: "3,4 mln", profit: "+5,5 mln", status: "Liniyada", stKey: "on" },
+      { plate: "01 H 583 JA", model: "Isuzu HC40", type: "Avtobus", mode: "Ijara", driver: "Rustam aka (ijarachi)", income: "5,5 mln", expense: "0,3 mln", profit: "+5,2 mln", status: "Ijarada", stKey: "rent" },
+      { plate: "01 E 908 FA", model: "Isuzu HC40", type: "Avtobus", mode: "Ijara", driver: "Anvar aka (ijarachi)", income: "5,5 mln", expense: "0,4 mln", profit: "+5,1 mln", status: "Ijarada", stKey: "rent" },
+      { plate: "01 C 331 DA", model: "Damas furgon", type: "Furgon", mode: "Plan", driver: "Bekzod Tursunov", income: "7,2 mln", expense: "2,6 mln", profit: "+4,6 mln", status: "Liniyada", stKey: "on" },
+      { plate: "01 F 126 GA", model: "GAZel Next", type: "Furgon", mode: "Plan", driver: "Umid Xasanov", income: "6,1 mln", expense: "2,8 mln", profit: "+3,3 mln", status: "Liniyada", stKey: "on" },
+      { plate: "01 G 447 HA", model: "GAZel Next", type: "Furgon", mode: "Reys", driver: "Aziz Nazarov", income: "5,8 mln", expense: "2,5 mln", profit: "+3,3 mln", status: "Liniyada", stKey: "on" },
+      { plate: "01 D 574 EA", model: "GAZel Next", type: "Furgon", mode: "Plan", driver: "Jasur Rahimov", income: "6,8 mln", expense: "3,9 mln", profit: "+2,9 mln", status: "Ta'mirda", stKey: "repair" }
+    ];
+    const stMapA = { on: ["#E4F5EC", "#1B9E6B"], rent: ["#EEF0F8", "#4F46E5"], repair: ["#FDECEA", "#D9534F"] };
+    const stMapB = { on: ["rgba(198,244,50,.15)", "#C6F432"], rent: ["rgba(159,162,178,.18)", "#C6C8D4"], repair: ["rgba(255,122,107,.15)", "#FF7A6B"] };
+    const stMapC = { on: ["#E7F2EA", "#2E7D4F"], rent: ["#EFE5D6", "#8C7A64"], repair: ["#FDECEA", "#C64B2E"] };
+    const mkFleet = (m) => fleetBase.map(c => Object.assign({}, c, { stBg: m[c.stKey][0], stColor: m[c.stKey][1] }));
+    const vehExpenses = [
+      { date: "08.07", cat: "Yoqilg'i", note: "Metan 120 m³", amount: "180 000" },
+      { date: "07.07", cat: "Yoqilg'i", note: "Metan 110 m³", amount: "165 000" },
+      { date: "05.07", cat: "Ta'mir", note: "Tormoz kolodkalari", amount: "450 000" },
+      { date: "01.07", cat: "Maosh", note: "Iyun oyi maoshi", amount: "3 200 000" },
+      { date: "01.07", cat: "Soliq", note: "Patent to'lovi", amount: "340 000" }
+    ];
+    const driversList = [
+      { name: "Olim Karimov", plate: "01 A 245 BA", trips: "128", planPct: "100%", salary: "3,2 mln", contrib: "+6,3 mln", warn: false },
+      { name: "Sardor Aliyev", plate: "01 B 812 CA", trips: "121", planPct: "98%", salary: "3,2 mln", contrib: "+5,5 mln", warn: false },
+      { name: "Bekzod Tursunov", plate: "01 C 331 DA", trips: "104", planPct: "92%", salary: "2,8 mln", contrib: "+4,6 mln", warn: false },
+      { name: "Umid Xasanov", plate: "01 F 126 GA", trips: "98", planPct: "88%", salary: "2,8 mln", contrib: "+3,3 mln", warn: false },
+      { name: "Jasur Rahimov", plate: "01 D 574 EA", trips: "61", planPct: "64%", salary: "2,4 mln", contrib: "+0,9 mln", warn: true }
+    ];
+    const reportCats = [
+      { name: "Yoqilg'i", amount: "26,5 mln", pct: "46%" },
+      { name: "Haydovchi maoshi", amount: "17,2 mln", pct: "30%" },
+      { name: "Ta'mirlash", amount: "8,1 mln", pct: "14%" },
+      { name: "Sug'urta / soliq / patent", amount: "4,4 mln", pct: "7%" },
+      { name: "Yo'l haqi / boshqa", amount: "1,5 mln", pct: "3%" }
+    ];
+    const incomeSplit = [
+      { name: "Reys tushumi", amount: "96,4 mln", pct: "68%" },
+      { name: "Oylik ijara", amount: "27,5 mln", pct: "19%" },
+      { name: "Kunlik plan", amount: "18,4 mln", pct: "13%" }
+    ];
+    const expCats = ["Yoqilg'i", "Maosh", "Ta'mir", "Sug'urta", "Soliq", "Yo'l haqi", "Boshqa"];
+    const adminUsers = [
+      { name: "Baxtiyor Qodirov", role: "Admin", roleBg: "#1E1F2B", roleColor: "#fff", phone: "+998 91 200 10 01", status: "Faol", stBg: "#E4F5EC", stColor: "#1B9E6B" },
+      { name: "Nilufar Ergasheva", role: "Buxgalter", roleBg: "#EEF0F8", roleColor: "#4F46E5", phone: "+998 90 311 22 33", status: "Faol", stBg: "#E4F5EC", stColor: "#1B9E6B" },
+      { name: "Muzaffar To'rayev", role: "Dispetcher · Farg'ona", roleBg: "#FFF3E0", roleColor: "#B26A00", phone: "+998 93 445 55 66", status: "Faol", stBg: "#E4F5EC", stColor: "#1B9E6B" },
+      { name: "Ikrom Sodiqov", role: "Dispetcher · Quva", roleBg: "#FFF3E0", roleColor: "#B26A00", phone: "+998 94 512 34 56", status: "Faol", stBg: "#E4F5EC", stColor: "#1B9E6B" },
+      { name: "G'ayrat Usmonov", role: "Mexanik", roleBg: "#E4F5EC", roleColor: "#1B9E6B", phone: "+998 95 787 88 99", status: "Faol", stBg: "#E4F5EC", stColor: "#1B9E6B" },
+      { name: "Olim Karimov", role: "Haydovchi", roleBg: "#F0F1F7", roleColor: "#6B6D82", phone: "+998 91 234 56 78", status: "Faol", stBg: "#E4F5EC", stColor: "#1B9E6B" },
+      { name: "Jasur Rahimov", role: "Haydovchi", roleBg: "#F0F1F7", roleColor: "#6B6D82", phone: "+998 99 121 21 21", status: "Bloklangan", stBg: "#FDECEA", stColor: "#D9534F" }
+    ];
+    const shifts = [
+      { plate: "01 A 245 BA", morning: "Olim Karimov", evening: "Botir Ergashev", mStatus: "Liniyada", mBg: "#E4F5EC", mColor: "#1B9E6B" },
+      { plate: "01 B 812 CA", morning: "Sardor Aliyev", evening: "Doston Yusupov", mStatus: "Liniyada", mBg: "#E4F5EC", mColor: "#1B9E6B" },
+      { plate: "01 C 331 DA", morning: "Bekzod Tursunov", evening: "Akmal Karimov", mStatus: "Liniyada", mBg: "#E4F5EC", mColor: "#1B9E6B" },
+      { plate: "01 D 574 EA", morning: "Jasur Rahimov", evening: "—", mStatus: "Ta'mirda", mBg: "#FDECEA", mColor: "#D9534F" },
+      { plate: "01 F 126 GA", morning: "Umid Xasanov", evening: "Sherzod Aliyev", mStatus: "Liniyada", mBg: "#E4F5EC", mColor: "#1B9E6B" }
+    ];
+    const payroll = [
+      { name: "Olim Karimov", role: "Haydovchi", salary: "3 200 000", advance: "−500 000", fines: "−150 000", lunch: "−264 000", bonus: "+200 000", total: "2 486 000" },
+      { name: "Sardor Aliyev", role: "Haydovchi", salary: "3 200 000", advance: "0", fines: "0", lunch: "−252 000", bonus: "+150 000", total: "3 098 000" },
+      { name: "Bekzod Tursunov", role: "Haydovchi", salary: "2 800 000", advance: "−800 000", fines: "−300 000", lunch: "−240 000", bonus: "0", total: "1 460 000" },
+      { name: "Muzaffar To'rayev", role: "Dispetcher · F", salary: "2 500 000", advance: "−300 000", fines: "0", lunch: "−220 000", bonus: "0", total: "1 980 000" },
+      { name: "Ikrom Sodiqov", role: "Dispetcher · Q", salary: "2 500 000", advance: "0", fines: "0", lunch: "−228 000", bonus: "0", total: "2 272 000" },
+      { name: "G'ayrat Usmonov", role: "Mexanik", salary: "2 700 000", advance: "0", fines: "0", lunch: "−212 000", bonus: "0", total: "2 488 000" }
+    ];
+    const collections = [
+      { time: "07:42", plate: "01 A 245 BA", driver: "Olim Karimov", sum: "260 000", note: "Plan · to'liq", stBg: "#E4F5EC", stColor: "#1B9E6B" },
+      { time: "08:15", plate: "01 C 331 DA", driver: "Bekzod Tursunov", sum: "180 000", note: "Plan · qisman", stBg: "#FFF3E0", stColor: "#B26A00" },
+      { time: "09:03", plate: "01 B 812 CA", driver: "Sardor Aliyev", sum: "350 000", note: "Plan · to'liq", stBg: "#E4F5EC", stColor: "#1B9E6B" },
+      { time: "09:47", plate: "01 G 447 HA", driver: "Aziz Nazarov", sum: "128 000", note: "Reys tushumi", stBg: "#EEF0F8", stColor: "#4F46E5" },
+      { time: "10:20", plate: "01 F 126 GA", driver: "Umid Xasanov", sum: "300 000", note: "Plan · to'liq", stBg: "#E4F5EC", stColor: "#1B9E6B" }
+    ];
+    const stations = [
+      { name: "Avto Gaz Servis (metan)", contract: "Shartnoma №14", period: "1–15 iyul", volume: "4 260 m³", amount: "6 390 000", status: "To'landi", stBg: "#E4F5EC", stColor: "#1B9E6B" },
+      { name: "Neftgaz Zapravka (benzin)", contract: "Shartnoma №08", period: "1–15 iyul", volume: "1 840 L", amount: "4 128 000", status: "To'lov kutilmoqda", stBg: "#FFF3E0", stColor: "#B26A00" },
+      { name: "Quva Metan (metan)", contract: "Shartnoma №21", period: "1–15 iyul", volume: "2 950 m³", amount: "4 425 000", status: "To'landi", stBg: "#E4F5EC", stColor: "#1B9E6B" }
+    ];
+    const yes = { t: "✓", bg: "#E4F5EC", c: "#1B9E6B" }, no = { t: "—", bg: "#F6F7FB", c: "#C9CBE3" }, own = { t: "faqat o'ziniki", bg: "#FFF3E0", c: "#B26A00" };
+    const accessMatrix = [
+      { module: "Foyda paneli (butun park)", admin: yes, owner: yes, acc: yes, disp: no, mech: no, drv: no },
+      { module: "Foydalanuvchilar / rollar", admin: yes, owner: no, acc: no, disp: no, mech: no, drv: no },
+      { module: "Vedomost · avans · jarima · obed", admin: yes, owner: yes, acc: yes, disp: own, mech: own, drv: own },
+      { module: "Pul qabul qilish (punkt)", admin: yes, owner: no, acc: no, disp: own, mech: no, drv: no },
+      { module: "Kirim-chiqim jurnali", admin: yes, owner: yes, acc: yes, disp: own, mech: no, drv: own },
+      { module: "Mashinalar (qo'shish, ta'mir)", admin: yes, owner: no, acc: no, disp: no, mech: yes, drv: no },
+      { module: "Yoqilg'i · zapravka to'lovlari", admin: yes, owner: yes, acc: yes, disp: no, mech: yes, drv: own },
+      { module: "Smenalar", admin: yes, owner: yes, acc: no, disp: own, mech: no, drv: own },
+      { module: "Reys / zakaz kiritish", admin: yes, owner: no, acc: no, disp: own, mech: no, drv: own }
+    ];
+    const dispIncomeTypes = [
+      { name: "Reys", active: true, inactive: false },
+      { name: "Alohida zakaz", active: false, inactive: true }
+    ];
+    const dispExpenseTypes = ["Stoyanka", "Obed", "Shaxsiy oziq-ovqat", "Boshqa rasxod"];
+    const dispDayLog = [
+      { time: "07:42", kind: "Reys", kindBg: "#EEF0F8", kindColor: "#4F46E5", detail: "01 A 245 BA · Farg'ona → Quva", sum: "+260 000", sumColor: "#1B9E6B" },
+      { time: "08:30", kind: "Zakaz", kindBg: "#E4F5EC", kindColor: "#1B9E6B", detail: "01 G 447 HA · To'yga buyurtma, Marg'ilon", sum: "+800 000", sumColor: "#1B9E6B" },
+      { time: "09:15", kind: "Stoyanka", kindBg: "#FDECEA", kindColor: "#D9534F", detail: "Farg'ona avtoshalon stoyankasi", sum: "−15 000", sumColor: "#D9534F" },
+      { time: "12:40", kind: "Obed", kindBg: "#FFF3E0", kindColor: "#B26A00", detail: "Tushlik", sum: "−12 000", sumColor: "#B26A00" },
+      { time: "15:05", kind: "Oziq-ovqat", kindBg: "#FFF3E0", kindColor: "#B26A00", detail: "Shaxsiy oziq-ovqat", sum: "−11 000", sumColor: "#B26A00" },
+      { time: "17:20", kind: "Boshqa", kindBg: "#F0F1F7", kindColor: "#6B6D82", detail: "Kanstovar (daftar, ruchka)", sum: "−8 000", sumColor: "#D9534F" }
+    ];
+    const fuelLog = [
+      { date: "23.07 · 06:55", plate: "01 A 245 BA", driver: "Olim K.", station: "Avto Gaz Servis", fuel: "Metan · 118 m³", sum: "177 000" },
+      { date: "23.07 · 07:10", plate: "01 B 812 CA", driver: "Sardor A.", station: "Avto Gaz Servis", fuel: "Metan · 122 m³", sum: "183 000" },
+      { date: "23.07 · 07:32", plate: "01 G 447 HA", driver: "Aziz N.", station: "Neftgaz Zapravka", fuel: "Benzin · 38 L", sum: "85 000" },
+      { date: "22.07 · 19:04", plate: "01 C 331 DA", driver: "Akmal K.", station: "Quva Metan", fuel: "Metan · 96 m³", sum: "144 000" }
+    ];
+    return {
+      adminUsers, shifts, payroll, collections, stations, fuelLog,
+      dispIncomeTypes, dispExpenseTypes, dispDayLog, accessMatrix,
+      fleetA: mkFleet(stMapA), fleetB: mkFleet(stMapB), fleetC: mkFleet(stMapC),
+      vehExpenses, driversList, reportCats, incomeSplit, expCats,
+      week1a: [
+        { day: "Du", inH: "62%", outH: "30%" },
+        { day: "Se", inH: "74%", outH: "34%" },
+        { day: "Ch", inH: "58%", outH: "28%" },
+        { day: "Pa", inH: "86%", outH: "38%" },
+        { day: "Ju", inH: "95%", outH: "42%" },
+        { day: "Sh", inH: "100%", outH: "44%" },
+        { day: "Ya", inH: "48%", outH: "24%" }
+      ],
+      exp1a: [
+        { name: "Yoqilg'i", amount: "26,5 mln", color: "#4F46E5" },
+        { name: "Haydovchi maoshi", amount: "17,2 mln", color: "#FFB84D" },
+        { name: "Ta'mirlash", amount: "8,1 mln", color: "#1B9E6B" },
+        { name: "Sug'urta / soliq", amount: "4,4 mln", color: "#D9534F" },
+        { name: "Boshqa", amount: "1,5 mln", color: "#C9CBE3" }
+      ],
+      cars1a: [
+        { plate: "01 A 245 BA", model: "Isuzu HC40", driver: "Olim Karimov", income: "9,4 mln", expense: "3,1 mln", profit: "+6,3 mln", status: "Liniyada", stBg: "#E4F5EC", stColor: "#1B9E6B" },
+        { plate: "01 B 812 CA", model: "Isuzu HC40", driver: "Sardor Aliyev", income: "8,9 mln", expense: "3,4 mln", profit: "+5,5 mln", status: "Liniyada", stBg: "#E4F5EC", stColor: "#1B9E6B" },
+        { plate: "01 C 331 DA", model: "Damas furgon", driver: "Bekzod Tursunov", income: "7,2 mln", expense: "2,6 mln", profit: "+4,6 mln", status: "Liniyada", stBg: "#E4F5EC", stColor: "#1B9E6B" },
+        { plate: "01 D 574 EA", model: "GAZel Next", driver: "Jasur Rahimov", income: "6,8 mln", expense: "3,9 mln", profit: "+2,9 mln", status: "Ta'mirda", stBg: "#FDECEA", stColor: "#D9534F" },
+        { plate: "01 E 908 FA", model: "Isuzu HC40", driver: "Ijara — Anvar aka", income: "5,5 mln", expense: "0,4 mln", profit: "+5,1 mln", status: "Ijarada", stBg: "#EEF0F8", stColor: "#4F46E5" },
+        { plate: "01 F 126 GA", model: "GAZel Next", driver: "Umid Xasanov", income: "6,1 mln", expense: "2,8 mln", profit: "+3,3 mln", status: "Liniyada", stBg: "#E4F5EC", stColor: "#1B9E6B" }
+      ],
+      trips1a: [
+        { route: "Farg'ona → Quva", time: "07:20 · 16 yo'lovchi", sum: "128 000" },
+        { route: "Quva → Farg'ona", time: "09:05 · 13 yo'lovchi", sum: "104 000" },
+        { route: "Farg'ona → Quva", time: "11:30 · 15 yo'lovchi", sum: "120 000" }
+      ],
+      week1b: [
+        { day: "Du", h: "55%", color: "#2E3140" },
+        { day: "Se", h: "68%", color: "#2E3140" },
+        { day: "Ch", h: "50%", color: "#2E3140" },
+        { day: "Pa", h: "80%", color: "#2E3140" },
+        { day: "Ju", h: "92%", color: "#C6F432" },
+        { day: "Sh", h: "100%", color: "#C6F432" },
+        { day: "Ya", h: "42%", color: "#2E3140" }
+      ],
+      top1b: [
+        { rank: "1", plate: "01 A 245 BA", driver: "Olim K.", profit: "2,1 mln", w: "100%" },
+        { rank: "2", plate: "01 B 812 CA", driver: "Sardor A.", profit: "1,8 mln", w: "86%" },
+        { rank: "3", plate: "01 E 908 FA", driver: "Ijara", profit: "1,4 mln", w: "67%" },
+        { rank: "4", plate: "01 C 331 DA", driver: "Bekzod T.", profit: "1,2 mln", w: "57%" }
+      ],
+      plan1b: [
+        { plate: "01 A 245 BA", driver: "Olim Karimov", plan: "350 000", paid: "350 000", status: "To'liq", stBg: "rgba(198,244,50,.15)", stColor: "#C6F432" },
+        { plate: "01 B 812 CA", driver: "Sardor Aliyev", plan: "350 000", paid: "350 000", status: "To'liq", stBg: "rgba(198,244,50,.15)", stColor: "#C6F432" },
+        { plate: "01 C 331 DA", driver: "Bekzod Tursunov", plan: "300 000", paid: "260 000", status: "Qisman", stBg: "rgba(255,184,77,.15)", stColor: "#FFB84D" },
+        { plate: "01 D 574 EA", driver: "Jasur Rahimov", plan: "300 000", paid: "—", status: "Ta'mirda", stBg: "rgba(255,122,107,.15)", stColor: "#FF7A6B" },
+        { plate: "01 F 126 GA", driver: "Umid Xasanov", plan: "300 000", paid: "180 000", status: "Qisman", stBg: "rgba(255,184,77,.15)", stColor: "#FFB84D" }
+      ],
+      mplan1b: [
+        { plate: "01 A 245 BA", driver: "Olim Karimov", status: "To'liq", stBg: "rgba(198,244,50,.15)", stColor: "#C6F432" },
+        { plate: "01 C 331 DA", driver: "Bekzod Tursunov", status: "Qisman", stBg: "rgba(255,184,77,.15)", stColor: "#FFB84D" },
+        { plate: "01 D 574 EA", driver: "Jasur Rahimov", status: "Ta'mirda", stBg: "rgba(255,122,107,.15)", stColor: "#FF7A6B" },
+        { plate: "01 F 126 GA", driver: "Umid Xasanov", status: "Qisman", stBg: "rgba(255,184,77,.15)", stColor: "#FFB84D" }
+      ],
+      months1c: [
+        { name: "Fev", val: "61", h: "58%", color: "#EFE5D6" },
+        { name: "Mar", val: "68", h: "66%", color: "#EFE5D6" },
+        { name: "Apr", val: "64", h: "62%", color: "#EFE5D6" },
+        { name: "May", val: "72", h: "72%", color: "#EFE5D6" },
+        { name: "Iyn", val: "75", h: "76%", color: "#EFE5D6" },
+        { name: "Iyl", val: "84,6", h: "92%", color: "#E86A33" }
+      ],
+      rating1c: [
+        { rank: "1", plate: "01 A 245 BA", driver: "Olim aka", note: "128 reys · 0 kun ta'mirda", profit: "+6,3 mln", badgeBg: "#E86A33", badgeColor: "#fff", valColor: "#2E7D4F" },
+        { rank: "2", plate: "01 B 812 CA", driver: "Sardor aka", note: "121 reys · 1 kun ta'mirda", profit: "+5,5 mln", badgeBg: "#E86A33", badgeColor: "#fff", valColor: "#2E7D4F" },
+        { rank: "3", plate: "01 E 908 FA", driver: "Ijarada", note: "Oylik ijara 5,5 mln", profit: "+5,1 mln", badgeBg: "#EFE5D6", badgeColor: "#33261A", valColor: "#2E7D4F" },
+        { rank: "4", plate: "01 C 331 DA", driver: "Bekzod aka", note: "104 reys", profit: "+4,6 mln", badgeBg: "#EFE5D6", badgeColor: "#33261A", valColor: "#2E7D4F" },
+        { rank: "20", plate: "01 D 574 EA", driver: "Jasur aka", note: "9 kun ta'mirda — e'tibor bering", profit: "+0,9 mln", badgeBg: "#FDECEA", badgeColor: "#C64B2E", valColor: "#C64B2E" }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

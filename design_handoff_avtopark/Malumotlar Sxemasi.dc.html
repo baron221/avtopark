@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;600&amp;display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #F6F7FB; font-family: 'Manrope', sans-serif; color: #1E1F2B; }
+  a { color: #4F46E5; text-decoration: none; }
+  a:hover { color: #3730A3; }
+</style>
+</helmet>
+
+<div style="max-width: 1160px; margin: 0 auto; padding: 48px 32px 80px; display: flex; flex-direction: column; gap: 36px;">
+
+  <div>
+    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 700;">Avtopark tizimi — ma'lumotlar sxemasi</div>
+    <div style="font-size: 15px; color: #6B6D82; font-weight: 600; margin-top: 6px;">Farg'ona–Quva avtopark · 17 ta jadval (model) + 9 ta view model · daromad 3 xil: reys, kunlik plan, oylik ijara</div>
+  </div>
+
+  <!-- Bog'lanishlar xulosasi -->
+  <div style="background: #1E1F2B; color: #F2F3F7; border-radius: 16px; padding: 22px 26px;">
+    <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px; margin-bottom: 12px;">Bog'lanishlar (relationships)</div>
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 13.5px; line-height: 2; color: #C9CBE3;">
+      users (1) ── (0..1) drivers &nbsp;·&nbsp; drivers (1) ── (0..1) vehicles [biriktirilgan]<br>
+      vehicles (1) ──&lt; trips &nbsp;·&nbsp; drivers (1) ──&lt; trips &nbsp;·&nbsp; routes (1) ──&lt; trips<br>
+      vehicles (1) ──&lt; daily_plans &nbsp;·&nbsp; vehicles (1) ──&lt; rentals &nbsp;·&nbsp; vehicles (1) ──&lt; expenses<br>
+      drivers (1) ──&lt; expenses [maosh, ixtiyoriy] &nbsp;·&nbsp; users (1) ──&lt; audit: har bir yozuvda entered_by<br>
+      vehicles (1) ──&lt; shifts &gt;── (1) drivers [smena almashish] &nbsp;·&nbsp; users (1) ──&lt; fines / lunches / staff_expenses / salaries<br>
+      fuel_stations (1) ──&lt; fuel_logs &gt;── (1) vehicles &nbsp;·&nbsp; fuel_stations (1) ──&lt; station_payments
+    </div>
+  </div>
+
+  <!-- Modellar -->
+  <div style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700;">1 · Modellar (jadvallar)</div>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <sc-for list="{{ models }}" as="m" hint-placeholder-count="9">
+      <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 16px; overflow: hidden;">
+        <div style="padding: 14px 20px; background: #4F46E5; color: #fff; display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 15px;">{{ m.name }}</span>
+          <span style="font-size: 12px; font-weight: 700; opacity: .85;">{{ m.title }}</span>
+        </div>
+        <div style="padding: 8px 0;">
+          <sc-for list="{{ m.fields }}" as="f" hint-placeholder-count="6">
+            <div style="display: grid; grid-template-columns: 150px 120px 1fr; gap: 12px; padding: 7px 20px; font-size: 13px; align-items: baseline; border-top: 1px solid #F4F5FA;">
+              <span style="font-family: 'JetBrains Mono', monospace; font-weight: 600; color: {{ f.keyColor }}; min-width: 0; overflow-wrap: anywhere;">{{ f.name }}</span>
+              <span style="font-family: 'JetBrains Mono', monospace; color: #8A8CA0; font-size: 12px; min-width: 0; overflow-wrap: anywhere;">{{ f.type }}</span>
+              <span style="color: #4A4B5C; font-weight: 500; min-width: 0; overflow-wrap: anywhere;">{{ f.desc }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- View modellar -->
+  <div style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; margin-top: 8px;">2 · View modellar (ekranlar uchun)</div>
+  <div style="display: flex; flex-direction: column; gap: 20px;">
+    <sc-for list="{{ viewmodels }}" as="v" hint-placeholder-count="5">
+      <div style="background: #fff; border: 1px solid #E7E8F0; border-radius: 16px; overflow: hidden;">
+        <div style="padding: 14px 20px; background: #EEF0F8; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <span style="font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 15px; color: #4F46E5;">{{ v.name }}</span>
+          <span style="font-size: 13px; font-weight: 700; color: #6B6D82;">{{ v.screen }}</span>
+        </div>
+        <pre style="margin: 0; padding: 18px 22px; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.75; color: #1E1F2B; white-space: pre-wrap;">{{ v.code }}</pre>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- Formulalar -->
+  <div style="background: #E4F5EC; border: 1px solid #BFE6D2; border-radius: 16px; padding: 22px 26px;">
+    <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px; color: #14503A; margin-bottom: 10px;">Asosiy formulalar</div>
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 13.5px; line-height: 2.1; color: #1B5E42;">
+      tushum(mashina, davr) = Σ trips.revenue + Σ daily_plans.paid_amount + ijara_prorata(rentals, davr)<br>
+      xarajat(mashina, davr) = Σ expenses.amount (FUEL + SALARY + REPAIR + INSURANCE + TAX + TOLL + OTHER)<br>
+      sof_foyda = tushum − xarajat &nbsp;·&nbsp; ijara_prorata = monthly_amount × (davr_kunlari / oy_kunlari)<br>
+      plan_holati = paid_amount ≥ plan_amount ? TOLIQ : (paid_amount &gt; 0 ? QISMAN : KUTILMOQDA)
+    </div>
+  </div>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const PK = "#D9534F", FK = "#4F46E5", F = "#1E1F2B";
+    const f = (name, type, desc, keyColor) => ({ name, type, desc, keyColor: keyColor || F });
+    return {
+      models: [
+        { name: "users", title: "Foydalanuvchilar", fields: [
+          f("id", "uuid PK", "Asosiy kalit", PK),
+          f("full_name", "text", "F.I.Sh."),
+          f("phone", "text unique", "Login sifatida ishlatiladi"),
+          f("role", "enum", "ADMIN | OWNER | ACCOUNTANT | DISPATCHER | MECHANIC | DRIVER"),
+          f("point", "enum", "Dispetcher uchun: FARGONA | QUVA (null mumkin)"),
+          f("password_hash", "text", "Parol xeshi"),
+          f("is_active", "bool", "Bloklash uchun"),
+          f("created_at", "timestamp", "")
+        ]},
+        { name: "vehicles", title: "Mashinalar", fields: [
+          f("id", "uuid PK", "", PK),
+          f("plate", "text unique", "Davlat raqami: 01 A 245 BA"),
+          f("model", "text", "Isuzu HC40, GAZel Next…"),
+          f("type", "enum", "AVTOBUS | FURGON"),
+          f("seats", "int", "O'rindiqlar soni"),
+          f("status", "enum", "ACTIVE | REPAIR | RENTED | SOLD"),
+          f("purchase_price", "bigint", "So'mda, tannarx tahlili uchun"),
+          f("purchase_date", "date", "")
+        ]},
+        { name: "drivers", title: "Haydovchilar", fields: [
+          f("id", "uuid PK", "", PK),
+          f("user_id", "uuid FK → users", "Ilovaga kirishi uchun", FK),
+          f("vehicle_id", "uuid FK → vehicles", "Biriktirilgan mashina (null bo'lishi mumkin)", FK),
+          f("license_no", "text", "Haydovchilik guvohnomasi"),
+          f("salary_type", "enum", "FIXED | PERCENT | PLAN_SURPLUS"),
+          f("salary_value", "numeric", "Oylik summa yoki foiz"),
+          f("hired_at", "date", "")
+        ]},
+        { name: "routes", title: "Yo'nalishlar", fields: [
+          f("id", "uuid PK", "", PK),
+          f("from_city", "text", "Farg'ona"),
+          f("to_city", "text", "Quva"),
+          f("distance_km", "int", "Yoqilg'i normasi hisobi uchun"),
+          f("base_fare", "int", "Bir yo'lovchi narxi, so'm"),
+          f("is_active", "bool", "")
+        ]},
+        { name: "trips", title: "Reyslar (daromad #1)", fields: [
+          f("id", "uuid PK", "", PK),
+          f("vehicle_id", "uuid FK → vehicles", "", FK),
+          f("driver_id", "uuid FK → drivers", "", FK),
+          f("route_id", "uuid FK → routes", "Yo'nalish + yo'nalish tomoni", FK),
+          f("trip_date", "date", ""),
+          f("departure_time", "time", ""),
+          f("passenger_count", "int", "Yo'lovchilar soni"),
+          f("revenue", "bigint", "Reys tushumi, so'm"),
+          f("entered_by", "uuid FK → users", "Kim kiritdi (audit)", FK),
+          f("created_at", "timestamp", "")
+        ]},
+        { name: "daily_plans", title: "Kunlik plan (daromad #2)", fields: [
+          f("id", "uuid PK", "", PK),
+          f("vehicle_id", "uuid FK → vehicles", "", FK),
+          f("driver_id", "uuid FK → drivers", "", FK),
+          f("plan_date", "date", "unique(vehicle_id, plan_date)"),
+          f("plan_amount", "bigint", "Belgilangan summa, so'm"),
+          f("paid_amount", "bigint", "Topshirilgan summa"),
+          f("status", "enum", "FULL | PARTIAL | PENDING | REPAIR"),
+          f("paid_at", "timestamp", "Qachon topshirdi")
+        ]},
+        { name: "rentals", title: "Oylik ijara (daromad #3)", fields: [
+          f("id", "uuid PK", "", PK),
+          f("vehicle_id", "uuid FK → vehicles", "", FK),
+          f("renter_name", "text", "Ijarachi F.I.Sh."),
+          f("renter_phone", "text", ""),
+          f("monthly_amount", "bigint", "Oylik ijara haqi, so'm"),
+          f("start_date", "date", ""),
+          f("end_date", "date", "null = amalda"),
+          f("status", "enum", "ACTIVE | ENDED")
+        ]},
+        { name: "expenses", title: "Xarajatlar", fields: [
+          f("id", "uuid PK", "", PK),
+          f("vehicle_id", "uuid FK → vehicles", "Qaysi mashinaga tegishli", FK),
+          f("driver_id", "uuid FK → drivers", "Maosh bo'lsa — kimga (null mumkin)", FK),
+          f("category", "enum", "FUEL | SALARY | REPAIR | INSURANCE | TAX | TOLL | OTHER"),
+          f("amount", "bigint", "So'mda"),
+          f("expense_date", "date", ""),
+          f("note", "text", "Izoh: «moy almashtirildi»…"),
+          f("entered_by", "uuid FK → users", "Audit", FK)
+        ]},
+        { name: "shifts", title: "Smenalar", fields: [
+          f("id", "uuid PK", "", PK),
+          f("vehicle_id", "uuid FK → vehicles", "", FK),
+          f("driver_id", "uuid FK → drivers", "Smenadagi haydovchi", FK),
+          f("shift_date", "date", "unique(vehicle_id, shift_date, shift_type)"),
+          f("shift_type", "enum", "MORNING | EVENING"),
+          f("start_time", "time", "06:00 / 14:00"),
+          f("end_time", "time", "14:00 / 22:00"),
+          f("note", "text", "Almashish sababi va h.k.")
+        ]},
+        { name: "fines", title: "Jarimalar", fields: [
+          f("id", "uuid PK", "", PK),
+          f("user_id", "uuid FK → users", "Kimga (haydovchi/dispetcher)", FK),
+          f("vehicle_id", "uuid FK → vehicles", "Mashinaga bog'liq bo'lsa (null mumkin)", FK),
+          f("amount", "bigint", "So'mda, maoshdan ushlanadi"),
+          f("reason", "text", "Sabab: kechikish, radar…"),
+          f("fine_date", "date", ""),
+          f("deducted", "bool", "Maoshdan ushlab qolindimi"),
+          f("entered_by", "uuid FK → users", "Buxgalter/admin kiritadi", FK)
+        ]},
+        { name: "lunches", title: "Obedlar", fields: [
+          f("id", "uuid PK", "", PK),
+          f("user_id", "uuid FK → users", "Haydovchi yoki dispetcher", FK),
+          f("amount", "bigint", "So'mda"),
+          f("lunch_date", "date", "unique(user_id, lunch_date)"),
+          f("entered_by", "uuid FK → users", "", FK)
+        ]},
+        { name: "fuel_stations", title: "Zapravkalar (shartnoma)", fields: [
+          f("id", "uuid PK", "", PK),
+          f("name", "text", "Avto Gaz Servis…"),
+          f("fuel_type", "enum", "METAN | BENZIN | DIZEL"),
+          f("contract_no", "text", "Shartnoma raqami"),
+          f("unit_price", "bigint", "1 m³ / 1 L narxi, so'm"),
+          f("pay_period", "enum", "WEEK | HALF_MONTH | MONTH"),
+          f("is_active", "bool", "")
+        ]},
+        { name: "fuel_logs", title: "Quyish jurnali", fields: [
+          f("id", "uuid PK", "", PK),
+          f("station_id", "uuid FK → fuel_stations", "", FK),
+          f("vehicle_id", "uuid FK → vehicles", "", FK),
+          f("driver_id", "uuid FK → drivers", "Smenadagi haydovchi", FK),
+          f("shift_id", "uuid FK → shifts", "Qaysi smenada (null mumkin)", FK),
+          f("volume", "numeric", "m³ yoki litr"),
+          f("amount", "bigint", "volume × unit_price"),
+          f("filled_at", "timestamp", ""),
+          f("entered_by", "uuid FK → users", "Mexanik kiritadi", FK)
+        ]},
+        { name: "station_payments", title: "Zapravkaga to'lovlar", fields: [
+          f("id", "uuid PK", "", PK),
+          f("station_id", "uuid FK → fuel_stations", "", FK),
+          f("period_start", "date", ""),
+          f("period_end", "date", ""),
+          f("total_volume", "numeric", "Davr bo'yicha jami hajm"),
+          f("amount", "bigint", "To'langan summa"),
+          f("status", "enum", "PENDING | PAID"),
+          f("paid_at", "timestamp", "null = kutilmoqda"),
+          f("entered_by", "uuid FK → users", "Mexanik/buxgalter", FK)
+        ]},
+        { name: "staff_expenses", title: "Xodim rasxodlari", fields: [
+          f("id", "uuid PK", "Dispetcher/haydovchi kundalik rasxodi", PK),
+          f("user_id", "uuid FK → users", "Kimning rasxodi", FK),
+          f("point", "enum", "FARGONA | QUVA | YOLDA — qayerda"),
+          f("amount", "bigint", ""),
+          f("note", "text", "Nima uchun"),
+          f("expense_date", "date", ""),
+          f("entered_by", "uuid FK → users", "", FK)
+        ]},
+        { name: "salaries", title: "Oylik vedomost", fields: [
+          f("id", "uuid PK", "Buxgalter oy yakunida yopadi", PK),
+          f("user_id", "uuid FK → users", "Xodim", FK),
+          f("month", "date", "unique(user_id, month) — oyning 1-kuni"),
+          f("base_salary", "bigint", "Maosh"),
+          f("bonus", "bigint", "Bonus"),
+          f("fines_total", "bigint", "Σ fines (deducted)"),
+          f("lunch_total", "bigint", "Σ lunches"),
+          f("net_pay", "bigint", "base + bonus − fines − lunch"),
+          f("status", "enum", "DRAFT | APPROVED | PAID"),
+          f("approved_by", "uuid FK → users", "Buxgalter tasdiqlaydi", FK)
+        ]},
+        { name: "plan_payments", title: "Plan to'lovlari (ixtiyoriy)", fields: [
+          f("id", "uuid PK", "Bir kunda bo'lib-bo'lib topshirsa kerak bo'ladi", PK),
+          f("daily_plan_id", "uuid FK → daily_plans", "", FK),
+          f("amount", "bigint", ""),
+          f("method", "enum", "CASH | CARD | CLICK"),
+          f("paid_at", "timestamp", ""),
+          f("received_by", "uuid FK → users", "Dispetcher qabul qildi", FK)
+        ]}
+      ],
+      viewmodels: [
+        { name: "OwnerDashboardVM", screen: "Egasi paneli (desktop, 1a/1b/1c asosiy ekran)", code:
+`{
+  period: { type: "DAY" | "WEEK" | "MONTH", from: date, to: date },
+  totalIncome: bigint,        // Σ trips + Σ plan paid + ijara prorata
+  totalExpense: bigint,
+  netProfit: bigint,
+  profitChangePct: float,     // o'tgan davrga nisbatan
+  planToday: { paid: int, total: int },       // 16 / 20
+  chart: [{ label: "Du", income: bigint, expense: bigint, profit: bigint }],
+  expenseBreakdown: [{ category, amount, pct }],
+  vehicles: [VehicleProfitRowVM]              // pastdagi jadval
+}` },
+        { name: "VehicleProfitRowVM", screen: "Mashinalar jadvali qatori + mashina sahifasi", code:
+`{
+  vehicleId, plate, model,
+  driverName: string | "Ijara — {renter}",
+  incomeSource: "TRIPS" | "PLAN" | "RENTAL",  // qaysi rejimda ishlayapti
+  income: bigint, expense: bigint, profit: bigint,
+  status: "ACTIVE" | "REPAIR" | "RENTED",
+  repairDays: int,            // davr ichida ta'mirda turgan kunlar
+  tripCount: int
+}` },
+        { name: "DriverDayVM", screen: "Haydovchi ilovasi — bosh ekran (1a telefon)", code:
+`{
+  driverName, vehiclePlate, vehicleModel,
+  plan: { amount: bigint, paid: bigint, remaining: bigint, pct: float },
+  todayTrips: [{ routeLabel, time, passengerCount, revenue }],
+  todayTripCount: int,
+  todayFuelExpense: bigint
+}` },
+        { name: "TripEntryVM", screen: "Reys kiritish formasi (1c telefon)", code:
+`{
+  vehicleId, driverId, date,
+  direction: "FQ" | "QF",     // Farg'ona→Quva / Quva→Farg'ona
+  passengerCount: int,
+  suggestedRevenue: bigint,   // base_fare × passengerCount (avtomatik)
+  revenue: bigint,            // qo'lda o'zgartirsa bo'ladi
+  todaySummary: { tripCount, totalRevenue }
+}` },
+        { name: "PayrollVM", screen: "Buxgalter — oylik vedomost (3a)", code:
+`{
+  month, status: "DRAFT" | "APPROVED" | "PAID",
+  rows: [{ userId, name, role, baseSalary, bonus,
+           finesTotal, lunchTotal, netPay }],
+  totals: { salaryFund, fines, lunches, netProfitAfterAll }
+}` },
+        { name: "CollectionPointVM", screen: "Dispetcher — pul yig'ish punkti (3a)", code:
+`{
+  point: "FARGONA" | "QUVA", date, dispatcherName,
+  collectedToday: bigint,
+  vehiclesReceived: { done: int, expected: int },
+  myExpenses: bigint, myLunch: bigint,
+  entries: [{ time, plate, driverName, amount,
+              kind: "PLAN_FULL" | "PLAN_PARTIAL" | "TRIP" | "RENTAL" }]
+}` },
+        { name: "FuelReportVM", screen: "Mexanik — yoqilg'i hisobi (3a)", code:
+`{
+  period: { from, to, type: "WEEK" | "HALF_MONTH" | "MONTH" },
+  stations: [{ stationId, name, contractNo, fuelType,
+               totalVolume, totalAmount, payStatus }],
+  grandTotal: bigint,
+  logs: [{ filledAt, plate, driverName, stationName, volume, amount }]
+}` },
+        { name: "ShiftBoardVM", screen: "Smena boshqaruvi (3a)", code:
+`{
+  date, shiftType: "MORNING" | "EVENING",
+  rows: [{ vehicleId, plate, morningDriver, eveningDriver,
+           vehicleStatus }]
+}` },
+        { name: "ReportVM", screen: "Hisobotlar — oy/hafta yakuni, eksport (Excel/PDF)", code:
+`{
+  period, generatedAt,
+  byVehicle: [VehicleProfitRowVM],   // 20 qator
+  byDriver: [{ driverName, tripCount, revenue, planPaidPct, salaryPaid, netContribution }],
+  byCategory: [{ category, amount, pctOfIncome }],
+  monthlyTrend: [{ month: "Iyl", income, expense, profit }],   // oxirgi 6 oy
+  totals: { income, expense, profit, margin: float }
+}` }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

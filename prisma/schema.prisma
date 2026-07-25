@@ -1,0 +1,469 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- Enums ----------
+
+enum Role {
+  ADMIN
+  OWNER
+  ACCOUNTANT
+  DISPATCHER
+  MECHANIC
+  DRIVER
+}
+
+enum Point {
+  FARGONA
+  QUVA
+}
+
+enum VehicleType {
+  AVTOBUS
+  FURGON
+}
+
+enum VehicleStatus {
+  ACTIVE
+  REPAIR
+  RENTED
+  SOLD
+}
+
+enum SalaryType {
+  FIXED
+  PERCENT
+  PLAN_SURPLUS
+}
+
+enum PlanStatus {
+  FULL
+  PARTIAL
+  PENDING
+  REPAIR
+}
+
+enum RentalStatus {
+  ACTIVE
+  ENDED
+}
+
+enum ExpenseCategory {
+  FUEL
+  SALARY
+  REPAIR
+  INSURANCE
+  TAX
+  TOLL
+  OTHER
+}
+
+enum ShiftType {
+  MORNING
+  EVENING
+}
+
+enum FuelType {
+  METAN
+  BENZIN
+  DIZEL
+}
+
+enum PayPeriod {
+  WEEK
+  HALF_MONTH
+  MONTH
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  CLICK
+}
+
+enum SalaryStatus {
+  DRAFT
+  APPROVED
+  PAID
+}
+
+enum StaffExpensePoint {
+  FARGONA
+  QUVA
+  YOLDA
+}
+
+enum TripKind {
+  TRIP
+  ORDER
+}
+
+enum StaffExpenseCategory {
+  STOYANKA
+  OZIQ_OVQAT
+  BOSHQA
+}
+
+// ---------- Models ----------
+
+model User {
+  id           String   @id @default(uuid())
+  fullName     String   @map("full_name")
+  phone        String   @unique
+  role         Role
+  point        Point?
+  baseSalary   BigInt?  @map("base_salary")
+  passwordHash String   @map("password_hash")
+  isActive     Boolean  @default(true) @map("is_active")
+  failedLoginAttempts Int @default(0) @map("failed_login_attempts")
+  lockedUntil  DateTime? @map("locked_until")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  driver         Driver?
+  enteredTrips     Trip[]           @relation("TripEnteredBy")
+  enteredExpenses  Expense[]        @relation("ExpenseEnteredBy")
+  finesReceived    Fine[]           @relation("FineUser")
+  finesEntered     Fine[]           @relation("FineEnteredBy")
+  lunches          Lunch[]          @relation("LunchUser")
+  lunchesEntered   Lunch[]          @relation("LunchEnteredBy")
+  fuelLogsEntered  FuelLog[]        @relation("FuelLogEnteredBy")
+  stationPaymentsEntered StationPayment[] @relation("StationPaymentEnteredBy")
+  staffExpenses    StaffExpense[]   @relation("StaffExpenseUser")
+  staffExpensesEntered StaffExpense[] @relation("StaffExpenseEnteredBy")
+  salaries         Salary[]         @relation("SalaryUser")
+  salariesApproved Salary[]         @relation("SalaryApprovedBy")
+  planPaymentsReceived PlanPayment[] @relation("PlanPaymentReceivedBy")
+  advances         Advance[]        @relation("AdvanceUser")
+  advancesEntered  Advance[]        @relation("AdvanceEnteredBy")
+
+  @@index([role])
+  @@index([point])
+  @@map("users")
+}
+
+model Vehicle {
+  id            String        @id @default(uuid())
+  plate         String        @unique
+  model         String
+  type          VehicleType
+  seats         Int
+  status        VehicleStatus @default(ACTIVE)
+  point         Point?
+  purchasePrice BigInt        @map("purchase_price")
+  purchaseDate  DateTime      @map("purchase_date")
+
+  driver          Driver?
+  trips           Trip[]
+  dailyPlans      DailyPlan[]
+  rentals         Rental[]
+  expenses        Expense[]
+  shifts          Shift[]
+  fines           Fine[]
+  fuelLogs        FuelLog[]
+
+  @@index([point])
+  @@index([status])
+  @@map("vehicles")
+}
+
+model Driver {
+  id          String     @id @default(uuid())
+  userId      String     @unique @map("user_id")
+  vehicleId   String?    @unique @map("vehicle_id")
+  licenseNo   String     @map("license_no")
+  salaryType  SalaryType @map("salary_type")
+  salaryValue Decimal    @map("salary_value")
+  hiredAt     DateTime   @map("hired_at")
+
+  user    User     @relation(fields: [userId], references: [id])
+  vehicle Vehicle? @relation(fields: [vehicleId], references: [id])
+
+  trips      Trip[]
+  dailyPlans DailyPlan[]
+  expenses   Expense[]
+  shifts     Shift[]
+  fuelLogs   FuelLog[]
+
+  @@map("drivers")
+}
+
+model Route {
+  id          String  @id @default(uuid())
+  fromCity    String  @map("from_city")
+  toCity      String  @map("to_city")
+  distanceKm  Int     @map("distance_km")
+  baseFare    Int     @map("base_fare")
+  isActive    Boolean @default(true) @map("is_active")
+
+  trips Trip[]
+
+  @@map("routes")
+}
+
+model Trip {
+  id              String   @id @default(uuid())
+  vehicleId       String   @map("vehicle_id")
+  driverId        String   @map("driver_id")
+  routeId         String   @map("route_id")
+  tripDate        DateTime @map("trip_date")
+  departureTime   DateTime @map("departure_time")
+  passengerCount  Int      @map("passenger_count")
+  revenue         BigInt
+  kind            TripKind @default(TRIP)
+  note            String?
+  enteredBy       String   @map("entered_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+  driver  Driver  @relation(fields: [driverId], references: [id])
+  route   Route   @relation(fields: [routeId], references: [id])
+  enteredByUser User @relation("TripEnteredBy", fields: [enteredBy], references: [id])
+
+  @@index([vehicleId, tripDate])
+  @@index([driverId])
+  @@index([tripDate])
+  @@map("trips")
+}
+
+model DailyPlan {
+  id          String     @id @default(uuid())
+  vehicleId   String     @map("vehicle_id")
+  driverId    String     @map("driver_id")
+  planDate    DateTime   @map("plan_date")
+  planAmount  BigInt     @map("plan_amount")
+  paidAmount  BigInt     @default(0) @map("paid_amount")
+  status      PlanStatus @default(PENDING)
+  paidAt      DateTime?  @map("paid_at")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+  driver  Driver  @relation(fields: [driverId], references: [id])
+
+  planPayments PlanPayment[]
+
+  @@unique([vehicleId, planDate])
+  @@index([driverId])
+  @@index([planDate])
+  @@map("daily_plans")
+}
+
+model Rental {
+  id            String       @id @default(uuid())
+  vehicleId     String       @map("vehicle_id")
+  renterName    String       @map("renter_name")
+  renterPhone   String       @map("renter_phone")
+  monthlyAmount BigInt       @map("monthly_amount")
+  startDate     DateTime     @map("start_date")
+  endDate       DateTime?    @map("end_date")
+  status        RentalStatus @default(ACTIVE)
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+
+  @@index([vehicleId])
+  @@map("rentals")
+}
+
+model Expense {
+  id          String          @id @default(uuid())
+  vehicleId   String          @map("vehicle_id")
+  driverId    String?         @map("driver_id")
+  category    ExpenseCategory
+  amount      BigInt
+  expenseDate DateTime        @map("expense_date")
+  note        String?
+  enteredBy   String          @map("entered_by")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+  driver  Driver? @relation(fields: [driverId], references: [id])
+  enteredByUser User @relation("ExpenseEnteredBy", fields: [enteredBy], references: [id])
+
+  @@index([vehicleId, expenseDate])
+  @@index([expenseDate])
+  @@map("expenses")
+}
+
+model Shift {
+  id        String    @id @default(uuid())
+  vehicleId String    @map("vehicle_id")
+  driverId  String    @map("driver_id")
+  shiftDate DateTime  @map("shift_date")
+  shiftType ShiftType @map("shift_type")
+  startTime DateTime  @map("start_time")
+  endTime   DateTime  @map("end_time")
+  note      String?
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+  driver  Driver  @relation(fields: [driverId], references: [id])
+
+  fuelLogs FuelLog[]
+
+  @@unique([vehicleId, shiftDate, shiftType])
+  @@index([driverId])
+  @@map("shifts")
+}
+
+model Fine {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  vehicleId String?  @map("vehicle_id")
+  amount    BigInt
+  reason    String
+  fineDate  DateTime @map("fine_date")
+  deducted  Boolean  @default(false)
+  enteredBy String   @map("entered_by")
+
+  user      User     @relation("FineUser", fields: [userId], references: [id])
+  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id])
+  enteredByUser User @relation("FineEnteredBy", fields: [enteredBy], references: [id])
+
+  @@index([userId, fineDate])
+  @@map("fines")
+}
+
+model Lunch {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  amount    BigInt
+  lunchDate DateTime @map("lunch_date")
+  enteredBy String   @map("entered_by")
+
+  user User @relation("LunchUser", fields: [userId], references: [id])
+  enteredByUser User @relation("LunchEnteredBy", fields: [enteredBy], references: [id])
+
+  @@unique([userId, lunchDate])
+  @@map("lunches")
+}
+
+model FuelStation {
+  id         String    @id @default(uuid())
+  name       String
+  fuelType   FuelType  @map("fuel_type")
+  contractNo String    @map("contract_no")
+  unitPrice  BigInt    @map("unit_price")
+  payPeriod  PayPeriod @map("pay_period")
+  isActive   Boolean   @default(true) @map("is_active")
+
+  fuelLogs        FuelLog[]
+  stationPayments StationPayment[]
+
+  @@map("fuel_stations")
+}
+
+model FuelLog {
+  id        String   @id @default(uuid())
+  stationId String   @map("station_id")
+  vehicleId String   @map("vehicle_id")
+  driverId  String   @map("driver_id")
+  shiftId   String?  @map("shift_id")
+  volume    Decimal
+  amount    BigInt
+  filledAt  DateTime @map("filled_at")
+  enteredBy String   @map("entered_by")
+
+  station FuelStation @relation(fields: [stationId], references: [id])
+  vehicle Vehicle     @relation(fields: [vehicleId], references: [id])
+  driver  Driver      @relation(fields: [driverId], references: [id])
+  shift   Shift?      @relation(fields: [shiftId], references: [id])
+  enteredByUser User  @relation("FuelLogEnteredBy", fields: [enteredBy], references: [id])
+
+  @@index([vehicleId])
+  @@index([stationId])
+  @@index([filledAt])
+  @@map("fuel_logs")
+}
+
+model StationPayment {
+  id           String        @id @default(uuid())
+  stationId    String        @map("station_id")
+  periodStart  DateTime      @map("period_start")
+  periodEnd    DateTime      @map("period_end")
+  totalVolume  Decimal       @map("total_volume")
+  amount       BigInt
+  status       PaymentStatus @default(PENDING)
+  paidAt       DateTime?     @map("paid_at")
+  enteredBy    String        @map("entered_by")
+
+  station FuelStation @relation(fields: [stationId], references: [id])
+  enteredByUser User   @relation("StationPaymentEnteredBy", fields: [enteredBy], references: [id])
+
+  @@index([stationId])
+  @@index([periodEnd])
+  @@map("station_payments")
+}
+
+model StaffExpense {
+  id          String               @id @default(uuid())
+  userId      String               @map("user_id")
+  point       StaffExpensePoint
+  category    StaffExpenseCategory @default(BOSHQA)
+  amount      BigInt
+  note        String?
+  expenseDate DateTime             @map("expense_date")
+  enteredBy   String               @map("entered_by")
+
+  user User @relation("StaffExpenseUser", fields: [userId], references: [id])
+  enteredByUser User @relation("StaffExpenseEnteredBy", fields: [enteredBy], references: [id])
+
+  @@index([userId, expenseDate])
+  @@index([point, expenseDate])
+  @@map("staff_expenses")
+}
+
+model Salary {
+  id          String       @id @default(uuid())
+  userId      String       @map("user_id")
+  month       DateTime
+  baseSalary  BigInt       @map("base_salary")
+  bonus       BigInt       @default(0)
+  finesTotal  BigInt       @default(0) @map("fines_total")
+  lunchTotal  BigInt       @default(0) @map("lunch_total")
+  netPay      BigInt       @map("net_pay")
+  status      SalaryStatus @default(DRAFT)
+  approvedBy  String?      @map("approved_by")
+
+  user User @relation("SalaryUser", fields: [userId], references: [id])
+  approvedByUser User? @relation("SalaryApprovedBy", fields: [approvedBy], references: [id])
+
+  @@unique([userId, month])
+  @@map("salaries")
+}
+
+model PlanPayment {
+  id          String        @id @default(uuid())
+  dailyPlanId String        @map("daily_plan_id")
+  amount      BigInt
+  method      PaymentMethod
+  paidAt      DateTime      @map("paid_at")
+  receivedBy  String        @map("received_by")
+
+  dailyPlan DailyPlan @relation(fields: [dailyPlanId], references: [id])
+  receivedByUser User @relation("PlanPaymentReceivedBy", fields: [receivedBy], references: [id])
+
+  @@map("plan_payments")
+}
+
+// Not in the original 17 tables — added per README instruction: the payroll
+// screen already shows an Avans column, so this table backs it.
+model Advance {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  amount     BigInt
+  givenDate  DateTime @map("given_date")
+  month      DateTime
+  enteredBy  String   @map("entered_by")
+
+  user User @relation("AdvanceUser", fields: [userId], references: [id])
+  enteredByUser User @relation("AdvanceEnteredBy", fields: [enteredBy], references: [id])
+
+  @@index([userId, month])
+  @@index([month])
+  @@map("advances")
+}
