@@ -81,6 +81,7 @@ enum PayPeriod {
 
 enum PaymentStatus {
   PENDING
+  PARTIAL
   PAID
 }
 
@@ -387,6 +388,7 @@ model StationPayment {
   periodEnd    DateTime      @map("period_end")
   totalVolume  Decimal       @map("total_volume")
   amount       BigInt
+  paidAmount   BigInt        @default(0) @map("paid_amount")
   status       PaymentStatus @default(PENDING)
   paidAt       DateTime?     @map("paid_at")
   enteredBy    String        @map("entered_by")

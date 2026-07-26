@@ -3,10 +3,11 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { formatSom } from "@/lib/format";
-import { markPaymentPaidAction, addStationPaymentAction } from "./actions";
+import { addStationPaymentInstallmentAction, addStationPaymentAction } from "./actions";
 
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
   PAID: { bg: "#E4F5EC", color: "#1B9E6B", label: "To'landi" },
+  PARTIAL: { bg: "#EEF0F8", color: "#4F46E5", label: "Qisman to'landi" },
   PENDING: { bg: "#FFF3E0", color: "#B26A00", label: "To'lov kutilmoqda" },
 };
 
@@ -26,32 +27,70 @@ export default async function StationPaymentsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 items-start">
         <Card className="overflow-hidden">
-          {payments.map((p) => (
-            <div
-              key={p.id}
-              className="flex justify-between items-center gap-3 px-5 py-3.5 border-t border-row-divider first:border-t-0 text-sm flex-wrap"
-            >
-              <div>
-                <div className="font-extrabold text-heading">{p.station.name}</div>
-                <div className="text-xs text-muted-2 font-semibold mt-0.5">
-                  {p.periodStart.toLocaleDateString("uz-UZ", { day: "numeric", month: "short" })} –{" "}
-                  {p.periodEnd.toLocaleDateString("uz-UZ", { day: "numeric", month: "short" })} · {Number(p.totalVolume)}{" "}
-                  {p.station.fuelType === "BENZIN" ? "L" : "m³"}
+          {payments.map((p) => {
+            const remaining = Math.max(0, Number(p.amount) - Number(p.paidAmount));
+            return (
+              <div
+                key={p.id}
+                className="flex flex-col gap-2.5 px-5 py-3.5 border-t border-row-divider first:border-t-0 text-sm"
+              >
+                <div className="flex justify-between items-start gap-3 flex-wrap">
+                  <div>
+                    <div className="font-extrabold text-heading">{p.station.name}</div>
+                    <div className="text-xs text-muted-2 font-semibold mt-0.5">
+                      {p.periodStart.toLocaleDateString("uz-UZ", { day: "numeric", month: "short" })} –{" "}
+                      {p.periodEnd.toLocaleDateString("uz-UZ", { day: "numeric", month: "short" })} ·{" "}
+                      {Number(p.totalVolume)} {p.station.fuelType === "BENZIN" ? "L" : "m³"}
+                    </div>
+                  </div>
+                  <span
+                    className="text-xs font-extrabold px-3 py-1 rounded-full whitespace-nowrap"
+                    style={{ background: STATUS_STYLE[p.status].bg, color: STATUS_STYLE[p.status].color }}
+                  >
+                    {STATUS_STYLE[p.status].label}
+                  </span>
                 </div>
+
+                <div className="flex gap-4 text-xs font-bold flex-wrap">
+                  <span className="text-muted-2">
+                    Jami: <span className="text-heading font-extrabold">{formatSom(Number(p.amount))}</span>
+                  </span>
+                  <span className="text-muted-2">
+                    To&apos;landi: <span className="text-success font-extrabold">{formatSom(Number(p.paidAmount))}</span>
+                  </span>
+                  <span className="text-muted-2">
+                    Qoldi: <span className="text-danger font-extrabold">{formatSom(remaining)}</span>
+                  </span>
+                </div>
+
+                {remaining > 0 && (
+                  <div className="flex gap-2 flex-wrap">
+                    <form action={addStationPaymentInstallmentAction} className="flex gap-2">
+                      <input type="hidden" name="paymentId" value={p.id} />
+                      <input
+                        name="amount"
+                        type="number"
+                        min={1}
+                        max={remaining}
+                        placeholder="Summa"
+                        className="w-32 bg-page border-2 border-border rounded-lg px-2.5 py-1.5 text-xs font-bold text-heading outline-none focus:border-primary"
+                      />
+                      <button type="submit" className="bg-primary text-white rounded-lg px-3 py-1.5 text-xs font-extrabold">
+                        To&apos;lov qo&apos;shish
+                      </button>
+                    </form>
+                    <form action={addStationPaymentInstallmentAction}>
+                      <input type="hidden" name="paymentId" value={p.id} />
+                      <input type="hidden" name="amount" value={remaining} />
+                      <button type="submit" className="bg-success-tint text-success rounded-lg px-3 py-1.5 text-xs font-extrabold">
+                        To&apos;liq to&apos;lash ({formatSom(remaining)})
+                      </button>
+                    </form>
+                  </div>
+                )}
               </div>
-              <div className="font-heading font-extrabold text-heading">{formatSom(Number(p.amount))}</div>
-              <form action={markPaymentPaidAction}>
-                <input type="hidden" name="paymentId" value={p.id} />
-                <button
-                  type="submit"
-                  className="text-xs font-extrabold px-3 py-1.5 rounded-full"
-                  style={{ background: STATUS_STYLE[p.status].bg, color: STATUS_STYLE[p.status].color }}
-                >
-                  {STATUS_STYLE[p.status].label}
-                </button>
-              </form>
-            </div>
-          ))}
+            );
+          })}
           {payments.length === 0 && <p className="text-[13px] text-muted-2 px-5 py-4">Hali to&apos;lov yo&apos;q</p>}
         </Card>
 

@@ -12,16 +12,25 @@ async function requireMechanic() {
   return session.user.id;
 }
 
-export async function markPaymentPaidAction(formData: FormData) {
+export async function addStationPaymentInstallmentAction(formData: FormData) {
   await requireMechanic();
   const paymentId = String(formData.get("paymentId") ?? "");
+  const amount = Number(formData.get("amount") ?? 0);
+  if (!paymentId || !(amount > 0)) return;
 
   const payment = await prisma.stationPayment.findUnique({ where: { id: paymentId } });
   if (!payment) return;
 
+  const newPaid = Number(payment.paidAmount) + amount;
+  const status = newPaid >= Number(payment.amount) ? "PAID" : newPaid > 0 ? "PARTIAL" : "PENDING";
+
   await prisma.stationPayment.update({
     where: { id: paymentId },
-    data: { status: payment.status === "PAID" ? "PENDING" : "PAID", paidAt: payment.status === "PAID" ? null : new Date() },
+    data: {
+      paidAmount: BigInt(Math.round(newPaid)),
+      status,
+      paidAt: status === "PAID" ? new Date() : payment.paidAt,
+    },
   });
 
   revalidatePath("/mechanic/fuel/payments");
