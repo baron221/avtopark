@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import { addStaffExpenseAction, type AddExpenseState } from "../actions";
 
 const initialState: AddExpenseState = { error: "" };
@@ -32,7 +33,7 @@ export function AddExpenseForm() {
       </div>
       <div>
         <div className={labelClass}>Summa</div>
-        <input name="amount" type="number" required min={1} className={inputClass} placeholder="50000" />
+        <MoneyInput name="amount" required className={inputClass} placeholder="50 000" />
       </div>
       <div>
         <div className={labelClass}>Izoh</div>

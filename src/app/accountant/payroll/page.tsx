@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { RoleBadge } from "@/components/ui/RoleBadge";
 import { Pagination } from "@/components/ui/Pagination";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import { DEFAULT_PAGE_SIZE, parsePage, paginationSkip, totalPages } from "@/lib/paginate";
 import { formatSom, formatMillions, uzMonthName } from "@/lib/format";
 import { getOwnerDashboardVM } from "@/lib/dashboard";
@@ -134,10 +135,8 @@ export default async function PayrollPage({
                 {salary && editable ? (
                   <form action={setBonusAction} className="flex items-center gap-1">
                     <input type="hidden" name="salaryId" value={salary.id} />
-                    <input
+                    <MoneyInput
                       name="bonus"
-                      type="number"
-                      min={0}
                       defaultValue={Number(salary.bonus)}
                       className="w-20 bg-page border border-border rounded-md px-2 py-1 text-xs font-bold text-heading outline-none focus:border-primary"
                     />

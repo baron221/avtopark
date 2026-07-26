@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { KpiCard } from "@/components/ui/KpiCard";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import { formatSom } from "@/lib/format";
 import { collectPlanPaymentAction } from "../actions";
 
@@ -145,11 +146,9 @@ export default async function DispatcherPointPage() {
                 </option>
               ))}
             </select>
-            <input
+            <MoneyInput
               name="amount"
-              type="number"
               required
-              min={1}
               placeholder="Summa"
               className="bg-page border-2 border-primary rounded-xl px-3.5 py-3 font-heading text-xl font-bold text-heading outline-none"
             />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import { addFineAction, type AddFineState } from "../actions";
 
 const initialState: AddFineState = { error: "" };
@@ -28,12 +29,10 @@ export function AddFineForm({ users }: { users: UserOption[] }) {
       </div>
       <div>
         <div className="text-[13px] font-extrabold text-body mb-1.5">Summa</div>
-        <input
+        <MoneyInput
           name="amount"
-          type="number"
           required
-          min={1}
-          placeholder="150000"
+          placeholder="150 000"
           className="w-full bg-card border-2 border-danger rounded-xl px-4 py-3 font-heading text-xl font-bold text-heading outline-none"
         />
       </div>

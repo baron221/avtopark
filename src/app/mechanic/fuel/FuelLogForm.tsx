@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import { addFuelLogAction } from "./actions";
 
 type VehicleOption = { id: string; plate: string; driverName: string };
@@ -50,10 +51,9 @@ export function FuelLogForm({ vehicles, stations }: { vehicles: VehicleOption[];
           className="bg-page border-2 border-border rounded-xl px-3.5 py-2.5 font-bold text-sm text-heading outline-none focus:border-primary"
           placeholder="Hajm (m³ yoki L)"
         />
-        <input
+        <MoneyInput
           name="amount"
-          type="number"
-          min={1}
+          required
           defaultValue={suggestedAmount}
           key={suggestedAmount}
           className="bg-page border-2 border-primary rounded-xl px-3.5 py-3 font-heading text-xl font-bold text-heading outline-none"

@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { updateVehicleAction, type UpdateVehicleState } from "../actions";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import type { Point, VehicleType } from "@prisma/client";
 
 const initialState: UpdateVehicleState = { error: "" };
@@ -50,7 +51,7 @@ export function EditVehicleForm({ vehicleId, plate, model, type, seats, purchase
       <div className="grid grid-cols-2 gap-4">
         <div>
           <div className={labelClass}>Tannarx (so&apos;m)</div>
-          <input name="purchasePrice" type="number" required min={1} defaultValue={purchasePrice} className={inputClass} />
+          <MoneyInput name="purchasePrice" required defaultValue={purchasePrice} className={inputClass} />
         </div>
         <div>
           <div className={labelClass}>Punkt</div>

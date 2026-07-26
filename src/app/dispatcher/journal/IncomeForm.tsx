@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import { addTripAction } from "../actions";
 
 type VehicleOption = { id: string; plate: string; driverName: string };
@@ -58,20 +59,16 @@ export function IncomeForm({ vehicles, baseFare }: { vehicles: VehicleOption[]; 
               className="bg-page border-2 border-border rounded-xl px-3.5 py-2.5 font-bold text-sm text-heading outline-none focus:border-success"
               placeholder="Yo'lovchilar soni"
             />
-            <input
+            <MoneyInput
               name="revenue"
-              type="number"
-              min={1}
               defaultValue={passengerCount * baseFare}
               key={passengerCount}
               className="bg-page border-2 border-success rounded-xl px-3.5 py-3 font-heading text-xl font-bold text-heading outline-none"
             />
           </>
         ) : (
-          <input
+          <MoneyInput
             name="revenue"
-            type="number"
-            min={1}
             required
             placeholder="Summa"
             className="bg-page border-2 border-success rounded-xl px-3.5 py-3 font-heading text-xl font-bold text-heading outline-none"

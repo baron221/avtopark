@@ -5,7 +5,6 @@ import { Card } from "@/components/ui/Card";
 import { formatSom } from "@/lib/format";
 import { IncomeForm } from "./IncomeForm";
 import { ExpenseForm } from "./ExpenseForm";
-import { LunchForm } from "./LunchForm";
 
 function startOfDay(d: Date) {
   const x = new Date(d);
@@ -112,10 +111,7 @@ export default async function DispatcherJournalPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-[340px_340px_1fr] gap-4 items-start">
         <IncomeForm vehicles={vehicleOptions} baseFare={baseFareRoute?.baseFare ?? 20000} />
-        <div className="flex flex-col gap-4">
-          <ExpenseForm />
-          <LunchForm />
-        </div>
+        <ExpenseForm />
 
         <Card className="overflow-hidden">
           <div className="px-5 py-3.5 font-heading font-bold text-[15px] text-heading">Bugungi jurnal</div>

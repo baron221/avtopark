@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import { createUserAction, type CreateUserState } from "../actions";
 
 const initialState: CreateUserState = { error: "" };
@@ -74,7 +75,7 @@ export function CreateUserForm() {
             </div>
             <div>
               <div className={labelClass}>Maosh summasi</div>
-              <input name="salaryValue" type="number" className={inputClass} placeholder="3000000" />
+              <MoneyInput name="salaryValue" className={inputClass} placeholder="3 000 000" />
             </div>
           </div>
         </>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import { createVehicleAction, type CreateVehicleState } from "../actions";
 
 const initialState: CreateVehicleState = { error: "" };
@@ -38,7 +39,7 @@ export function CreateVehicleForm() {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <div className={labelClass}>Tannarx (so&apos;m)</div>
-          <input name="purchasePrice" type="number" required min={1} className={inputClass} placeholder="320000000" />
+          <MoneyInput name="purchasePrice" required className={inputClass} placeholder="320 000 000" />
         </div>
         <div>
           <div className={labelClass}>Punkt</div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import { giveAdvanceAction, type GiveAdvanceState } from "../actions";
 
 const initialState: GiveAdvanceState = { error: "" };
@@ -28,12 +29,10 @@ export function GiveAdvanceForm({ users }: { users: UserOption[] }) {
       </div>
       <div>
         <div className="text-[13px] font-extrabold text-body mb-1.5">Summa</div>
-        <input
+        <MoneyInput
           name="amount"
-          type="number"
           required
-          min={1}
-          placeholder="500000"
+          placeholder="500 000"
           className="w-full bg-card border-2 border-success rounded-xl px-4 py-3 font-heading text-xl font-bold text-heading outline-none"
         />
       </div>

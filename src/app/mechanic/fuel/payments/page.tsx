@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import { formatSom } from "@/lib/format";
 import { addStationPaymentInstallmentAction, addStationPaymentAction } from "./actions";
 
@@ -67,11 +68,8 @@ export default async function StationPaymentsPage() {
                   <div className="flex gap-2 flex-wrap">
                     <form action={addStationPaymentInstallmentAction} className="flex gap-2">
                       <input type="hidden" name="paymentId" value={p.id} />
-                      <input
+                      <MoneyInput
                         name="amount"
-                        type="number"
-                        min={1}
-                        max={remaining}
                         placeholder="Summa"
                         className="w-32 bg-page border-2 border-border rounded-lg px-2.5 py-1.5 text-xs font-bold text-heading outline-none focus:border-primary"
                       />
@@ -137,11 +135,9 @@ export default async function StationPaymentsPage() {
               placeholder="Jami hajm"
               className="bg-page border-2 border-border rounded-xl px-3.5 py-2.5 font-bold text-sm text-heading outline-none focus:border-primary"
             />
-            <input
+            <MoneyInput
               name="amount"
-              type="number"
               required
-              min={1}
               placeholder="Summa"
               className="bg-page border-2 border-primary rounded-xl px-3.5 py-3 font-heading text-xl font-bold text-heading outline-none"
             />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import { addVehicleExpenseAction } from "./actions";
 
 const CATEGORIES = [
@@ -34,11 +35,9 @@ export function ExpenseForm({ vehicleId }: { vehicleId: string }) {
         ))}
       </div>
       <div className="flex gap-2">
-        <input
+        <MoneyInput
           name="amount"
-          type="number"
           required
-          min={1}
           placeholder="Summa"
           className="flex-1 bg-page border-2 border-primary rounded-xl px-3.5 py-2.5 font-heading text-base font-bold text-heading outline-none"
         />

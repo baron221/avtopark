@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useActionState } from "react";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import { createDriverAction, type CreateDriverState } from "./actions";
 
 const initialState: CreateDriverState = { error: "" };
@@ -41,7 +42,7 @@ export function AddDriverForm({ vehicleId }: { vehicleId: string }) {
           <option value="PERCENT">Foiz</option>
           <option value="PLAN_SURPLUS">Plandan ortig&apos;i</option>
         </select>
-        <input name="salaryValue" type="number" placeholder="3000000" className={inputClass} />
+        <MoneyInput name="salaryValue" placeholder="3 000 000" className={inputClass} />
       </div>
       {state.error && <p className="text-danger text-xs font-bold">{state.error}</p>}
       <div className="flex gap-2">

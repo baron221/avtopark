@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { updateUserAction, type UpdateUserState } from "../../actions";
 import { RoleBadge } from "@/components/ui/RoleBadge";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import type { Point, Role, SalaryType } from "@prisma/client";
 
 const initialState: UpdateUserState = { error: "" };
@@ -43,7 +44,7 @@ export function EditUserForm({ userId, fullName, phone, role, point, baseSalary,
       </div>
       <div>
         <div className={labelClass}>Oylik maosh (bazaviy)</div>
-        <input name="baseSalary" type="number" defaultValue={baseSalary ?? ""} className={inputClass} placeholder="3000000" />
+        <MoneyInput name="baseSalary" defaultValue={baseSalary ?? ""} className={inputClass} placeholder="3 000 000" />
       </div>
 
       {role === "DISPATCHER" && (
@@ -73,7 +74,7 @@ export function EditUserForm({ userId, fullName, phone, role, point, baseSalary,
             </div>
             <div>
               <div className={labelClass}>Maosh summasi</div>
-              <input name="salaryValue" type="number" defaultValue={driver.salaryValue} className={inputClass} />
+              <MoneyInput name="salaryValue" defaultValue={driver.salaryValue} className={inputClass} />
             </div>
           </div>
         </>
