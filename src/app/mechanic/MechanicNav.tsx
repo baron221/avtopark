@@ -7,6 +7,7 @@ const NAV = [
   { href: "/mechanic/fuel", label: "Yoqilg'i", icon: "◉", exact: true },
   { href: "/mechanic/vehicles", label: "Mashinalar", icon: "▤", exact: false },
   { href: "/mechanic/fuel/payments", label: "To'lovlar", icon: "▥", exact: false },
+  { href: "/mechanic/shifts", label: "Smenalar", icon: "▦", exact: false },
   { href: "/mechanic/profile", label: "Profil", icon: "◈", exact: false },
 ];
 

@@ -11,29 +11,23 @@ function currentMonthStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-export default async function DispatcherShiftsPage({
+export default async function MechanicShiftsPage({
   searchParams,
 }: {
   searchParams: Promise<{ month?: string }>;
 }) {
   const session = await auth();
   if (!session) redirect("/login");
-  if (session.user.role !== "DISPATCHER" || !session.user.point) redirect("/coming-soon");
+  if (session.user.role !== "MECHANIC") redirect("/coming-soon");
 
-  const point = session.user.point;
   const { month: monthParam } = await searchParams;
   const monthStr = monthParam || currentMonthStr();
   const month = new Date(`${monthStr}-01T00:00:00`);
 
   const [vehicles, drivers, shifts] = await Promise.all([
-    prisma.vehicle.findMany({ where: { point }, orderBy: { plate: "asc" } }),
-    // Own point's drivers, plus any spare driver with no permanent vehicle yet.
-    prisma.driver.findMany({
-      where: { OR: [{ vehicle: { point } }, { vehicleId: null }] },
-      include: { user: true },
-      orderBy: { user: { fullName: "asc" } },
-    }),
-    prisma.shift.findMany({ where: { month, vehicle: { point } } }),
+    prisma.vehicle.findMany({ orderBy: { plate: "asc" } }),
+    prisma.driver.findMany({ include: { user: true }, orderBy: { user: { fullName: "asc" } } }),
+    prisma.shift.findMany({ where: { month } }),
   ]);
 
   const shiftByVehicle = new Map(shifts.map((s) => [s.vehicleId, s.driverId]));
@@ -44,7 +38,7 @@ export default async function DispatcherShiftsPage({
         <div>
           <div className="font-heading font-bold text-xl text-heading">Smenalar · {monthStr}</div>
           <div className="text-[13px] text-muted-2 font-semibold">
-            Kunlik to&apos;liq smena, oy uchun bitta haydovchi — faqat o&apos;z punktingiz mashinalari
+            Har mashinaga oy uchun bitta haydovchi (kunlik to&apos;liq smena) tayinlanadi
           </div>
         </div>
         <form className="flex gap-2 items-center">
@@ -98,7 +92,7 @@ export default async function DispatcherShiftsPage({
             </div>
           </div>
         ))}
-        {vehicles.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Bu punktda mashina yo&apos;q</p>}
+        {vehicles.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Mashina yo&apos;q</p>}
       </Card>
     </div>
   );

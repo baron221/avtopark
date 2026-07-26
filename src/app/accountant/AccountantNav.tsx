@@ -7,6 +7,7 @@ const NAV = [
   { href: "/accountant/payroll", label: "Vedomost", icon: "▤" },
   { href: "/accountant/advances", label: "Avanslar", icon: "◈" },
   { href: "/accountant/fines", label: "Jarimalar", icon: "▥" },
+  { href: "/accountant/expenses", label: "Rasxodlar", icon: "◉" },
   { href: "/accountant/report", label: "Hisobot", icon: "▨" },
 ];
 

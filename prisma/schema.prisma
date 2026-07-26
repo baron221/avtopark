@@ -62,11 +62,6 @@ enum ExpenseCategory {
   OTHER
 }
 
-enum ShiftType {
-  MORNING
-  EVENING
-}
-
 enum FuelType {
   METAN
   BENZIN
@@ -291,14 +286,13 @@ model Expense {
   @@map("expenses")
 }
 
+// One driver per vehicle per month — no morning/evening split, assigned
+// once for the whole month rather than re-picked every day.
 model Shift {
-  id        String    @id @default(uuid())
-  vehicleId String    @map("vehicle_id")
-  driverId  String    @map("driver_id")
-  shiftDate DateTime  @map("shift_date")
-  shiftType ShiftType @map("shift_type")
-  startTime DateTime  @map("start_time")
-  endTime   DateTime  @map("end_time")
+  id        String   @id @default(uuid())
+  vehicleId String   @map("vehicle_id")
+  driverId  String   @map("driver_id")
+  month     DateTime // first day of the covered month
   note      String?
 
   vehicle Vehicle @relation(fields: [vehicleId], references: [id])
@@ -306,7 +300,7 @@ model Shift {
 
   fuelLogs FuelLog[]
 
-  @@unique([vehicleId, shiftDate, shiftType])
+  @@unique([vehicleId, month])
   @@index([driverId])
   @@map("shifts")
 }

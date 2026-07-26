@@ -4,15 +4,15 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
-async function requireAdmin() {
+async function requireMechanic() {
   const session = await auth();
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session || session.user.role !== "MECHANIC") {
     throw new Error("Ruxsat yo'q");
   }
 }
 
 export async function assignShiftAction(formData: FormData) {
-  await requireAdmin();
+  await requireMechanic();
 
   const vehicleId = String(formData.get("vehicleId") ?? "");
   const monthStr = String(formData.get("month") ?? "");
@@ -30,5 +30,5 @@ export async function assignShiftAction(formData: FormData) {
     });
   }
 
-  revalidatePath("/admin/shifts");
+  revalidatePath("/mechanic/shifts");
 }

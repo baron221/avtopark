@@ -34,8 +34,8 @@ export const GRANTABLE_MODULES: GrantableModuleConfig[] = [
     href: "/fleet/shifts",
     navLabel: "Smenalar",
     navIcon: "▥",
-    alwaysGranted: ["ADMIN", "OWNER"],
-    grantableRoles: ["ACCOUNTANT", "MECHANIC", "DISPATCHER"],
+    alwaysGranted: ["ADMIN", "OWNER", "MECHANIC"],
+    grantableRoles: ["ACCOUNTANT", "DISPATCHER"],
   },
 ];
 
