@@ -4,11 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV = [
+  { href: "/accountant/report", label: "Hisobot", icon: "▨" },
   { href: "/accountant/payroll", label: "Vedomost", icon: "▤" },
   { href: "/accountant/advances", label: "Avanslar", icon: "◈" },
   { href: "/accountant/fines", label: "Jarimalar", icon: "▥" },
   { href: "/accountant/expenses", label: "Rasxodlar", icon: "◉" },
-  { href: "/accountant/report", label: "Hisobot", icon: "▨" },
 ];
 
 type NavItem = { href: string; label: string; icon: string };

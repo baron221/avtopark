@@ -20,5 +20,13 @@ export default async function AccountantReportPage({
   const period: Period = isPeriod(periodParam) ? periodParam : "MONTH";
   const vm = await getOwnerDashboardVM(period);
 
-  return <FleetDashboard vm={vm} period={period} basePath="/accountant/report" userName={session.user.name ?? "Buxgalter"} />;
+  return (
+    <FleetDashboard
+      vm={vm}
+      period={period}
+      basePath="/accountant/report"
+      userName={session.user.name ?? "Buxgalter"}
+      embedded
+    />
+  );
 }

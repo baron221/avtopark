@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function AccountantIndexPage() {
-  redirect("/accountant/payroll");
+  redirect("/accountant/report");
 }

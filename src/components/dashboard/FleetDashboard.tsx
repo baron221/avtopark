@@ -16,56 +16,79 @@ export function FleetDashboard({
   basePath,
   userName,
   extraLinks = [],
+  embedded = false,
 }: {
   vm: OwnerDashboardVM;
   period: Period;
   basePath: string;
   userName: string;
   extraLinks?: { href: string; label: string }[];
+  /** True when a role layout already renders its own top bar/logout — skips FleetDashboard's own. */
+  embedded?: boolean;
 }) {
   const initial = userName?.[0]?.toUpperCase() ?? "?";
 
   return (
     <div className="max-w-[1180px] mx-auto w-full flex flex-col">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-7 py-[18px] bg-card border-b border-border flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-[10px] bg-primary text-white flex items-center justify-center font-heading font-bold text-base">
-            FQ
-          </div>
-          <div>
-            <div className="font-heading font-bold text-base text-heading">Farg&apos;ona–Quva Avtopark</div>
-            <div className="text-xs text-muted-2">
-              {vm.vehicleCount} ta mashina · {vm.driverCount} haydovchi
+      {!embedded && (
+        <div className="flex items-center justify-between px-7 py-[18px] bg-card border-b border-border flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-[10px] bg-primary text-white flex items-center justify-center font-heading font-bold text-base">
+              FQ
+            </div>
+            <div>
+              <div className="font-heading font-bold text-base text-heading">Farg&apos;ona–Quva Avtopark</div>
+              <div className="text-xs text-muted-2">
+                {vm.vehicleCount} ta mashina · {vm.driverCount} haydovchi
+              </div>
             </div>
           </div>
-        </div>
 
-        <PeriodToggle active={period} basePath={basePath} />
+          <PeriodToggle active={period} basePath={basePath} />
 
-        <div className="flex items-center gap-2.5">
-          {extraLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="text-xs font-extrabold text-primary bg-primary-tint px-3 py-1.5 rounded-lg"
-            >
-              {link.label}
-            </Link>
-          ))}
-          <div className="text-[13px] font-semibold text-heading">{userName}</div>
-          <div className="w-[34px] h-[34px] rounded-full bg-accent text-white flex items-center justify-center font-extrabold text-sm">
-            {initial}
+          <div className="flex items-center gap-2.5">
+            {extraLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="text-xs font-extrabold text-primary bg-primary-tint px-3 py-1.5 rounded-lg"
+              >
+                {link.label}
+              </Link>
+            ))}
+            <div className="text-[13px] font-semibold text-heading">{userName}</div>
+            <div className="w-[34px] h-[34px] rounded-full bg-accent text-white flex items-center justify-center font-extrabold text-sm">
+              {initial}
+            </div>
+            <form action={logoutAction}>
+              <button type="submit" className="text-xs font-bold text-muted-2 hover:text-danger">
+                Chiqish
+              </button>
+            </form>
           </div>
-          <form action={logoutAction}>
-            <button type="submit" className="text-xs font-bold text-muted-2 hover:text-danger">
-              Chiqish
-            </button>
-          </form>
         </div>
-      </div>
+      )}
 
       <div className="p-4 sm:p-7 flex flex-col gap-5">
+        {embedded && (
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="text-[13px] text-muted-2 font-semibold">
+              {vm.vehicleCount} ta mashina · {vm.driverCount} haydovchi
+            </div>
+            <div className="flex items-center gap-2.5">
+              {extraLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="text-xs font-extrabold text-primary bg-primary-tint px-3 py-1.5 rounded-lg"
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <PeriodToggle active={period} basePath={basePath} />
+            </div>
+          </div>
+        )}
         {/* KPI row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard
