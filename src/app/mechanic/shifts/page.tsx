@@ -72,23 +72,22 @@ export default async function MechanicShiftsPage({
               </div>
               <span className="font-semibold text-heading lg:hidden">{v.model}</span>
             </div>
-            <form action={assignShiftAction} className="flex items-center gap-2">
-              <input type="hidden" name="vehicleId" value={v.id} />
-              <input type="hidden" name="month" value={monthStr} />
-              <ShiftSelect
-                name="driverId"
-                defaultValue={shiftByVehicle.get(v.id) ?? ""}
-                className="w-full max-w-[320px] bg-card border-2 border-border rounded-lg px-2.5 py-1.5 text-[13px] font-bold text-heading outline-none focus:border-primary"
-              >
-                <option value="">— tayinlanmagan —</option>
-                {drivers.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.user.fullName}
-                    {d.vehicle ? ` · ${d.vehicle.plate}` : " · bo'sh"}
-                  </option>
-                ))}
-              </ShiftSelect>
-            </form>
+            <ShiftSelect
+              name="driverId"
+              defaultValue={shiftByVehicle.get(v.id) ?? ""}
+              vehicleId={v.id}
+              month={monthStr}
+              action={assignShiftAction}
+              className="w-full max-w-[320px] bg-card border-2 border-border rounded-lg px-2.5 py-1.5 text-[13px] font-bold text-heading outline-none focus:border-primary"
+            >
+              <option value="">— tayinlanmagan —</option>
+              {drivers.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.user.fullName}
+                  {d.vehicle ? ` · ${d.vehicle.plate}` : " · bo'sh"}
+                </option>
+              ))}
+            </ShiftSelect>
             <div>
               <StatusPill status={v.status} />
             </div>
