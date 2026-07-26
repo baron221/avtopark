@@ -3,10 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { hasModuleAccess } from "@/lib/access";
 
 async function requireMechanic() {
   const session = await auth();
-  if (!session || session.user.role !== "MECHANIC") {
+  if (!session || (session.user.role !== "MECHANIC" && !(await hasModuleAccess(session.user.role, "FUEL")))) {
     throw new Error("Ruxsat yo'q");
   }
   return session.user.id;

@@ -4,12 +4,15 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { ROLE_LABELS } from "@/components/ui/RoleBadge";
+import { hasModuleAccess } from "@/lib/access";
 import { GiveAdvanceForm } from "./GiveAdvanceForm";
 
 export default async function NewAdvancePage() {
   const session = await auth();
   if (!session) redirect("/login");
-  if (session.user.role !== "ACCOUNTANT") redirect("/coming-soon");
+  if (session.user.role !== "ACCOUNTANT" && !(await hasModuleAccess(session.user.role, "PAYROLL"))) {
+    redirect("/coming-soon");
+  }
 
   const users = await prisma.user.findMany({
     where: { role: { not: "OWNER" }, isActive: true },

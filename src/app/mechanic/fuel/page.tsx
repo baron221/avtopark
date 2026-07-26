@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { formatSom } from "@/lib/format";
+import { hasModuleAccess } from "@/lib/access";
 import { FuelLogForm } from "./FuelLogForm";
 
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
@@ -19,7 +20,7 @@ function formatPeriod(start: Date, end: Date) {
 export default async function MechanicFuelPage() {
   const session = await auth();
   if (!session) redirect("/login");
-  if (session.user.role !== "MECHANIC") redirect("/coming-soon");
+  if (session.user.role !== "MECHANIC" && !(await hasModuleAccess(session.user.role, "FUEL"))) redirect("/coming-soon");
 
   const [stations, payments, fuelLogs, vehicles] = await Promise.all([
     prisma.fuelStation.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),

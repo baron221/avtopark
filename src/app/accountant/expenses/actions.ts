@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { hasModuleAccess } from "@/lib/access";
 import type { StaffExpenseCategory, StaffExpensePoint } from "@prisma/client";
 
 export type AddExpenseState = { error: string };
@@ -13,7 +14,7 @@ export async function addStaffExpenseAction(
   formData: FormData
 ): Promise<AddExpenseState> {
   const session = await auth();
-  if (!session || session.user.role !== "ACCOUNTANT") {
+  if (!session || (session.user.role !== "ACCOUNTANT" && !(await hasModuleAccess(session.user.role, "PAYROLL")))) {
     return { error: "Ruxsat yo'q" };
   }
 

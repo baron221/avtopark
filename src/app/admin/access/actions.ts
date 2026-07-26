@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { GRANTABLE_MODULES, type GrantableModule } from "@/lib/access";
+import { GRANTABLE_ROLES, type ModuleKey } from "@/lib/access";
 import type { Role } from "@prisma/client";
 
 async function requireAdmin() {
@@ -17,11 +17,13 @@ export async function toggleModuleGrantAction(formData: FormData) {
   await requireAdmin();
 
   const role = formData.get("role") as Role;
-  const moduleKey = formData.get("module") as GrantableModule;
+  const moduleKey = formData.get("module") as ModuleKey;
   const nextGranted = formData.get("nextGranted") === "1";
 
-  const config = GRANTABLE_MODULES.find((m) => m.key === moduleKey);
-  if (!config || !config.grantableRoles.includes(role)) return;
+  if (!GRANTABLE_ROLES.includes(role)) return;
+  // Admin must never be able to lock itself out of user management — that's
+  // the one screen that could undo the mistake.
+  if (role === "ADMIN" && moduleKey === "USER_MANAGEMENT" && !nextGranted) return;
 
   if (nextGranted) {
     await prisma.rolePermission.upsert({

@@ -32,5 +32,4 @@ export async function assignShiftAction(formData: FormData) {
   revalidatePath("/mechanic/shifts");
   revalidatePath("/mechanic/vehicles");
   revalidatePath(`/mechanic/vehicles/${vehicleId}`);
-  revalidatePath("/fleet/shifts");
 }

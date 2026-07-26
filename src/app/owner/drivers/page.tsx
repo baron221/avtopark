@@ -4,11 +4,14 @@ import { redirect } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { formatSom } from "@/lib/format";
 import { getDriverReportRows } from "@/lib/driverReport";
+import { hasModuleAccess } from "@/lib/access";
 
 export default async function OwnerDriversPage() {
   const session = await auth();
   if (!session) redirect("/login");
-  if (session.user.role !== "OWNER") redirect("/coming-soon");
+  if (session.user.role !== "OWNER" && !(await hasModuleAccess(session.user.role, "FLEET_DASHBOARD"))) {
+    redirect("/coming-soon");
+  }
 
   const rows = await getDriverReportRows("MONTH");
 

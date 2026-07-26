@@ -1,10 +1,13 @@
+import Link from "next/link";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { formatSom } from "@/lib/format";
+import { hasModuleAccess } from "@/lib/access";
 import { IncomeForm } from "./IncomeForm";
 import { ExpenseForm } from "./ExpenseForm";
+import type { Point } from "@prisma/client";
 
 function startOfDay(d: Date) {
   const x = new Date(d);
@@ -26,12 +29,22 @@ const EXPENSE_CATEGORY_LABELS: Record<string, string> = {
   BOSHQA: "Boshqa",
 };
 
-export default async function DispatcherJournalPage() {
+export default async function DispatcherJournalPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ point?: string }>;
+}) {
   const session = await auth();
   if (!session) redirect("/login");
-  if (session.user.role !== "DISPATCHER" || !session.user.point) redirect("/coming-soon");
+  const isDispatcher = session.user.role === "DISPATCHER" && !!session.user.point;
+  const guestAllowed =
+    !isDispatcher &&
+    ((await hasModuleAccess(session.user.role, "TRIP_ENTRY")) ||
+      (await hasModuleAccess(session.user.role, "INCOME_EXPENSE_LOG")));
+  if (!isDispatcher && !guestAllowed) redirect("/coming-soon");
 
-  const point = session.user.point;
+  const { point: pointParam } = await searchParams;
+  const point: Point = isDispatcher ? session.user.point! : pointParam === "QUVA" ? "QUVA" : "FARGONA";
   const staffExpensePoint = point === "FARGONA" ? "FARGONA" : "QUVA";
   const today = new Date();
   const from = startOfDay(today);
@@ -93,6 +106,9 @@ export default async function DispatcherJournalPage() {
     })),
   ].sort((a, b) => a.time.getTime() - b.time.getTime());
 
+  const canTripEntry = isDispatcher || (await hasModuleAccess(session.user.role, "TRIP_ENTRY"));
+  const canIncomeExpense = isDispatcher || (await hasModuleAccess(session.user.role, "INCOME_EXPENSE_LOG"));
+
   return (
     <div className="max-w-[1180px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
       <div className="flex justify-between items-center flex-wrap gap-3">
@@ -102,16 +118,42 @@ export default async function DispatcherJournalPage() {
           </div>
           <div className="text-[13px] text-muted-2 font-semibold">{session.user.name}</div>
         </div>
-        <div className="flex gap-4 text-sm font-extrabold flex-wrap">
+        <div className="flex gap-4 text-sm font-extrabold flex-wrap items-center">
           <span className="text-success">Kirim: +{formatSom(kirim)}</span>
           <span className="text-danger">Chiqim: −{formatSom(chiqim)}</span>
           <span className="text-heading">Qoldiq: {formatSom(qoldiq)}</span>
+          {!isDispatcher && (
+            <div className="flex gap-2">
+              <Link
+                href="/dispatcher/journal?point=FARGONA"
+                className={`rounded-full px-3 py-1 text-xs font-extrabold ${
+                  point === "FARGONA" ? "bg-primary text-white" : "bg-card border border-border text-muted"
+                }`}
+              >
+                Farg&apos;ona
+              </Link>
+              <Link
+                href="/dispatcher/journal?point=QUVA"
+                className={`rounded-full px-3 py-1 text-xs font-extrabold ${
+                  point === "QUVA" ? "bg-primary text-white" : "bg-card border border-border text-muted"
+                }`}
+              >
+                Quva
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[340px_340px_1fr] gap-4 items-start">
-        <IncomeForm vehicles={vehicleOptions} baseFare={baseFareRoute?.baseFare ?? 20000} />
-        <ExpenseForm />
+        {canTripEntry && (
+          <IncomeForm
+            vehicles={vehicleOptions}
+            baseFare={baseFareRoute?.baseFare ?? 20000}
+            point={isDispatcher ? undefined : point}
+          />
+        )}
+        {canIncomeExpense && <ExpenseForm point={isDispatcher ? undefined : point} />}
 
         <Card className="overflow-hidden">
           <div className="px-5 py-3.5 font-heading font-bold text-[15px] text-heading">Bugungi jurnal</div>

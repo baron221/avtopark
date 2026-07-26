@@ -12,9 +12,9 @@ const NAV = [
 
 type NavItem = { href: string; label: string; icon: string };
 
-export function DispatcherNavDesktop({ extra = [] }: { extra?: NavItem[] }) {
+export function DispatcherNavDesktop({ extra = [], base = NAV }: { extra?: NavItem[]; base?: typeof NAV }) {
   const pathname = usePathname();
-  const items = [...NAV, ...extra];
+  const items = [...base, ...extra];
   return (
     <nav className="flex gap-1.5 bg-primary-tint p-1 rounded-[10px]">
       {items.map((item) => (
@@ -32,9 +32,9 @@ export function DispatcherNavDesktop({ extra = [] }: { extra?: NavItem[] }) {
   );
 }
 
-export function DispatcherNavMobile({ extra = [] }: { extra?: NavItem[] }) {
+export function DispatcherNavMobile({ extra = [], base = NAV }: { extra?: NavItem[]; base?: typeof NAV }) {
   const pathname = usePathname();
-  const items = [...NAV, ...extra];
+  const items = [...base, ...extra];
   return (
     <div className="lg:hidden fixed bottom-0 inset-x-0 z-10 bg-card border-t border-border flex py-2 px-2">
       {items.map((item) => {

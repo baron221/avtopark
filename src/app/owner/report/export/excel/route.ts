@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getOwnerDashboardVM, getMonthlyTrend } from "@/lib/dashboard";
 import { uzMonthName } from "@/lib/format";
+import { hasModuleAccess } from "@/lib/access";
 
 const INCOME_LABELS: Record<string, string> = {
   TRIPS: "Reys tushumi",
@@ -12,7 +13,7 @@ const INCOME_LABELS: Record<string, string> = {
 
 export async function GET() {
   const session = await auth();
-  if (!session || session.user.role !== "OWNER") {
+  if (!session || (session.user.role !== "OWNER" && !(await hasModuleAccess(session.user.role, "FLEET_DASHBOARD")))) {
     return NextResponse.json({ error: "Ruxsat yo'q" }, { status: 403 });
   }
 

@@ -7,6 +7,7 @@ import { RoleBadge, ROLE_LABELS } from "@/components/ui/RoleBadge";
 import { Pagination } from "@/components/ui/Pagination";
 import { DEFAULT_PAGE_SIZE, parsePage, paginationSkip, totalPages } from "@/lib/paginate";
 import { toggleActiveAction } from "./actions";
+import { hasModuleAccess } from "@/lib/access";
 import type { Role } from "@prisma/client";
 
 export default async function AdminUsersPage({
@@ -16,7 +17,9 @@ export default async function AdminUsersPage({
 }) {
   const session = await auth();
   if (!session) redirect("/login");
-  if (session.user.role !== "ADMIN") redirect("/coming-soon");
+  if (session.user.role !== "ADMIN" && !(await hasModuleAccess(session.user.role, "USER_MANAGEMENT"))) {
+    redirect("/coming-soon");
+  }
 
   const { page: pageParam } = await searchParams;
   const page = parsePage(pageParam);

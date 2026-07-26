@@ -3,12 +3,15 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
+import { hasModuleAccess } from "@/lib/access";
 import { EditVehicleForm } from "./EditVehicleForm";
 
 export default async function EditVehiclePage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session) redirect("/login");
-  if (session.user.role !== "MECHANIC") redirect("/coming-soon");
+  if (session.user.role !== "MECHANIC" && !(await hasModuleAccess(session.user.role, "VEHICLES"))) {
+    redirect("/coming-soon");
+  }
 
   const { id } = await params;
   const vehicle = await prisma.vehicle.findUnique({ where: { id } });

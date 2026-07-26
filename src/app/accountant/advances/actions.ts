@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { hasModuleAccess } from "@/lib/access";
 
 function monthStart(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -16,7 +17,7 @@ export async function giveAdvanceAction(
   formData: FormData
 ): Promise<GiveAdvanceState> {
   const session = await auth();
-  if (!session || session.user.role !== "ACCOUNTANT") {
+  if (!session || (session.user.role !== "ACCOUNTANT" && !(await hasModuleAccess(session.user.role, "PAYROLL")))) {
     return { error: "Ruxsat yo'q" };
   }
 

@@ -10,6 +10,7 @@ import { MoneyInput } from "@/components/ui/MoneyInput";
 import { DEFAULT_PAGE_SIZE, parsePage, paginationSkip, totalPages } from "@/lib/paginate";
 import { formatSom, formatMillions, uzMonthName } from "@/lib/format";
 import { getOwnerDashboardVM } from "@/lib/dashboard";
+import { hasModuleAccess } from "@/lib/access";
 import { generatePayrollAction, approvePayrollAction, setBonusAction } from "./actions";
 
 function monthStart(d: Date) {
@@ -23,7 +24,9 @@ export default async function PayrollPage({
 }) {
   const session = await auth();
   if (!session) redirect("/login");
-  if (session.user.role !== "ACCOUNTANT") redirect("/coming-soon");
+  if (session.user.role !== "ACCOUNTANT" && !(await hasModuleAccess(session.user.role, "PAYROLL"))) {
+    redirect("/coming-soon");
+  }
 
   const { page: pageParam } = await searchParams;
   const page = parsePage(pageParam);

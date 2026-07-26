@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { hasModuleAccess } from "@/lib/access";
 import type { Point, VehicleType } from "@prisma/client";
 
 export type CreateVehicleState = { error: string };
@@ -13,7 +14,7 @@ export async function createVehicleAction(
   formData: FormData
 ): Promise<CreateVehicleState> {
   const session = await auth();
-  if (!session || session.user.role !== "MECHANIC") {
+  if (!session || (session.user.role !== "MECHANIC" && !(await hasModuleAccess(session.user.role, "VEHICLES")))) {
     return { error: "Ruxsat yo'q" };
   }
 

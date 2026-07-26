@@ -3,12 +3,15 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
+import { hasModuleAccess } from "@/lib/access";
 import { ResetPasswordForm } from "./ResetPasswordForm";
 
 export default async function ResetPasswordPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session) redirect("/login");
-  if (session.user.role !== "ADMIN") redirect("/coming-soon");
+  if (session.user.role !== "ADMIN" && !(await hasModuleAccess(session.user.role, "USER_MANAGEMENT"))) {
+    redirect("/coming-soon");
+  }
 
   const { id } = await params;
   const user = await prisma.user.findUnique({ where: { id } });

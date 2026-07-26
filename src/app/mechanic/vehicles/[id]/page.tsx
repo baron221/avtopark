@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { formatSom } from "@/lib/format";
 import { getOwnerDashboardVM } from "@/lib/dashboard";
+import { hasModuleAccess } from "@/lib/access";
 import { StatusSelect } from "./StatusSelect";
 import { ExpenseForm } from "./ExpenseForm";
 import { DriverSelect } from "./DriverSelect";
@@ -24,7 +25,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 export default async function VehicleDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session) redirect("/login");
-  if (session.user.role !== "MECHANIC") redirect("/coming-soon");
+  if (session.user.role !== "MECHANIC" && !(await hasModuleAccess(session.user.role, "VEHICLES"))) redirect("/coming-soon");
 
   const { id } = await params;
 

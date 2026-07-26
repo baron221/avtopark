@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 import { addStaffExpenseAction, addLunchAction } from "../actions";
+import type { Point } from "@prisma/client";
 
 const CATEGORIES = [
   { value: "STOYANKA", label: "Stoyanka" },
@@ -11,7 +12,7 @@ const CATEGORIES = [
   { value: "BOSHQA", label: "Boshqa rasxod" },
 ];
 
-export function ExpenseForm() {
+export function ExpenseForm({ point }: { point?: Point }) {
   const [category, setCategory] = useState("STOYANKA");
   const isLunch = category === "OBED";
 
@@ -19,6 +20,7 @@ export function ExpenseForm() {
     <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-3">
       <div className="font-heading font-bold text-[15px] text-danger">− Chiqim kiritish</div>
       <form action={isLunch ? addLunchAction : addStaffExpenseAction} className="flex flex-col gap-3">
+        {point && <input type="hidden" name="point" value={point} />}
         {!isLunch && <input type="hidden" name="category" value={category} />}
         <div className="flex flex-wrap gap-2">
           {CATEGORIES.map((c) => (

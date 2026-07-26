@@ -10,11 +10,13 @@ const NAV = [
   { href: "/admin/access", label: "Huquqlar", icon: "▨" },
 ];
 
-export function AdminNavDesktop() {
+type NavItem = { href: string; label: string; icon: string };
+
+export function AdminNavDesktop({ items = NAV }: { items?: NavItem[] }) {
   const pathname = usePathname();
   return (
     <nav className="flex gap-1.5 bg-primary-tint p-1 rounded-[10px]">
-      {NAV.map((item) => (
+      {items.map((item) => (
         <Link
           key={item.href}
           href={item.href}
@@ -29,11 +31,11 @@ export function AdminNavDesktop() {
   );
 }
 
-export function AdminNavMobile() {
+export function AdminNavMobile({ items = NAV }: { items?: NavItem[] }) {
   const pathname = usePathname();
   return (
     <div className="lg:hidden fixed bottom-0 inset-x-0 z-10 bg-card border-t border-border flex py-2 px-2">
-      {NAV.map((item) => {
+      {items.map((item) => {
         const active = pathname.startsWith(item.href);
         return (
           <Link

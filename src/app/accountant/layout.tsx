@@ -1,15 +1,19 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/app/actions";
-import { getGrantedNavLinks } from "@/lib/access";
+import { hasAnyModuleAccess, getGrantedNavLinks } from "@/lib/access";
 import { AccountantNavDesktop, AccountantNavMobile } from "./AccountantNav";
 
 export default async function AccountantLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session) redirect("/login");
-  if (session.user.role !== "ACCOUNTANT") redirect("/coming-soon");
-
-  const extra = await getGrantedNavLinks(session.user.role);
+  const isAccountant = session.user.role === "ACCOUNTANT";
+  if (!isAccountant && !(await hasAnyModuleAccess(session.user.role, ["FLEET_DASHBOARD", "PAYROLL"]))) {
+    redirect("/coming-soon");
+  }
+  const extra = isAccountant
+    ? await getGrantedNavLinks(session.user.role, ["FLEET_DASHBOARD", "PAYROLL"])
+    : await getGrantedNavLinks(session.user.role);
 
   return (
     <div className="min-h-screen flex flex-col pb-16 lg:pb-0">
@@ -22,7 +26,7 @@ export default async function AccountantLayout({ children }: { children: React.R
         </div>
 
         <div className="hidden lg:block">
-          <AccountantNavDesktop extra={extra} />
+          <AccountantNavDesktop extra={extra} base={isAccountant ? undefined : []} />
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -37,7 +41,7 @@ export default async function AccountantLayout({ children }: { children: React.R
 
       <div className="flex-1">{children}</div>
 
-      <AccountantNavMobile extra={extra} />
+      <AccountantNavMobile extra={extra} base={isAccountant ? undefined : []} />
     </div>
   );
 }

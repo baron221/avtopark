@@ -17,9 +17,9 @@ function isActive(pathname: string, href: string, exact: boolean) {
   return exact ? pathname === href : pathname.startsWith(href);
 }
 
-export function MechanicNavDesktop({ extra = [] }: { extra?: NavItem[] }) {
+export function MechanicNavDesktop({ extra = [], base = NAV }: { extra?: NavItem[]; base?: typeof NAV }) {
   const pathname = usePathname();
-  const items = [...NAV, ...extra.map((e) => ({ ...e, exact: false }))];
+  const items = [...base, ...extra.map((e) => ({ ...e, exact: false }))];
   return (
     <nav className="flex gap-1.5 bg-primary-tint p-1 rounded-[10px]">
       {items.map((item) => (
@@ -37,9 +37,9 @@ export function MechanicNavDesktop({ extra = [] }: { extra?: NavItem[] }) {
   );
 }
 
-export function MechanicNavMobile({ extra = [] }: { extra?: NavItem[] }) {
+export function MechanicNavMobile({ extra = [], base = NAV }: { extra?: NavItem[]; base?: typeof NAV }) {
   const pathname = usePathname();
-  const items = [...NAV, ...extra.map((e) => ({ ...e, exact: false }))];
+  const items = [...base, ...extra.map((e) => ({ ...e, exact: false }))];
   return (
     <div className="lg:hidden fixed bottom-0 inset-x-0 z-10 bg-card border-t border-border flex py-2 px-2">
       {items.map((item) => {

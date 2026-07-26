@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 import { formatSom } from "@/lib/format";
+import { hasModuleAccess } from "@/lib/access";
 import { addStationPaymentInstallmentAction, addStationPaymentAction } from "./actions";
 
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
@@ -15,7 +16,7 @@ const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }>
 export default async function StationPaymentsPage() {
   const session = await auth();
   if (!session) redirect("/login");
-  if (session.user.role !== "MECHANIC") redirect("/coming-soon");
+  if (session.user.role !== "MECHANIC" && !(await hasModuleAccess(session.user.role, "FUEL"))) redirect("/coming-soon");
 
   const [payments, stations] = await Promise.all([
     prisma.stationPayment.findMany({ include: { station: true }, orderBy: { periodEnd: "desc" } }),

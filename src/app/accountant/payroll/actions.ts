@@ -4,10 +4,11 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { computeNetPay } from "@/lib/payroll";
+import { hasModuleAccess } from "@/lib/access";
 
 async function requireAccountant() {
   const session = await auth();
-  if (!session || session.user.role !== "ACCOUNTANT") {
+  if (!session || (session.user.role !== "ACCOUNTANT" && !(await hasModuleAccess(session.user.role, "PAYROLL")))) {
     throw new Error("Ruxsat yo'q");
   }
   return session.user.id;

@@ -8,6 +8,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import { DEFAULT_PAGE_SIZE, parsePage, paginationSkip, totalPages } from "@/lib/paginate";
 import { formatSom, uzMonthName } from "@/lib/format";
 import { toggleFineDeductedAction } from "./actions";
+import { hasModuleAccess } from "@/lib/access";
 
 function monthStart(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -23,7 +24,9 @@ export default async function FinesPage({
 }) {
   const session = await auth();
   if (!session) redirect("/login");
-  if (session.user.role !== "ACCOUNTANT") redirect("/coming-soon");
+  if (session.user.role !== "ACCOUNTANT" && !(await hasModuleAccess(session.user.role, "PAYROLL"))) {
+    redirect("/coming-soon");
+  }
 
   const { page: pageParam } = await searchParams;
   const page = parsePage(pageParam);

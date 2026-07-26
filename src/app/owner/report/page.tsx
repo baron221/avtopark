@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { getOwnerDashboardVM, getMonthlyTrend } from "@/lib/dashboard";
 import { formatMillions, formatSom, uzMonthName } from "@/lib/format";
+import { hasModuleAccess } from "@/lib/access";
 
 const INCOME_LABELS: Record<string, string> = {
   TRIPS: "Reys tushumi",
@@ -15,7 +16,9 @@ const INCOME_LABELS: Record<string, string> = {
 export default async function OwnerReportPage() {
   const session = await auth();
   if (!session) redirect("/login");
-  if (session.user.role !== "OWNER") redirect("/coming-soon");
+  if (session.user.role !== "OWNER" && !(await hasModuleAccess(session.user.role, "FLEET_DASHBOARD"))) {
+    redirect("/coming-soon");
+  }
 
   const [vm, trend] = await Promise.all([getOwnerDashboardVM("MONTH"), getMonthlyTrend(6)]);
 

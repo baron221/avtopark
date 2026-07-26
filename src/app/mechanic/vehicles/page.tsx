@@ -7,6 +7,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import { DEFAULT_PAGE_SIZE, parsePage, paginationSkip, totalPages } from "@/lib/paginate";
 import { getOwnerDashboardVM } from "@/lib/dashboard";
 import { formatSom } from "@/lib/format";
+import { hasModuleAccess } from "@/lib/access";
 
 const FILTERS = [
   { key: "ALL", label: "Barchasi" },
@@ -22,7 +23,7 @@ export default async function MechanicVehiclesPage({
 }) {
   const session = await auth();
   if (!session) redirect("/login");
-  if (session.user.role !== "MECHANIC") redirect("/coming-soon");
+  if (session.user.role !== "MECHANIC" && !(await hasModuleAccess(session.user.role, "VEHICLES"))) redirect("/coming-soon");
 
   const { status: statusParam, page: pageParam } = await searchParams;
   const status = FILTERS.some((f) => f.key === statusParam) ? statusParam! : "ALL";

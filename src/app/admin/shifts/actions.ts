@@ -3,10 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { applyShiftAssignment } from "@/lib/driverAssignment";
+import { hasModuleAccess } from "@/lib/access";
 
 async function requireAdmin() {
   const session = await auth();
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session || (session.user.role !== "ADMIN" && !(await hasModuleAccess(session.user.role, "SHIFTS")))) {
     throw new Error("Ruxsat yo'q");
   }
 }
@@ -27,5 +28,4 @@ export async function assignShiftAction(formData: FormData) {
   revalidatePath("/mechanic/shifts");
   revalidatePath("/mechanic/vehicles");
   revalidatePath(`/mechanic/vehicles/${vehicleId}`);
-  revalidatePath("/fleet/shifts");
 }

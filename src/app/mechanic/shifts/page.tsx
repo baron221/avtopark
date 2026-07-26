@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { StatusPill } from "@/components/ui/StatusPill";
+import { hasModuleAccess } from "@/lib/access";
 import { ShiftSelect } from "@/app/admin/shifts/ShiftSelect";
 import { assignShiftAction } from "./actions";
 
@@ -18,7 +19,7 @@ export default async function MechanicShiftsPage({
 }) {
   const session = await auth();
   if (!session) redirect("/login");
-  if (session.user.role !== "MECHANIC") redirect("/coming-soon");
+  if (session.user.role !== "MECHANIC" && !(await hasModuleAccess(session.user.role, "SHIFTS"))) redirect("/coming-soon");
 
   const { month: monthParam } = await searchParams;
   const monthStr = monthParam || currentMonthStr();

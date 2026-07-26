@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { hasModuleAccess, type ModuleKey } from "@/lib/access";
 import type { Point, StaffExpenseCategory, StaffExpensePoint, TripKind } from "@prisma/client";
 
 function startOfDay(d: Date) {
@@ -15,18 +16,31 @@ function toStaffExpensePoint(point: Point): StaffExpensePoint {
   return point === "FARGONA" ? "FARGONA" : "QUVA";
 }
 
-async function requireDispatcher() {
+// A real Dispatcher always acts on their own point (form input is ignored,
+// so they can never be tricked into touching the other point's data). A
+// back-office role granted one of the point-scoped modules has no point of
+// its own, so it must say which one via the form/query string instead.
+async function requireDispatcherOrGranted(formData: FormData, moduleKey: ModuleKey) {
   const session = await auth();
-  if (!session || session.user.role !== "DISPATCHER" || !session.user.point) {
+  if (!session) throw new Error("Ruxsat yo'q");
+
+  if (session.user.role === "DISPATCHER") {
+    if (!session.user.point) throw new Error("Ruxsat yo'q");
+    return { userId: session.user.id, point: session.user.point };
+  }
+
+  if (!(await hasModuleAccess(session.user.role, moduleKey))) {
     throw new Error("Ruxsat yo'q");
   }
-  return { userId: session.user.id, point: session.user.point };
+  const rawPoint = String(formData.get("point") ?? "");
+  const point: Point = rawPoint === "QUVA" ? "QUVA" : "FARGONA";
+  return { userId: session.user.id, point };
 }
 
 const DEFAULT_PLAN_AMOUNT = 350_000;
 
 export async function collectPlanPaymentAction(formData: FormData) {
-  const { point } = await requireDispatcher();
+  const { point } = await requireDispatcherOrGranted(formData, "COLLECT_PAYMENT");
   const vehicleId = String(formData.get("vehicleId") ?? "");
   const amount = Number(formData.get("amount") ?? 0);
   if (!vehicleId || !(amount > 0)) return;
@@ -70,7 +84,7 @@ export async function collectPlanPaymentAction(formData: FormData) {
 }
 
 export async function addTripAction(formData: FormData) {
-  const { userId, point } = await requireDispatcher();
+  const { userId, point } = await requireDispatcherOrGranted(formData, "TRIP_ENTRY");
 
   const kind = (formData.get("kind") === "ORDER" ? "ORDER" : "TRIP") as TripKind;
   const vehicleId = String(formData.get("vehicleId") ?? "");
@@ -111,7 +125,7 @@ export async function addTripAction(formData: FormData) {
 }
 
 export async function addStaffExpenseAction(formData: FormData) {
-  const { userId, point } = await requireDispatcher();
+  const { userId, point } = await requireDispatcherOrGranted(formData, "INCOME_EXPENSE_LOG");
 
   const category = formData.get("category") as StaffExpenseCategory;
   const amount = Number(formData.get("amount") ?? 0);
@@ -137,7 +151,7 @@ export async function addStaffExpenseAction(formData: FormData) {
 const DEFAULT_LUNCH_AMOUNT = 12_000;
 
 export async function addLunchAction(formData: FormData) {
-  const { userId } = await requireDispatcher();
+  const { userId } = await requireDispatcherOrGranted(formData, "INCOME_EXPENSE_LOG");
   const raw = Number(formData.get("amount"));
   const amount = Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_LUNCH_AMOUNT;
   const lunchDate = startOfDay(new Date());

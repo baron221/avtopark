@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/app/actions";
-import { getGrantedNavLinks } from "@/lib/access";
+import { hasAnyModuleAccess, getGrantedNavLinks } from "@/lib/access";
 import { DispatcherNavDesktop, DispatcherNavMobile } from "./DispatcherNav";
 
 const POINT_LABELS: Record<string, string> = {
@@ -12,10 +12,18 @@ const POINT_LABELS: Record<string, string> = {
 export default async function DispatcherLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session) redirect("/login");
-  if (session.user.role !== "DISPATCHER" || !session.user.point) redirect("/coming-soon");
+  const isDispatcher = session.user.role === "DISPATCHER" && !!session.user.point;
+  if (
+    !isDispatcher &&
+    !(await hasAnyModuleAccess(session.user.role, ["COLLECT_PAYMENT", "INCOME_EXPENSE_LOG", "TRIP_ENTRY"]))
+  ) {
+    redirect("/coming-soon");
+  }
 
-  const pointLabel = POINT_LABELS[session.user.point] ?? session.user.point;
-  const extra = await getGrantedNavLinks(session.user.role);
+  const pointLabel = isDispatcher ? (POINT_LABELS[session.user.point!] ?? session.user.point) : null;
+  const extra = isDispatcher
+    ? await getGrantedNavLinks(session.user.role, ["COLLECT_PAYMENT", "INCOME_EXPENSE_LOG", "TRIP_ENTRY"])
+    : await getGrantedNavLinks(session.user.role);
 
   return (
     <div className="min-h-screen flex flex-col pb-16 lg:pb-0">
@@ -26,14 +34,16 @@ export default async function DispatcherLayout({ children }: { children: React.R
           </div>
           <div>
             <div className="font-heading font-bold text-base text-heading">Farg&apos;ona–Quva Avtopark</div>
-            <span className="bg-primary-tint text-primary text-xs font-extrabold px-2.5 py-0.5 rounded-full">
-              📍 {pointLabel} punkti
-            </span>
+            {pointLabel && (
+              <span className="bg-primary-tint text-primary text-xs font-extrabold px-2.5 py-0.5 rounded-full">
+                📍 {pointLabel} punkti
+              </span>
+            )}
           </div>
         </div>
 
         <div className="hidden lg:block">
-          <DispatcherNavDesktop extra={extra} />
+          <DispatcherNavDesktop extra={extra} base={isDispatcher ? undefined : []} />
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -48,7 +58,7 @@ export default async function DispatcherLayout({ children }: { children: React.R
 
       <div className="flex-1">{children}</div>
 
-      <DispatcherNavMobile extra={extra} />
+      <DispatcherNavMobile extra={extra} base={isDispatcher ? undefined : []} />
     </div>
   );
 }

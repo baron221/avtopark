@@ -3,10 +3,20 @@
 import { useState } from "react";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 import { addTripAction } from "../actions";
+import type { Point } from "@prisma/client";
 
 type VehicleOption = { id: string; plate: string; driverName: string };
 
-export function IncomeForm({ vehicles, baseFare }: { vehicles: VehicleOption[]; baseFare: number }) {
+export function IncomeForm({
+  vehicles,
+  baseFare,
+  point,
+}: {
+  vehicles: VehicleOption[];
+  baseFare: number;
+  /** Set only for a granted non-Dispatcher visitor, who has no point of their own. */
+  point?: Point;
+}) {
   const [kind, setKind] = useState<"TRIP" | "ORDER">("TRIP");
   const [passengerCount, setPassengerCount] = useState(10);
 
@@ -15,6 +25,7 @@ export function IncomeForm({ vehicles, baseFare }: { vehicles: VehicleOption[]; 
       <div className="font-heading font-bold text-[15px] text-success">+ Kirim kiritish</div>
       <form action={addTripAction} className="flex flex-col gap-3">
         <input type="hidden" name="kind" value={kind} />
+        {point && <input type="hidden" name="point" value={point} />}
         <div className="flex gap-2">
           <button
             type="button"

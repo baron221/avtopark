@@ -2,12 +2,15 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
+import { hasModuleAccess } from "@/lib/access";
 import { CreateUserForm } from "./CreateUserForm";
 
 export default async function NewUserPage() {
   const session = await auth();
   if (!session) redirect("/login");
-  if (session.user.role !== "ADMIN") redirect("/coming-soon");
+  if (session.user.role !== "ADMIN" && !(await hasModuleAccess(session.user.role, "USER_MANAGEMENT"))) {
+    redirect("/coming-soon");
+  }
 
   return (
     <div className="max-w-[520px] mx-auto w-full p-4 sm:p-7">

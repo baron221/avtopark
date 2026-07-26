@@ -6,11 +6,12 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { currentMonthDate, syncDriverVehicleAssignment } from "@/lib/driverAssignment";
+import { hasModuleAccess } from "@/lib/access";
 import type { ExpenseCategory, Point, SalaryType, VehicleStatus, VehicleType } from "@prisma/client";
 
 async function requireMechanic() {
   const session = await auth();
-  if (!session || session.user.role !== "MECHANIC") {
+  if (!session || (session.user.role !== "MECHANIC" && !(await hasModuleAccess(session.user.role, "VEHICLES")))) {
     throw new Error("Ruxsat yo'q");
   }
   return session.user.id;
@@ -154,7 +155,6 @@ export async function createDriverAction(
   revalidatePath("/mechanic/shifts");
   revalidatePath("/admin/shifts");
   revalidatePath("/dispatcher/shifts");
-  revalidatePath("/fleet/shifts");
   redirect(`/mechanic/vehicles/${vehicleId}`);
 }
 
@@ -172,5 +172,4 @@ export async function assignDriverAction(formData: FormData) {
   revalidatePath("/mechanic/shifts");
   revalidatePath("/admin/shifts");
   revalidatePath("/dispatcher/shifts");
-  revalidatePath("/fleet/shifts");
 }

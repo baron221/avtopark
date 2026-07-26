@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Pagination } from "@/components/ui/Pagination";
 import { DEFAULT_PAGE_SIZE, parsePage, paginationSkip, totalPages } from "@/lib/paginate";
 import { formatSom, uzMonthName } from "@/lib/format";
+import { hasModuleAccess } from "@/lib/access";
 
 const POINT_LABELS: Record<string, string> = {
   FARGONA: "Farg'ona",
@@ -33,7 +34,9 @@ export default async function AccountantExpensesPage({
 }) {
   const session = await auth();
   if (!session) redirect("/login");
-  if (session.user.role !== "ACCOUNTANT") redirect("/coming-soon");
+  if (session.user.role !== "ACCOUNTANT" && !(await hasModuleAccess(session.user.role, "PAYROLL"))) {
+    redirect("/coming-soon");
+  }
 
   const { page: pageParam } = await searchParams;
   const page = parsePage(pageParam);

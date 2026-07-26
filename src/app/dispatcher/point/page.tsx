@@ -6,7 +6,9 @@ import { Card } from "@/components/ui/Card";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 import { formatSom } from "@/lib/format";
+import { hasModuleAccess } from "@/lib/access";
 import { collectPlanPaymentAction } from "../actions";
+import type { Point } from "@prisma/client";
 
 function startOfDay(d: Date) {
   const x = new Date(d);
@@ -22,12 +24,19 @@ function formatTime(d: Date) {
   return d.toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" });
 }
 
-export default async function DispatcherPointPage() {
+export default async function DispatcherPointPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ point?: string }>;
+}) {
   const session = await auth();
   if (!session) redirect("/login");
-  if (session.user.role !== "DISPATCHER" || !session.user.point) redirect("/coming-soon");
+  const isDispatcher = session.user.role === "DISPATCHER" && !!session.user.point;
+  const guestAllowed = !isDispatcher && (await hasModuleAccess(session.user.role, "COLLECT_PAYMENT"));
+  if (!isDispatcher && !guestAllowed) redirect("/coming-soon");
 
-  const point = session.user.point;
+  const { point: pointParam } = await searchParams;
+  const point: Point = isDispatcher ? session.user.point! : pointParam === "QUVA" ? "QUVA" : "FARGONA";
   const today = new Date();
   const from = startOfDay(today);
   const to = endOfDay(today);
@@ -95,6 +104,26 @@ export default async function DispatcherPointPage() {
             {session.user.name} · kelgan har mashinadan pul qabul qilinadi
           </div>
         </div>
+        {!isDispatcher && (
+          <div className="flex gap-2">
+            <Link
+              href="/dispatcher/point?point=FARGONA"
+              className={`rounded-full px-4 py-1.5 text-[13px] font-extrabold ${
+                point === "FARGONA" ? "bg-primary text-white" : "bg-card border border-border text-muted"
+              }`}
+            >
+              Farg&apos;ona
+            </Link>
+            <Link
+              href="/dispatcher/point?point=QUVA"
+              className={`rounded-full px-4 py-1.5 text-[13px] font-extrabold ${
+                point === "QUVA" ? "bg-primary text-white" : "bg-card border border-border text-muted"
+              }`}
+            >
+              Quva
+            </Link>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -135,6 +164,7 @@ export default async function DispatcherPointPage() {
         <Card className="p-5 flex flex-col gap-3">
           <div className="font-heading font-bold text-[15px] text-heading">Pul qabul qilish</div>
           <form action={collectPlanPaymentAction} className="flex flex-col gap-3">
+            {!isDispatcher && <input type="hidden" name="point" value={point} />}
             <select
               name="vehicleId"
               required
