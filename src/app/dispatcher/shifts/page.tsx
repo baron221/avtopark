@@ -30,7 +30,7 @@ export default async function DispatcherShiftsPage({
     // Own point's drivers, plus any spare driver with no permanent vehicle yet.
     prisma.driver.findMany({
       where: { OR: [{ vehicle: { point } }, { vehicleId: null }] },
-      include: { user: true },
+      include: { user: true, vehicle: true },
       orderBy: { user: { fullName: "asc" } },
     }),
     prisma.shift.findMany({ where: { month, vehicle: { point } } }),
@@ -89,6 +89,7 @@ export default async function DispatcherShiftsPage({
                 {drivers.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.user.fullName}
+                    {d.vehicle ? ` · ${d.vehicle.plate}` : " · bo'sh"}
                   </option>
                 ))}
               </ShiftSelect>

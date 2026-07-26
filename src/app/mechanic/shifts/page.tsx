@@ -26,7 +26,7 @@ export default async function MechanicShiftsPage({
 
   const [vehicles, drivers, shifts] = await Promise.all([
     prisma.vehicle.findMany({ orderBy: { plate: "asc" } }),
-    prisma.driver.findMany({ include: { user: true }, orderBy: { user: { fullName: "asc" } } }),
+    prisma.driver.findMany({ include: { user: true, vehicle: true }, orderBy: { user: { fullName: "asc" } } }),
     prisma.shift.findMany({ where: { month } }),
   ]);
 
@@ -83,6 +83,7 @@ export default async function MechanicShiftsPage({
                 {drivers.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.user.fullName}
+                    {d.vehicle ? ` · ${d.vehicle.plate}` : " · bo'sh"}
                   </option>
                 ))}
               </ShiftSelect>
