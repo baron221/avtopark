@@ -23,7 +23,7 @@ export default async function DispatcherShiftsPage({
   const point = session.user.point;
   const { month: monthParam } = await searchParams;
   const monthStr = monthParam || currentMonthStr();
-  const month = new Date(`${monthStr}-01T00:00:00`);
+  const month = new Date(`${monthStr}-01T00:00:00Z`);
 
   const [vehicles, drivers, shifts] = await Promise.all([
     prisma.vehicle.findMany({ where: { point }, orderBy: { plate: "asc" } }),

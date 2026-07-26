@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { currentMonthDate, syncDriverVehicleAssignment } from "@/lib/driverAssignment";
 import type { ExpenseCategory, Point, SalaryType, VehicleStatus, VehicleType } from "@prisma/client";
 
 async function requireMechanic() {
@@ -118,14 +119,14 @@ export async function createDriverAction(
 
   const passwordHash = await bcrypt.hash(password, 10);
 
-  await prisma.$transaction(async (tx) => {
+  const driver = await prisma.$transaction(async (tx) => {
     const user = await tx.user.create({
       data: { fullName, phone, role: "DRIVER", passwordHash },
     });
     // Same free-then-assign rule as assignDriverAction, in case this vehicle
     // already had a driver.
     await tx.driver.updateMany({ where: { vehicleId }, data: { vehicleId: null } });
-    await tx.driver.create({
+    return tx.driver.create({
       data: {
         userId: user.id,
         vehicleId,
@@ -137,9 +138,23 @@ export async function createDriverAction(
     });
   });
 
+  // Keep this month's Shift row in sync so the Smenalar pages show the same
+  // driver immediately (see syncDriverVehicleAssignment for why).
+  const month = currentMonthDate();
+  await prisma.shift.deleteMany({ where: { driverId: driver.id, month, NOT: { vehicleId } } });
+  await prisma.shift.upsert({
+    where: { vehicleId_month: { vehicleId, month } },
+    create: { vehicleId, driverId: driver.id, month },
+    update: { driverId: driver.id },
+  });
+
   revalidatePath(`/mechanic/vehicles/${vehicleId}`);
   revalidatePath("/mechanic/vehicles");
   revalidatePath("/admin/users");
+  revalidatePath("/mechanic/shifts");
+  revalidatePath("/admin/shifts");
+  revalidatePath("/dispatcher/shifts");
+  revalidatePath("/fleet/shifts");
   redirect(`/mechanic/vehicles/${vehicleId}`);
 }
 
@@ -150,15 +165,12 @@ export async function assignDriverAction(formData: FormData) {
   const driverId = String(formData.get("driverId") ?? "").trim() || null;
   if (!vehicleId) return;
 
-  // Driver.vehicleId is unique, so free up this vehicle from whoever holds it
-  // first, then hand it to the newly selected driver (if any) in one go.
-  await prisma.$transaction(async (tx) => {
-    await tx.driver.updateMany({ where: { vehicleId }, data: { vehicleId: null } });
-    if (driverId) {
-      await tx.driver.update({ where: { id: driverId }, data: { vehicleId } });
-    }
-  });
+  await syncDriverVehicleAssignment(vehicleId, driverId);
 
   revalidatePath(`/mechanic/vehicles/${vehicleId}`);
   revalidatePath("/mechanic/vehicles");
+  revalidatePath("/mechanic/shifts");
+  revalidatePath("/admin/shifts");
+  revalidatePath("/dispatcher/shifts");
+  revalidatePath("/fleet/shifts");
 }

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
+import { applyShiftAssignment } from "@/lib/driverAssignment";
 
 async function requireMechanic() {
   const session = await auth();
@@ -16,19 +16,16 @@ export async function assignShiftAction(formData: FormData) {
 
   const vehicleId = String(formData.get("vehicleId") ?? "");
   const monthStr = String(formData.get("month") ?? "");
-  const driverId = String(formData.get("driverId") ?? "");
-  const month = new Date(`${monthStr}-01T00:00:00`);
+  const driverId = String(formData.get("driverId") ?? "").trim() || null;
+  const month = new Date(`${monthStr}-01T00:00:00Z`);
   if (!vehicleId || Number.isNaN(month.getTime())) return;
 
-  if (!driverId) {
-    await prisma.shift.deleteMany({ where: { vehicleId, month } });
-  } else {
-    await prisma.shift.upsert({
-      where: { vehicleId_month: { vehicleId, month } },
-      create: { vehicleId, driverId, month },
-      update: { driverId },
-    });
-  }
+  await applyShiftAssignment(vehicleId, month, driverId);
 
   revalidatePath("/mechanic/shifts");
+  revalidatePath("/admin/shifts");
+  revalidatePath("/dispatcher/shifts");
+  revalidatePath("/mechanic/vehicles");
+  revalidatePath(`/mechanic/vehicles/${vehicleId}`);
+  revalidatePath("/fleet/shifts");
 }
