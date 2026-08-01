@@ -4,14 +4,20 @@ import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { KpiCard } from "@/components/ui/KpiCard";
+import { PeriodToggle } from "@/components/ui/PeriodToggle";
 import { formatSom } from "@/lib/format";
-import { getOwnerDashboardVM } from "@/lib/dashboard";
+import { getOwnerDashboardVM, type Period } from "@/lib/dashboard";
+import { getVehicleReport } from "@/lib/vehicleReport";
 import { hasModuleAccess } from "@/lib/access";
 import { StatusSelect } from "./StatusSelect";
 import { ExpenseForm } from "./ExpenseForm";
 import { DriverSelect } from "./DriverSelect";
 import { AddDriverForm } from "./AddDriverForm";
 import { OilChangeForm } from "./OilChangeForm";
+
+function isPeriod(value: string | undefined): value is Period {
+  return value === "DAY" || value === "WEEK" || value === "MONTH";
+}
 
 const CATEGORY_LABELS: Record<string, string> = {
   FUEL: "Ёқилғи",
@@ -23,19 +29,28 @@ const CATEGORY_LABELS: Record<string, string> = {
   OTHER: "Бошқа",
 };
 
-export default async function VehicleDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function VehicleDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ period?: string }>;
+}) {
   const session = await auth();
   if (!session) redirect("/login");
   if (session.user.role !== "MECHANIC" && !(await hasModuleAccess(session.user.role, "VEHICLES"))) redirect("/coming-soon");
 
   const { id } = await params;
+  const { period: periodParam } = await searchParams;
+  const period: Period = isPeriod(periodParam) ? periodParam : "MONTH";
 
-  const [vehicle, vm, expenses, drivers, oilChanges] = await Promise.all([
+  const [vehicle, vm, expenses, drivers, oilChanges, report] = await Promise.all([
     prisma.vehicle.findUnique({ where: { id }, include: { driver: { include: { user: true } } } }),
     getOwnerDashboardVM("MONTH"),
     prisma.expense.findMany({ where: { vehicleId: id }, orderBy: { expenseDate: "desc" }, take: 10 }),
     prisma.driver.findMany({ include: { user: true, vehicle: true }, orderBy: { user: { fullName: "asc" } } }),
     prisma.oilChange.findMany({ where: { vehicleId: id }, orderBy: { changedAt: "desc" }, take: 10 }),
+    getVehicleReport(id, period),
   ]);
 
   if (!vehicle) notFound();
@@ -150,6 +165,50 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
         ))}
         {oilChanges.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Ҳали мой алмаштирилмаган</p>}
       </Card>
+
+      {report && (
+        <Card className="overflow-hidden">
+          <div className="flex justify-between items-center px-6 py-3.5 flex-wrap gap-3">
+            <div>
+              <div className="font-heading font-bold text-base text-heading">{report.plate}</div>
+              <div className="text-xs text-muted-2 font-semibold">{report.rangeLabel}</div>
+            </div>
+            <PeriodToggle active={period} basePath={`/mechanic/vehicles/${vehicle.id}`} />
+          </div>
+          <div className="hidden lg:grid grid-cols-[2fr_1fr] px-6 py-2.5 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
+            <div>Мақсад</div>
+            <div className="text-right">Сумма</div>
+          </div>
+          {report.expenseLines.map((l, i) => (
+            <div
+              key={i}
+              className="grid grid-cols-[2fr_1fr] px-6 py-2.5 border-t border-row-divider items-center text-sm"
+            >
+              <div className="text-body font-semibold">{l.label}</div>
+              <div className="font-bold text-heading text-right">{formatSom(l.amount)}</div>
+            </div>
+          ))}
+          {report.expenseLines.length === 0 && (
+            <p className="text-[13px] text-muted-2 px-6 py-4">Бу даврда харажат ёзилмаган</p>
+          )}
+          <div className="grid grid-cols-[2fr_1fr] px-6 py-3 border-t-2 border-danger bg-danger-tint items-center text-sm">
+            <div className="font-extrabold text-danger">Жами харажат</div>
+            <div className="font-extrabold text-danger text-right">{formatSom(report.totalExpense)}</div>
+          </div>
+          <div className="grid grid-cols-[2fr_1fr] px-6 py-3 border-t border-row-divider bg-success-tint items-center text-sm">
+            <div className="font-extrabold text-success">{report.rangeLabel} тушум</div>
+            <div className="font-extrabold text-success text-right">{formatSom(report.income)}</div>
+          </div>
+          <div className="grid grid-cols-[2fr_1fr] px-6 py-3.5 border-t border-row-divider items-center">
+            <div className="font-heading font-extrabold text-heading">Фойда</div>
+            <div
+              className={`font-heading font-extrabold text-right ${report.profit >= 0 ? "text-heading" : "text-danger"}`}
+            >
+              {formatSom(report.profit)}
+            </div>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
