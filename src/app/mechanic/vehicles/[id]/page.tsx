@@ -49,7 +49,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
     <div className="max-w-[1000px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
       <div className="flex justify-between items-center flex-wrap gap-3">
         <div className="flex items-center gap-3.5 flex-wrap">
-          <Link href="/mechanic/vehicles" className="text-[13px] font-bold text-muted-2 hover:text-primary">
+          <Link href="/mechanic/vehicles" className="inline-flex items-center bg-page border border-border text-muted-2 rounded-lg px-3 py-1.5 text-[13px] font-bold hover:border-primary hover:text-primary hover:bg-primary-tint transition-colors">
             ← Машиналар
           </Link>
           <div className="font-heading font-bold text-xl text-heading">

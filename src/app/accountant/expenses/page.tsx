@@ -12,11 +12,13 @@ const POINT_LABELS: Record<string, string> = {
   FARGONA: "Фарғона",
   QUVA: "Қува",
   YOLDA: "Йўлда",
+  ISHXONA: "Ишхона",
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
   STOYANKA: "Стоянка",
   OZIQ_OVQAT: "Озиқ-овқат",
+  OBED: "Обед",
   BOSHQA: "Бошқа",
 };
 
@@ -97,7 +99,7 @@ export default async function AccountantExpensesPage({
           <div className="font-heading font-extrabold text-xl text-danger mt-1">−{formatSom(pointTotal.QUVA)}</div>
         </Card>
         <Card className="p-4">
-          <div className="text-xs font-bold text-muted-2 uppercase">Жами (Йўлда билан)</div>
+          <div className="text-xs font-bold text-muted-2 uppercase">Жами (Йўлда, Ишхона билан)</div>
           <div className="font-heading font-extrabold text-xl text-heading mt-1">−{formatSom(grandTotal)}</div>
         </Card>
       </div>

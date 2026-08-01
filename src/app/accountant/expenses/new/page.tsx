@@ -14,7 +14,7 @@ export default async function NewExpensePage() {
 
   return (
     <div className="max-w-[520px] mx-auto w-full p-4 sm:p-7">
-      <Link href="/accountant/expenses" className="text-[13px] font-bold text-muted-2 hover:text-primary">
+      <Link href="/accountant/expenses" className="inline-flex items-center bg-page border border-border text-muted-2 rounded-lg px-3 py-1.5 text-[13px] font-bold hover:border-primary hover:text-primary hover:bg-primary-tint transition-colors">
         ← Расходларга қайтиш
       </Link>
       <Card className="p-6 sm:p-8 mt-3">

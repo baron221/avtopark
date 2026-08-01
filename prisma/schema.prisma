@@ -96,6 +96,7 @@ enum StaffExpensePoint {
   FARGONA
   QUVA
   YOLDA
+  ISHXONA
 }
 
 enum TripKind {
@@ -106,6 +107,7 @@ enum TripKind {
 enum StaffExpenseCategory {
   STOYANKA
   OZIQ_OVQAT
+  OBED
   BOSHQA
 }
 

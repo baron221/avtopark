@@ -30,7 +30,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <div className="flex items-center gap-2.5">
           <div className="text-[13px] font-semibold text-heading">{session.user.name}</div>
           <form action={logoutAction}>
-            <button type="submit" className="text-xs font-bold text-muted-2 hover:text-danger">
+            <button type="submit" className="bg-page border border-border text-muted-2 rounded-lg px-3 py-1.5 text-xs font-bold hover:border-danger hover:text-danger hover:bg-danger-tint transition-colors">
               Чиқиш
             </button>
           </form>

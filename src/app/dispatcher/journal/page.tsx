@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { formatSom } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
-import { IncomeForm } from "./IncomeForm";
 import { ExpenseForm } from "./ExpenseForm";
 import { DeleteEntryButton } from "./DeleteEntryButton";
 import { deleteTripAction, deleteStaffExpenseAction, deleteLunchAction } from "../actions";
@@ -51,14 +50,8 @@ export default async function DispatcherJournalPage({
   const today = new Date();
   const from = startOfDay(today);
   const to = endOfDay(today);
-  const baseFareRoute = await prisma.route.findFirst({ where: { isActive: true } });
 
-  const [vehicles, trips, expenses, lunches] = await Promise.all([
-    prisma.vehicle.findMany({
-      where: { point, status: "ACTIVE" },
-      include: { driver: { include: { user: true } } },
-      orderBy: { plate: "asc" },
-    }),
+  const [trips, expenses, lunches] = await Promise.all([
     prisma.trip.findMany({
       where: { tripDate: { gte: from, lte: to }, vehicle: { point } },
       include: { vehicle: true },
@@ -75,10 +68,6 @@ export default async function DispatcherJournalPage({
   const kirim = trips.reduce((s, t) => s + Number(t.revenue), 0);
   const chiqim = expenses.reduce((s, e) => s + Number(e.amount), 0) + lunches.reduce((s, l) => s + Number(l.amount), 0);
   const qoldiq = kirim - chiqim;
-
-  const vehicleOptions = vehicles
-    .filter((v) => v.driver)
-    .map((v) => ({ id: v.id, plate: v.plate, driverName: v.driver!.user.fullName }));
 
   const canTripEntry = isDispatcher || (await hasModuleAccess(session.user.role, "TRIP_ENTRY"));
   const canIncomeExpense = isDispatcher || (await hasModuleAccess(session.user.role, "INCOME_EXPENSE_LOG"));
@@ -163,14 +152,7 @@ export default async function DispatcherJournalPage({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[340px_340px_1fr] gap-4 items-start">
-        {canTripEntry && (
-          <IncomeForm
-            vehicles={vehicleOptions}
-            baseFare={baseFareRoute?.baseFare ?? 20000}
-            point={isDispatcher ? undefined : point}
-          />
-        )}
+      <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4 items-start">
         {canIncomeExpense && <ExpenseForm point={isDispatcher ? undefined : point} />}
 
         <Card className="overflow-hidden">

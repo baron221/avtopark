@@ -117,6 +117,21 @@ export default async function DispatcherPointPage({
         )}
       </div>
 
+      <div className="max-w-[420px] w-full">
+        <IncomeForm
+          vehicles={vehicleOptions}
+          baseFare={baseFareRoute?.baseFare ?? 20000}
+          point={isDispatcher ? undefined : point}
+        />
+        <p className="text-xs text-muted-2 font-semibold text-center pt-3">
+          Расход ва обед қўшиш учун{" "}
+          <Link href="/dispatcher/journal" className="text-primary font-extrabold hover:underline">
+            Журнал
+          </Link>{" "}
+          бўлимига ўтинг
+        </p>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard variant="primary" label="Бугун йиғилди" value={formatSom(collectedToday)} />
         <KpiCard label="Қабул қилинган машина" value={`${vehiclesWithMoney.size} / ${vehicles.length}`} />
@@ -154,21 +169,6 @@ export default async function DispatcherPointPage({
         ))}
         {entries.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Бугун ҳали ёзув йўқ</p>}
       </Card>
-
-      <div className="max-w-[420px] w-full">
-        <IncomeForm
-          vehicles={vehicleOptions}
-          baseFare={baseFareRoute?.baseFare ?? 20000}
-          point={isDispatcher ? undefined : point}
-        />
-        <p className="text-xs text-muted-2 font-semibold text-center pt-3">
-          Расход ва обед қўшиш учун{" "}
-          <Link href="/dispatcher/journal" className="text-primary font-extrabold hover:underline">
-            Журнал
-          </Link>{" "}
-          бўлимига ўтинг
-        </p>
-      </div>
     </div>
   );
 }

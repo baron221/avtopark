@@ -61,7 +61,10 @@ export default async function OwnerReportPage() {
           >
             ⬇ PDF
           </Link>
-          <Link href="/owner" className="text-[13px] font-bold text-muted-2 hover:text-primary self-center ml-2">
+          <Link
+            href="/owner"
+            className="inline-flex items-center self-center ml-2 bg-page border border-border text-muted-2 rounded-lg px-3 py-1.5 text-[13px] font-bold hover:border-primary hover:text-primary hover:bg-primary-tint transition-colors"
+          >
             ← Панел
           </Link>
         </div>

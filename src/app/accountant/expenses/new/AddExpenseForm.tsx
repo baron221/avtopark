@@ -21,6 +21,7 @@ export function AddExpenseForm() {
           <option value="FARGONA">Фарғона</option>
           <option value="QUVA">Қува</option>
           <option value="YOLDA">Йўлда</option>
+          <option value="ISHXONA">Ишхона</option>
         </select>
       </div>
       <div>
@@ -28,6 +29,7 @@ export function AddExpenseForm() {
         <select name="category" required className={inputClass} defaultValue="BOSHQA">
           <option value="STOYANKA">Стоянка</option>
           <option value="OZIQ_OVQAT">Озиқ-овқат</option>
+          <option value="OBED">Обед</option>
           <option value="BOSHQA">Бошқа</option>
         </select>
       </div>
