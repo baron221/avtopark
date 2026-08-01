@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, Manrope } from "next/font/google";
+import { ServiceWorkerRegister } from "./ServiceWorkerRegister";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -17,6 +18,17 @@ const manrope = Manrope({
 export const metadata: Metadata = {
   title: "Avtopark Foyda Tizimi",
   description: "Farg'ona–Quva avtopark uchun foyda hisobi tizimi",
+  appleWebApp: {
+    capable: true,
+    title: "Avtopark",
+    statusBarStyle: "black-translucent",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#4F46E5",
 };
 
 export default function RootLayout({
@@ -29,7 +41,10 @@ export default function RootLayout({
       lang="uz"
       className={`${spaceGrotesk.variable} ${manrope.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-page text-heading">{children}</body>
+      <body className="min-h-full flex flex-col bg-page text-heading">
+        <ServiceWorkerRegister />
+        {children}
+      </body>
     </html>
   );
 }
