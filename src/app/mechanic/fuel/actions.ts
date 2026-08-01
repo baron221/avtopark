@@ -25,17 +25,37 @@ export async function addFuelLogAction(formData: FormData) {
   const driver = await prisma.driver.findUnique({ where: { vehicleId } });
   if (!driver) return;
 
-  await prisma.fuelLog.create({
-    data: {
-      stationId,
-      vehicleId,
-      driverId: driver.id,
-      volume,
-      amount: BigInt(Math.round(amount)),
-      filledAt: new Date(),
-      enteredBy: userId,
-    },
-  });
+  const filledAt = new Date();
+
+  // Also record a matching Expense (category FUEL) so this cost is counted
+  // in profit/expense reports — FuelLog alone was invisible to those, since
+  // getOwnerDashboardVM only aggregates the Expense table, not FuelLog.
+  await prisma.$transaction([
+    prisma.fuelLog.create({
+      data: {
+        stationId,
+        vehicleId,
+        driverId: driver.id,
+        volume,
+        amount: BigInt(Math.round(amount)),
+        filledAt,
+        enteredBy: userId,
+      },
+    }),
+    prisma.expense.create({
+      data: {
+        vehicleId,
+        driverId: driver.id,
+        category: "FUEL",
+        amount: BigInt(Math.round(amount)),
+        expenseDate: filledAt,
+        note: "Ёқилғи",
+        enteredBy: userId,
+      },
+    }),
+  ]);
 
   revalidatePath("/mechanic/fuel");
+  revalidatePath("/mechanic/vehicles");
+  revalidatePath(`/mechanic/vehicles/${vehicleId}`);
 }
