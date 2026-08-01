@@ -81,6 +81,19 @@ export async function addTripAction(formData: FormData) {
   revalidatePath("/dispatcher/point");
 }
 
+export async function deleteTripAction(formData: FormData) {
+  const { point } = await requireDispatcherOrGranted(formData, ["TRIP_ENTRY", "COLLECT_PAYMENT"]);
+  const id = String(formData.get("id") ?? "");
+
+  const trip = await prisma.trip.findUnique({ where: { id }, include: { vehicle: true } });
+  if (!trip || trip.vehicle.point !== point) return;
+
+  await prisma.trip.delete({ where: { id } });
+
+  revalidatePath("/dispatcher/journal");
+  revalidatePath("/dispatcher/point");
+}
+
 export async function addStaffExpenseAction(formData: FormData) {
   const { userId, point } = await requireDispatcherOrGranted(formData, "INCOME_EXPENSE_LOG");
 
@@ -105,6 +118,19 @@ export async function addStaffExpenseAction(formData: FormData) {
   revalidatePath("/dispatcher/point");
 }
 
+export async function deleteStaffExpenseAction(formData: FormData) {
+  const { point } = await requireDispatcherOrGranted(formData, "INCOME_EXPENSE_LOG");
+  const id = String(formData.get("id") ?? "");
+
+  const expense = await prisma.staffExpense.findUnique({ where: { id } });
+  if (!expense || expense.point !== toStaffExpensePoint(point)) return;
+
+  await prisma.staffExpense.delete({ where: { id } });
+
+  revalidatePath("/dispatcher/journal");
+  revalidatePath("/dispatcher/point");
+}
+
 const DEFAULT_LUNCH_AMOUNT = 12_000;
 
 export async function addLunchAction(formData: FormData) {
@@ -118,6 +144,19 @@ export async function addLunchAction(formData: FormData) {
     create: { userId, amount: BigInt(Math.round(amount)), lunchDate, enteredBy: userId },
     update: { amount: BigInt(Math.round(amount)) },
   });
+
+  revalidatePath("/dispatcher/journal");
+  revalidatePath("/dispatcher/point");
+}
+
+export async function deleteLunchAction(formData: FormData) {
+  const { point } = await requireDispatcherOrGranted(formData, "INCOME_EXPENSE_LOG");
+  const id = String(formData.get("id") ?? "");
+
+  const lunch = await prisma.lunch.findUnique({ where: { id }, include: { user: true } });
+  if (!lunch || lunch.user.point !== point) return;
+
+  await prisma.lunch.delete({ where: { id } });
 
   revalidatePath("/dispatcher/journal");
   revalidatePath("/dispatcher/point");

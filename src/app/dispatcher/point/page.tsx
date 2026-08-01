@@ -7,6 +7,8 @@ import { KpiCard } from "@/components/ui/KpiCard";
 import { formatSom } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
 import { IncomeForm } from "../journal/IncomeForm";
+import { DeleteEntryButton } from "../journal/DeleteEntryButton";
+import { deleteTripAction } from "../actions";
 import type { Point } from "@prisma/client";
 
 function startOfDay(d: Date) {
@@ -66,6 +68,7 @@ export default async function DispatcherPointPage({
 
   const entries = tripsToday
     .map((t) => ({
+      id: t.id,
       time: t.createdAt,
       plate: t.vehicle.plate,
       driver: t.driver.user.fullName,
@@ -73,6 +76,7 @@ export default async function DispatcherPointPage({
       note: t.kind === "ORDER" ? "Alohida zakaz" : "Reys tushumi",
     }))
     .sort((a, b) => a.time.getTime() - b.time.getTime());
+  const deletePoint = isDispatcher ? undefined : point;
 
   const vehicleOptions = vehicles
     .filter((v) => v.driver)
@@ -121,17 +125,18 @@ export default async function DispatcherPointPage({
       </div>
 
       <Card className="overflow-hidden">
-        <div className="hidden lg:grid grid-cols-[0.6fr_1fr_1.2fr_0.9fr_1.1fr] px-6 py-3 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
+        <div className="hidden lg:grid grid-cols-[0.6fr_1fr_1.2fr_0.9fr_1fr_24px] px-6 py-3 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
           <div>Vaqt</div>
           <div>Mashina</div>
           <div>Haydovchi</div>
           <div>Summa</div>
           <div>Izoh</div>
+          <div></div>
         </div>
-        {entries.map((e, i) => (
+        {entries.map((e) => (
           <div
-            key={i}
-            className="grid grid-cols-2 lg:grid-cols-[0.6fr_1fr_1.2fr_0.9fr_1.1fr] gap-1 px-6 py-3 border-t border-row-divider items-center text-sm"
+            key={e.id}
+            className="grid grid-cols-2 lg:grid-cols-[0.6fr_1fr_1.2fr_0.9fr_1fr_24px] gap-1 px-6 py-3 border-t border-row-divider items-center text-sm"
           >
             <div className="text-muted-2 font-bold">{formatTime(e.time)}</div>
             <div className="font-extrabold text-primary font-heading">{e.plate}</div>
@@ -141,6 +146,9 @@ export default async function DispatcherPointPage({
               <span className="text-xs font-extrabold px-2.5 py-1 rounded-full bg-success-tint text-success">
                 {e.note}
               </span>
+            </div>
+            <div>
+              <DeleteEntryButton action={deleteTripAction} id={e.id} point={deletePoint} />
             </div>
           </div>
         ))}

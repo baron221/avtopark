@@ -7,6 +7,8 @@ import { formatSom } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
 import { IncomeForm } from "./IncomeForm";
 import { ExpenseForm } from "./ExpenseForm";
+import { DeleteEntryButton } from "./DeleteEntryButton";
+import { deleteTripAction, deleteStaffExpenseAction, deleteLunchAction } from "../actions";
 import type { Point } from "@prisma/client";
 
 function startOfDay(d: Date) {
@@ -78,36 +80,52 @@ export default async function DispatcherJournalPage({
     .filter((v) => v.driver)
     .map((v) => ({ id: v.id, plate: v.plate, driverName: v.driver!.user.fullName }));
 
-  type LogEntry = { time: Date; kind: string; kindBg: string; kindColor: string; detail: string; amount: number };
+  const canTripEntry = isDispatcher || (await hasModuleAccess(session.user.role, "TRIP_ENTRY"));
+  const canIncomeExpense = isDispatcher || (await hasModuleAccess(session.user.role, "INCOME_EXPENSE_LOG"));
+  const deletePoint = isDispatcher ? undefined : point;
+
+  type LogEntry = {
+    id: string;
+    time: Date;
+    kind: string;
+    kindBg: string;
+    kindColor: string;
+    detail: string;
+    amount: number;
+    deleteAction?: (formData: FormData) => Promise<void>;
+  };
   const log: LogEntry[] = [
     ...trips.map((t) => ({
+      id: t.id,
       time: t.createdAt,
       kind: t.kind === "ORDER" ? "Zakaz" : "Reys",
       kindBg: t.kind === "ORDER" ? "#E4F5EC" : "#EEF0F8",
       kindColor: t.kind === "ORDER" ? "#1B9E6B" : "#4F46E5",
       detail: t.note ?? `${t.vehicle.plate} · Farg'ona → Quva`,
       amount: Number(t.revenue),
+      deleteAction: canTripEntry ? deleteTripAction : undefined,
     })),
     ...expenses.map((e) => ({
+      id: e.id,
       time: e.expenseDate,
       kind: EXPENSE_CATEGORY_LABELS[e.category] ?? e.category,
       kindBg: "#FDECEA",
       kindColor: "#D9534F",
       detail: e.note ?? EXPENSE_CATEGORY_LABELS[e.category] ?? e.category,
       amount: -Number(e.amount),
+      deleteAction: canIncomeExpense ? deleteStaffExpenseAction : undefined,
     })),
     ...lunches.map((l) => ({
+      id: l.id,
       time: l.lunchDate,
       kind: "Obed",
       kindBg: "#FFF3E0",
       kindColor: "#B26A00",
       detail: "Tushlik",
       amount: -Number(l.amount),
+      deleteAction: canIncomeExpense ? deleteLunchAction : undefined,
     })),
   ].sort((a, b) => a.time.getTime() - b.time.getTime());
-
-  const canTripEntry = isDispatcher || (await hasModuleAccess(session.user.role, "TRIP_ENTRY"));
-  const canIncomeExpense = isDispatcher || (await hasModuleAccess(session.user.role, "INCOME_EXPENSE_LOG"));
 
   return (
     <div className="max-w-[1180px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
@@ -157,10 +175,10 @@ export default async function DispatcherJournalPage({
 
         <Card className="overflow-hidden">
           <div className="px-5 py-3.5 font-heading font-bold text-[15px] text-heading">Bugungi jurnal</div>
-          {log.map((l, i) => (
+          {log.map((l) => (
             <div
-              key={i}
-              className="grid grid-cols-[52px_100px_1fr_auto] gap-2.5 px-5 py-2.5 border-t border-row-divider items-center text-[13px]"
+              key={l.id}
+              className="grid grid-cols-[52px_100px_1fr_auto_24px] gap-2.5 px-5 py-2.5 border-t border-row-divider items-center text-[13px]"
             >
               <div className="text-muted-2 font-bold">{formatTime(l.time)}</div>
               <div>
@@ -175,6 +193,9 @@ export default async function DispatcherJournalPage({
               <div className={`font-extrabold ${l.amount >= 0 ? "text-success" : "text-danger"}`}>
                 {l.amount >= 0 ? "+" : "−"}
                 {formatSom(Math.abs(l.amount))}
+              </div>
+              <div>
+                {l.deleteAction && <DeleteEntryButton action={l.deleteAction} id={l.id} point={deletePoint} />}
               </div>
             </div>
           ))}
