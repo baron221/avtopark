@@ -4,10 +4,9 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { KpiCard } from "@/components/ui/KpiCard";
-import { MoneyInput } from "@/components/ui/MoneyInput";
 import { formatSom } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
-import { collectPlanPaymentAction } from "../actions";
+import { IncomeForm } from "../journal/IncomeForm";
 import type { Point } from "@prisma/client";
 
 function startOfDay(d: Date) {
@@ -41,15 +40,11 @@ export default async function DispatcherPointPage({
   const from = startOfDay(today);
   const to = endOfDay(today);
 
-  const [vehicles, plansToday, tripsToday, myExpenseAgg, myLunch] = await Promise.all([
+  const [vehicles, tripsToday, myExpenseAgg, myLunch, baseFareRoute] = await Promise.all([
     prisma.vehicle.findMany({
       where: { point, status: "ACTIVE" },
       include: { driver: { include: { user: true } } },
       orderBy: { plate: "asc" },
-    }),
-    prisma.dailyPlan.findMany({
-      where: { planDate: { gte: from, lte: to }, vehicle: { point } },
-      include: { vehicle: true, driver: { include: { user: true } } },
     }),
     prisma.trip.findMany({
       where: { tripDate: { gte: from, lte: to }, vehicle: { point } },
@@ -61,35 +56,27 @@ export default async function DispatcherPointPage({
       where: { userId: session.user.id, expenseDate: { gte: from, lte: to } },
     }),
     prisma.lunch.findUnique({ where: { userId_lunchDate: { userId: session.user.id, lunchDate: from } } }),
+    prisma.route.findFirst({ where: { isActive: true } }),
   ]);
 
-  const collectedToday =
-    plansToday.reduce((s, p) => s + Number(p.paidAmount), 0) + tripsToday.reduce((s, t) => s + Number(t.revenue), 0);
-  const vehiclesWithMoney = new Set([
-    ...plansToday.filter((p) => Number(p.paidAmount) > 0).map((p) => p.vehicleId),
-    ...tripsToday.map((t) => t.vehicleId),
-  ]);
+  const collectedToday = tripsToday.reduce((s, t) => s + Number(t.revenue), 0);
+  const vehiclesWithMoney = new Set(tripsToday.map((t) => t.vehicleId));
   const myExpenseToday = Number(myExpenseAgg._sum.amount ?? BigInt(0));
   const myLunchToday = myLunch ? Number(myLunch.amount) : 0;
 
-  const entries = [
-    ...plansToday
-      .filter((p) => Number(p.paidAmount) > 0)
-      .map((p) => ({
-        time: p.paidAt ?? p.planDate,
-        plate: p.vehicle.plate,
-        driver: p.driver.user.fullName,
-        amount: Number(p.paidAmount),
-        note: Number(p.paidAmount) >= Number(p.planAmount) ? "Plan · to'liq" : "Plan · qisman",
-      })),
-    ...tripsToday.map((t) => ({
+  const entries = tripsToday
+    .map((t) => ({
       time: t.createdAt,
       plate: t.vehicle.plate,
       driver: t.driver.user.fullName,
       amount: Number(t.revenue),
       note: t.kind === "ORDER" ? "Alohida zakaz" : "Reys tushumi",
-    })),
-  ].sort((a, b) => a.time.getTime() - b.time.getTime());
+    }))
+    .sort((a, b) => a.time.getTime() - b.time.getTime());
+
+  const vehicleOptions = vehicles
+    .filter((v) => v.driver)
+    .map((v) => ({ id: v.id, plate: v.plate, driverName: v.driver!.user.fullName }));
 
   const pointLabel = point === "FARGONA" ? "Farg'ona" : "Quva";
 
@@ -133,67 +120,46 @@ export default async function DispatcherPointPage({
         <KpiCard label="Obed" value={myLunchToday ? `−${formatSom(myLunchToday)}` : "—"} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4 items-start">
-        <Card className="overflow-hidden">
-          <div className="hidden lg:grid grid-cols-[0.6fr_1fr_1.2fr_0.9fr_1.1fr] px-6 py-3 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
-            <div>Vaqt</div>
-            <div>Mashina</div>
-            <div>Haydovchi</div>
-            <div>Summa</div>
-            <div>Izoh</div>
-          </div>
-          {entries.map((e, i) => (
-            <div
-              key={i}
-              className="grid grid-cols-2 lg:grid-cols-[0.6fr_1fr_1.2fr_0.9fr_1.1fr] gap-1 px-6 py-3 border-t border-row-divider items-center text-sm"
-            >
-              <div className="text-muted-2 font-bold">{formatTime(e.time)}</div>
-              <div className="font-extrabold text-primary font-heading">{e.plate}</div>
-              <div className="font-semibold text-heading">{e.driver}</div>
-              <div className="font-extrabold text-heading">{formatSom(e.amount)}</div>
-              <div>
-                <span className="text-xs font-extrabold px-2.5 py-1 rounded-full bg-success-tint text-success">
-                  {e.note}
-                </span>
-              </div>
+      <Card className="overflow-hidden">
+        <div className="hidden lg:grid grid-cols-[0.6fr_1fr_1.2fr_0.9fr_1.1fr] px-6 py-3 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
+          <div>Vaqt</div>
+          <div>Mashina</div>
+          <div>Haydovchi</div>
+          <div>Summa</div>
+          <div>Izoh</div>
+        </div>
+        {entries.map((e, i) => (
+          <div
+            key={i}
+            className="grid grid-cols-2 lg:grid-cols-[0.6fr_1fr_1.2fr_0.9fr_1.1fr] gap-1 px-6 py-3 border-t border-row-divider items-center text-sm"
+          >
+            <div className="text-muted-2 font-bold">{formatTime(e.time)}</div>
+            <div className="font-extrabold text-primary font-heading">{e.plate}</div>
+            <div className="font-semibold text-heading">{e.driver}</div>
+            <div className="font-extrabold text-heading">{formatSom(e.amount)}</div>
+            <div>
+              <span className="text-xs font-extrabold px-2.5 py-1 rounded-full bg-success-tint text-success">
+                {e.note}
+              </span>
             </div>
-          ))}
-          {entries.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Bugun hali yozuv yo&apos;q</p>}
-        </Card>
+          </div>
+        ))}
+        {entries.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Bugun hali yozuv yo&apos;q</p>}
+      </Card>
 
-        <Card className="p-5 flex flex-col gap-3">
-          <div className="font-heading font-bold text-[15px] text-heading">Pul qabul qilish</div>
-          <form action={collectPlanPaymentAction} className="flex flex-col gap-3">
-            {!isDispatcher && <input type="hidden" name="point" value={point} />}
-            <select
-              name="vehicleId"
-              required
-              className="bg-page border-2 border-border rounded-xl px-3.5 py-2.5 font-bold text-sm text-heading outline-none focus:border-primary"
-            >
-              {vehicles.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.plate} · {v.driver?.user.fullName ?? "—"}
-                </option>
-              ))}
-            </select>
-            <MoneyInput
-              name="amount"
-              required
-              placeholder="Summa"
-              className="bg-page border-2 border-primary rounded-xl px-3.5 py-3 font-heading text-xl font-bold text-heading outline-none"
-            />
-            <button type="submit" className="bg-primary text-white rounded-xl py-3 font-extrabold text-sm">
-              Qabul qilish ✓
-            </button>
-          </form>
-          <p className="text-xs text-muted-2 font-semibold text-center pt-1">
-            Rasxod va obed qo&apos;shish uchun{" "}
-            <Link href="/dispatcher/journal" className="text-primary font-extrabold hover:underline">
-              Jurnal
-            </Link>{" "}
-            bo&apos;limiga o&apos;ting
-          </p>
-        </Card>
+      <div className="max-w-[420px] w-full">
+        <IncomeForm
+          vehicles={vehicleOptions}
+          baseFare={baseFareRoute?.baseFare ?? 20000}
+          point={isDispatcher ? undefined : point}
+        />
+        <p className="text-xs text-muted-2 font-semibold text-center pt-3">
+          Rasxod va obed qo&apos;shish uchun{" "}
+          <Link href="/dispatcher/journal" className="text-primary font-extrabold hover:underline">
+            Jurnal
+          </Link>{" "}
+          bo&apos;limiga o&apos;ting
+        </p>
       </div>
     </div>
   );

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { hasModuleAccess, type ModuleKey } from "@/lib/access";
+import { hasAnyModuleAccess, type ModuleKey } from "@/lib/access";
 import type { Point, StaffExpenseCategory, StaffExpensePoint, TripKind } from "@prisma/client";
 
 function startOfDay(d: Date) {
@@ -20,7 +20,7 @@ function toStaffExpensePoint(point: Point): StaffExpensePoint {
 // so they can never be tricked into touching the other point's data). A
 // back-office role granted one of the point-scoped modules has no point of
 // its own, so it must say which one via the form/query string instead.
-async function requireDispatcherOrGranted(formData: FormData, moduleKey: ModuleKey) {
+async function requireDispatcherOrGranted(formData: FormData, moduleKey: ModuleKey | ModuleKey[]) {
   const session = await auth();
   if (!session) throw new Error("Ruxsat yo'q");
 
@@ -29,7 +29,8 @@ async function requireDispatcherOrGranted(formData: FormData, moduleKey: ModuleK
     return { userId: session.user.id, point: session.user.point };
   }
 
-  if (!(await hasModuleAccess(session.user.role, moduleKey))) {
+  const moduleKeys = Array.isArray(moduleKey) ? moduleKey : [moduleKey];
+  if (!(await hasAnyModuleAccess(session.user.role, moduleKeys))) {
     throw new Error("Ruxsat yo'q");
   }
   const rawPoint = String(formData.get("point") ?? "");
@@ -37,54 +38,10 @@ async function requireDispatcherOrGranted(formData: FormData, moduleKey: ModuleK
   return { userId: session.user.id, point };
 }
 
-const DEFAULT_PLAN_AMOUNT = 350_000;
-
-export async function collectPlanPaymentAction(formData: FormData) {
-  const { point } = await requireDispatcherOrGranted(formData, "COLLECT_PAYMENT");
-  const vehicleId = String(formData.get("vehicleId") ?? "");
-  const amount = Number(formData.get("amount") ?? 0);
-  if (!vehicleId || !(amount > 0)) return;
-
-  const vehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId } });
-  if (!vehicle || vehicle.point !== point) return;
-
-  const driver = await prisma.driver.findUnique({ where: { vehicleId } });
-  if (!driver) return;
-
-  const dayStart = startOfDay(new Date());
-  const dayEnd = new Date(dayStart.getTime() + 86_400_000 - 1);
-  const existing = await prisma.dailyPlan.findFirst({
-    where: { vehicleId, planDate: { gte: dayStart, lte: dayEnd } },
-  });
-  const planAmount = existing?.planAmount ?? BigInt(DEFAULT_PLAN_AMOUNT);
-  const newPaid = (existing ? Number(existing.paidAmount) : 0) + amount;
-  const status = newPaid >= Number(planAmount) ? "FULL" : newPaid > 0 ? "PARTIAL" : "PENDING";
-
-  if (existing) {
-    await prisma.dailyPlan.update({
-      where: { id: existing.id },
-      data: { paidAmount: BigInt(newPaid), status, paidAt: new Date() },
-    });
-  } else {
-    await prisma.dailyPlan.create({
-      data: {
-        vehicleId,
-        driverId: driver.id,
-        planDate: dayStart,
-        planAmount,
-        paidAmount: BigInt(newPaid),
-        status,
-        paidAt: new Date(),
-      },
-    });
-  }
-
-  revalidatePath("/dispatcher/point");
-  revalidatePath("/dispatcher/journal");
-}
-
 export async function addTripAction(formData: FormData) {
-  const { userId, point } = await requireDispatcherOrGranted(formData, "TRIP_ENTRY");
+  // Guests may reach this either through the Journal (TRIP_ENTRY) or through
+  // the point overview page (COLLECT_PAYMENT), which now shares this same form.
+  const { userId, point } = await requireDispatcherOrGranted(formData, ["TRIP_ENTRY", "COLLECT_PAYMENT"]);
 
   const kind = (formData.get("kind") === "ORDER" ? "ORDER" : "TRIP") as TripKind;
   const vehicleId = String(formData.get("vehicleId") ?? "");
