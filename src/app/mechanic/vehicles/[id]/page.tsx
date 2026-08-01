@@ -173,7 +173,17 @@ export default async function VehicleDetailPage({
               <div className="font-heading font-bold text-base text-heading">{report.plate}</div>
               <div className="text-xs text-muted-2 font-semibold">{report.rangeLabel}</div>
             </div>
-            <PeriodToggle active={period} basePath={`/mechanic/vehicles/${vehicle.id}`} />
+            <div className="flex items-center gap-2">
+              <PeriodToggle active={period} basePath={`/mechanic/vehicles/${vehicle.id}`} />
+              <a
+                href={`/print/vehicle/${vehicle.id}?period=${period}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-page border border-border text-heading text-xs font-extrabold px-3 py-2 rounded-lg hover:border-primary hover:text-primary transition-colors"
+              >
+                🖨 Чоп этиш
+              </a>
+            </div>
           </div>
           <div className="hidden lg:grid grid-cols-[2fr_1fr] px-6 py-2.5 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
             <div>Мақсад</div>
