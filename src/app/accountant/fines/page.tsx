@@ -9,13 +9,7 @@ import { DEFAULT_PAGE_SIZE, parsePage, paginationSkip, totalPages } from "@/lib/
 import { formatSom, uzMonthName } from "@/lib/format";
 import { toggleFineDeductedAction } from "./actions";
 import { hasModuleAccess } from "@/lib/access";
-
-function monthStart(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth(), 1);
-}
-function monthEnd(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
-}
+import { monthStart, monthEnd } from "@/lib/month";
 
 export default async function FinesPage({
   searchParams,

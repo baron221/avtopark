@@ -441,14 +441,15 @@ model StaffExpense {
 }
 
 model Salary {
-  id          String       @id @default(uuid())
-  userId      String       @map("user_id")
-  month       DateTime
-  baseSalary  BigInt       @map("base_salary")
-  bonus       BigInt       @default(0)
-  finesTotal  BigInt       @default(0) @map("fines_total")
-  lunchTotal  BigInt       @default(0) @map("lunch_total")
-  netPay      BigInt       @map("net_pay")
+  id             String       @id @default(uuid())
+  userId         String       @map("user_id")
+  month          DateTime
+  baseSalary     BigInt       @map("base_salary")
+  bonus          BigInt       @default(0)
+  advancesTotal  BigInt       @default(0) @map("advances_total")
+  finesTotal     BigInt       @default(0) @map("fines_total")
+  lunchTotal     BigInt       @default(0) @map("lunch_total")
+  netPay         BigInt       @map("net_pay")
   status      SalaryStatus @default(DRAFT)
   approvedBy  String?      @map("approved_by")
 

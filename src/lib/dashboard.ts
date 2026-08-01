@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { uzMonthName, uzWeekdayShort } from "@/lib/format";
+import { monthStart as monthStartUTC } from "@/lib/month";
 import type { VehicleType } from "@prisma/client";
 
 export type Period = "DAY" | "WEEK" | "MONTH";
@@ -55,7 +56,7 @@ export function rangeForPeriod(period: Period, now: Date) {
   const to = endOfDay(now);
   if (period === "DAY") return { from: startOfDay(now), to };
   if (period === "WEEK") return { from: startOfDay(addDays(now, -6)), to };
-  return { from: new Date(now.getFullYear(), now.getMonth(), 1), to };
+  return { from: monthStartUTC(now), to };
 }
 
 function previousRange(period: Period, current: { from: Date; to: Date }) {
@@ -328,11 +329,14 @@ export type MonthlyTrendPoint = { label: string; income: number; expense: number
 
 export async function getMonthlyTrend(monthsBack = 6): Promise<MonthlyTrendPoint[]> {
   const now = new Date();
-  const rangeFrom = new Date(now.getFullYear(), now.getMonth() - (monthsBack - 1), 1);
+  const currentMonthStart = monthStartUTC(now);
+  const rangeFrom = new Date(
+    Date.UTC(currentMonthStart.getUTCFullYear(), currentMonthStart.getUTCMonth() - (monthsBack - 1), 1)
+  );
   const rangeTo = endOfDay(now);
 
   const monthIndex = (date: Date) =>
-    (date.getFullYear() - rangeFrom.getFullYear()) * 12 + (date.getMonth() - rangeFrom.getMonth());
+    (date.getUTCFullYear() - rangeFrom.getUTCFullYear()) * 12 + (date.getUTCMonth() - rangeFrom.getUTCMonth());
 
   const [trips, expenses, plans, rentals] = await Promise.all([
     prisma.trip.findMany({ where: { tripDate: { gte: rangeFrom, lte: rangeTo } }, select: { tripDate: true, revenue: true } }),
@@ -366,20 +370,20 @@ export async function getMonthlyTrend(monthsBack = 6): Promise<MonthlyTrendPoint
   }
 
   for (let i = 0; i < monthsBack; i++) {
-    const monthStart = new Date(rangeFrom.getFullYear(), rangeFrom.getMonth() + i, 1);
-    const monthEnd = new Date(rangeFrom.getFullYear(), rangeFrom.getMonth() + i + 1, 0, 23, 59, 59, 999);
+    const mStart = new Date(Date.UTC(rangeFrom.getUTCFullYear(), rangeFrom.getUTCMonth() + i, 1));
+    const mEnd = new Date(Date.UTC(rangeFrom.getUTCFullYear(), rangeFrom.getUTCMonth() + i + 1, 0, 23, 59, 59, 999));
     for (const r of rentals) {
-      const days = overlapDays(monthStart, monthEnd, r.startDate, r.endDate);
+      const days = overlapDays(mStart, mEnd, r.startDate, r.endDate);
       if (days > 0) {
-        income[i] += (Number(r.monthlyAmount) * days) / daysInMonth(monthStart.getFullYear(), monthStart.getMonth());
+        income[i] += (Number(r.monthlyAmount) * days) / daysInMonth(mStart.getUTCFullYear(), mStart.getUTCMonth());
       }
     }
   }
 
   return Array.from({ length: monthsBack }).map((_, i) => {
-    const monthStart = new Date(rangeFrom.getFullYear(), rangeFrom.getMonth() + i, 1);
+    const mStart = new Date(Date.UTC(rangeFrom.getUTCFullYear(), rangeFrom.getUTCMonth() + i, 1));
     return {
-      label: uzMonthName(monthStart),
+      label: uzMonthName(mStart),
       income: income[i],
       expense: expense[i],
       profit: income[i] - expense[i],

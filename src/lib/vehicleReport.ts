@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { rangeForPeriod, daysInMonth, type Period } from "@/lib/dashboard";
+import { monthStart as getMonthStart } from "@/lib/month";
 
 export const PERIOD_LABELS: Record<Period, string> = { DAY: "Кунлик", WEEK: "Ҳафталик", MONTH: "Ойлик" };
 
@@ -31,8 +32,8 @@ export async function getVehicleReport(vehicleId: string, period: Period): Promi
   const now = new Date();
   const { from, to } = rangeForPeriod(period, now);
   const days = Math.floor((to.getTime() - from.getTime()) / 86_400_000) + 1;
-  const monthDays = daysInMonth(now.getFullYear(), now.getMonth());
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthStart = getMonthStart(now);
+  const monthDays = daysInMonth(monthStart.getUTCFullYear(), monthStart.getUTCMonth());
   const proration = days / monthDays;
 
   const [trips, dailyPlans, fuelLogs, expenses, activeVehicleCount, driverSalary, staffSalaryAgg, staffExpenseAgg] =

@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { computeNetPay } from "@/lib/payroll";
 import { hasModuleAccess } from "@/lib/access";
+import { monthStart, monthEnd } from "@/lib/month";
 
 async function requireAccountant() {
   const session = await auth();
@@ -12,13 +13,6 @@ async function requireAccountant() {
     throw new Error("Рухсат йўқ");
   }
   return session.user.id;
-}
-
-function monthStart(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth(), 1);
-}
-function monthEnd(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
 }
 
 export async function generatePayrollAction() {
@@ -35,7 +29,7 @@ export async function generatePayrollAction() {
     const existing = await prisma.salary.findUnique({ where: { userId_month: { userId: user.id, month } } });
     if (existing && existing.status !== "DRAFT") continue;
 
-    const [finesAgg, lunchAgg] = await Promise.all([
+    const [finesAgg, lunchAgg, advancesAgg] = await Promise.all([
       prisma.fine.aggregate({
         _sum: { amount: true },
         where: { userId: user.id, deducted: true, fineDate: { gte: from, lte: to } },
@@ -44,18 +38,23 @@ export async function generatePayrollAction() {
         _sum: { amount: true },
         where: { userId: user.id, lunchDate: { gte: from, lte: to } },
       }),
+      prisma.advance.aggregate({
+        _sum: { amount: true },
+        where: { userId: user.id, month },
+      }),
     ]);
 
     const baseSalary = user.baseSalary ?? BigInt(0);
     const bonus = existing?.bonus ?? BigInt(0);
     const finesTotal = finesAgg._sum.amount ?? BigInt(0);
     const lunchTotal = lunchAgg._sum.amount ?? BigInt(0);
-    const netPay = computeNetPay({ baseSalary, bonus, finesTotal, lunchTotal });
+    const advancesTotal = advancesAgg._sum.amount ?? BigInt(0);
+    const netPay = computeNetPay({ baseSalary, bonus, advancesTotal, finesTotal, lunchTotal });
 
     await prisma.salary.upsert({
       where: { userId_month: { userId: user.id, month } },
-      create: { userId: user.id, month, baseSalary, bonus, finesTotal, lunchTotal, netPay, status: "DRAFT" },
-      update: { baseSalary, finesTotal, lunchTotal, netPay },
+      create: { userId: user.id, month, baseSalary, bonus, advancesTotal, finesTotal, lunchTotal, netPay, status: "DRAFT" },
+      update: { baseSalary, advancesTotal, finesTotal, lunchTotal, netPay },
     });
   }
 
@@ -87,6 +86,7 @@ export async function setBonusAction(formData: FormData) {
   const netPay = computeNetPay({
     baseSalary: salary.baseSalary,
     bonus,
+    advancesTotal: salary.advancesTotal,
     finesTotal: salary.finesTotal,
     lunchTotal: salary.lunchTotal,
   });

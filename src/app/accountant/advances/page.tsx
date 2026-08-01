@@ -8,10 +8,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import { DEFAULT_PAGE_SIZE, parsePage, paginationSkip, totalPages } from "@/lib/paginate";
 import { formatSom, uzMonthName } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
-
-function monthStart(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth(), 1);
-}
+import { monthStart } from "@/lib/month";
 
 export default async function AdvancesPage({
   searchParams,

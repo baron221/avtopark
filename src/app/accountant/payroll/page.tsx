@@ -11,11 +11,8 @@ import { DEFAULT_PAGE_SIZE, parsePage, paginationSkip, totalPages } from "@/lib/
 import { formatSom, formatMillions, uzMonthName } from "@/lib/format";
 import { getOwnerDashboardVM } from "@/lib/dashboard";
 import { hasModuleAccess } from "@/lib/access";
+import { monthStart } from "@/lib/month";
 import { generatePayrollAction, approvePayrollAction, setBonusAction } from "./actions";
-
-function monthStart(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth(), 1);
-}
 
 export default async function PayrollPage({
   searchParams,
@@ -55,7 +52,13 @@ export default async function PayrollPage({
   const advancesTotal = advances.reduce((s, a) => s + Number(a.amount), 0);
   const finesTotal = salaries.reduce((s, sal) => s + Number(sal.finesTotal), 0);
   const lunchTotal = salaries.reduce((s, sal) => s + Number(sal.lunchTotal), 0);
-  const netProfitAfterAll = fleetVM.netProfit - (salaryFund + advancesTotal + finesTotal + lunchTotal);
+  const bonusTotal = salaries.reduce((s, sal) => s + Number(sal.bonus), 0);
+  // Advances and lunch money are pre-payments of the very same base salary
+  // (already inside salaryFund) that get clawed back at settlement, so they
+  // net out — including them here on top of salaryFund would double-count
+  // them. A fine reduces what the company actually pays out, so it's added
+  // back rather than subtracted again.
+  const netProfitAfterAll = fleetVM.netProfit - (salaryFund + bonusTotal - finesTotal);
 
   const allApproved = salaries.length > 0 && salaries.every((s) => s.status !== "DRAFT");
 

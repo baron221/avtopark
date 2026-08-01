@@ -4,10 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { ROLE_LABELS } from "@/components/ui/RoleBadge";
 import { uzMonthName } from "@/lib/format";
-
-function monthStart(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth(), 1);
-}
+import { monthStart } from "@/lib/month";
 
 export async function GET() {
   const session = await auth();

@@ -7,6 +7,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import { DEFAULT_PAGE_SIZE, parsePage, paginationSkip, totalPages } from "@/lib/paginate";
 import { formatSom, uzMonthName } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
+import { monthStart, monthEnd } from "@/lib/month";
 
 const POINT_LABELS: Record<string, string> = {
   FARGONA: "Фарғона",
@@ -21,13 +22,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   OBED: "Обед",
   BOSHQA: "Бошқа",
 };
-
-function monthStart(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth(), 1);
-}
-function monthEnd(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
-}
 
 export default async function AccountantExpensesPage({
   searchParams,

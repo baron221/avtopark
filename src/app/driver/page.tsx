@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { formatSom } from "@/lib/format";
+import { monthStart as getMonthStart } from "@/lib/month";
 
 function startOfDay(d: Date) {
   const x = new Date(d);
@@ -41,7 +42,7 @@ export default async function DriverPage() {
 
   const now = new Date();
   const today = { from: startOfDay(now), to: endOfDay(now) };
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthStart = getMonthStart(now);
 
   const [todayTrips, todayPlan, monthTrips, monthPlan, salary] = await Promise.all([
     prisma.trip.findMany({
@@ -122,6 +123,10 @@ export default async function DriverPage() {
             <div className="flex justify-between">
               <span className="text-muted-2 font-semibold">Бонус</span>
               <span className="font-bold text-success">+{formatSom(Number(salary.bonus))}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-2 font-semibold">Аванс</span>
+              <span className="font-bold text-primary">−{formatSom(Number(salary.advancesTotal))}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-2 font-semibold">Жарима</span>
