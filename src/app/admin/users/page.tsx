@@ -7,13 +7,14 @@ import { RoleBadge, ROLE_LABELS } from "@/components/ui/RoleBadge";
 import { Pagination } from "@/components/ui/Pagination";
 import { DEFAULT_PAGE_SIZE, parsePage, paginationSkip, totalPages } from "@/lib/paginate";
 import { toggleActiveAction } from "./actions";
+import { DeleteUserButton } from "./DeleteUserButton";
 import { hasModuleAccess } from "@/lib/access";
 import type { Role } from "@prisma/client";
 
 export default async function AdminUsersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; deleteError?: string }>;
 }) {
   const session = await auth();
   if (!session) redirect("/login");
@@ -21,7 +22,7 @@ export default async function AdminUsersPage({
     redirect("/coming-soon");
   }
 
-  const { page: pageParam } = await searchParams;
+  const { page: pageParam, deleteError } = await searchParams;
   const page = parsePage(pageParam);
 
   const [users, totalCount, roleCounts] = await Promise.all([
@@ -63,9 +64,13 @@ export default async function AdminUsersPage({
         </Link>
       </div>
 
+      {deleteError && (
+        <div className="bg-danger-tint text-danger text-[13px] font-bold px-4 py-3 rounded-xl">{deleteError}</div>
+      )}
+
       {/* Desktop table */}
       <Card className="overflow-hidden hidden lg:block">
-        <div className="grid grid-cols-[1.4fr_1.3fr_1.1fr_0.7fr_1fr] px-6 py-3 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
+        <div className="grid grid-cols-[1.2fr_1.1fr_1fr_0.6fr_1.7fr] px-6 py-3 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
           <div>F.I.Sh.</div>
           <div>Rol</div>
           <div>Telefon (login)</div>
@@ -75,7 +80,7 @@ export default async function AdminUsersPage({
         {users.map((u) => (
           <div
             key={u.id}
-            className="grid grid-cols-[1.4fr_1.3fr_1.1fr_0.7fr_1fr] px-6 py-3.5 border-t border-row-divider items-center text-sm"
+            className="grid grid-cols-[1.2fr_1.1fr_1fr_0.6fr_1.7fr] px-6 py-3.5 border-t border-row-divider items-center text-sm"
           >
             <div className="font-extrabold text-heading">{u.fullName}</div>
             <div>
@@ -91,7 +96,7 @@ export default async function AdminUsersPage({
                 {u.isActive ? "Faol" : "Bloklangan"}
               </span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Link
                 href={`/admin/users/${u.id}/edit`}
                 className="bg-page text-heading text-xs font-extrabold px-3 py-1.5 rounded-lg border border-border"
@@ -115,6 +120,14 @@ export default async function AdminUsersPage({
                   {u.isActive ? "Bloklash" : "Faollashtirish"}
                 </button>
               </form>
+              {u.id !== session.user.id && (
+                <DeleteUserButton
+                  userId={u.id}
+                  fullName={u.fullName}
+                  page={page}
+                  className="bg-danger text-white text-xs font-extrabold px-3 py-1.5 rounded-lg"
+                />
+              )}
             </div>
           </div>
         ))}
@@ -140,7 +153,7 @@ export default async function AdminUsersPage({
               >
                 {u.isActive ? "Faol" : "Bloklangan"}
               </span>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <Link
                   href={`/admin/users/${u.id}/edit`}
                   className="bg-page text-heading text-xs font-extrabold px-3 py-1.5 rounded-lg border border-border"
@@ -164,6 +177,14 @@ export default async function AdminUsersPage({
                     {u.isActive ? "Bloklash" : "Faollashtirish"}
                   </button>
                 </form>
+                {u.id !== session.user.id && (
+                  <DeleteUserButton
+                    userId={u.id}
+                    fullName={u.fullName}
+                    page={page}
+                    className="bg-danger text-white text-xs font-extrabold px-3 py-1.5 rounded-lg"
+                  />
+                )}
               </div>
             </div>
           </Card>

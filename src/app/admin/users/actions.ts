@@ -136,6 +136,38 @@ export async function toggleActiveAction(formData: FormData) {
   revalidatePath("/admin/users");
 }
 
+export async function deleteUserAction(formData: FormData) {
+  const session = await requireAdmin();
+  const userId = String(formData.get("userId") ?? "");
+  const page = String(formData.get("page") ?? "").trim();
+  const backTo = `/admin/users${page && page !== "1" ? `?page=${page}` : ""}`;
+
+  const user = await prisma.user.findUnique({ where: { id: userId }, include: { driver: true } });
+  if (!user) redirect(backTo);
+
+  if (userId === session.user.id) {
+    redirect(`${backTo}${backTo.includes("?") ? "&" : "?"}deleteError=${encodeURIComponent("O'zingizni o'chira olmaysiz")}`);
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      if (user.driver) {
+        await tx.driver.delete({ where: { id: user.driver.id } });
+      }
+      await tx.user.delete({ where: { id: userId } });
+    });
+  } catch {
+    // Has trips/expenses/salary/fine/advance history etc. — deleting would
+    // either fail on a foreign key or silently erase financial records, so
+    // block it and point them at Bloklash instead.
+    const message = `${user.fullName} tizimda tarixga ega (reys, xarajat, maosh va h.k.), shuning uchun o'chirib bo'lmaydi. Buning o'rniga "Bloklash"dan foydalaning.`;
+    redirect(`${backTo}${backTo.includes("?") ? "&" : "?"}deleteError=${encodeURIComponent(message)}`);
+  }
+
+  revalidatePath("/admin/users");
+  redirect(backTo);
+}
+
 export type ResetPasswordState = { error: string; success: boolean };
 
 export async function resetPasswordAction(
