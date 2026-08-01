@@ -22,9 +22,7 @@ export default async function OwnerPage({
   const period: Period = isPeriod(periodParam) ? periodParam : "MONTH";
   const [vm, grantedLinks] = await Promise.all([
     getOwnerDashboardVM(period),
-    isOwner
-      ? getGrantedNavLinks(session.user.role, ["FLEET_DASHBOARD"])
-      : getGuestNavLinks(session.user.role, ["FLEET_DASHBOARD"]),
+    isOwner ? getGrantedNavLinks(session.user.role, ["FLEET_DASHBOARD"]) : getGuestNavLinks(session.user.role),
   ]);
 
   return (
