@@ -17,17 +17,17 @@ export default async function ComingSoonPage() {
           FQ
         </div>
         <div className="font-heading font-bold text-lg text-heading">
-          Salom, {session.user.name}!
+          Салом, {session.user.name}!
         </div>
         <p className="text-[13px] text-muted-2 font-semibold">
-          {roleLabel} bo&apos;limi tez orada qo&apos;shiladi. Hozircha faqat Egasi (Owner) paneli tayyor.
+          {roleLabel} бўлими тез орада қўшилади. Ҳозирча фақат Эгаси (Owner) панели тайёр.
         </p>
         <form action={logoutAction}>
           <button
             type="submit"
             className="bg-primary-tint text-primary rounded-xl px-5 py-2.5 text-[13px] font-extrabold"
           >
-            Chiqish
+            Чиқиш
           </button>
         </form>
       </Card>

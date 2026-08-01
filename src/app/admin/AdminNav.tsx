@@ -4,10 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV = [
-  { href: "/admin/panel", label: "Panel", icon: "◉" },
-  { href: "/admin/users", label: "Xodimlar", icon: "◈" },
-  { href: "/admin/shifts", label: "Smenalar", icon: "▤" },
-  { href: "/admin/access", label: "Huquqlar", icon: "▨" },
+  { href: "/admin/panel", label: "Панел", icon: "◉" },
+  { href: "/admin/users", label: "Ходимлар", icon: "◈" },
+  { href: "/admin/shifts", label: "Сменалар", icon: "▤" },
+  { href: "/admin/access", label: "Ҳуқуқлар", icon: "▨" },
 ];
 
 type NavItem = { href: string; label: string; icon: string };

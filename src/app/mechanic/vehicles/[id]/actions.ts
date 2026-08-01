@@ -12,7 +12,7 @@ import type { ExpenseCategory, Point, SalaryType, VehicleStatus, VehicleType } f
 async function requireMechanic() {
   const session = await auth();
   if (!session || (session.user.role !== "MECHANIC" && !(await hasModuleAccess(session.user.role, "VEHICLES")))) {
-    throw new Error("Ruxsat yo'q");
+    throw new Error("Рухсат йўқ");
   }
   return session.user.id;
 }
@@ -34,12 +34,12 @@ export async function updateVehicleAction(
   const point = (formData.get("point") as Point | null) || null;
 
   if (!vehicleId || !plate || !model || !(seats > 0) || !(purchasePrice > 0)) {
-    return { error: "Barcha maydonlarni to'g'ri to'ldiring" };
+    return { error: "Барча майдонларни тўғри тўлдиринг" };
   }
 
   const existing = await prisma.vehicle.findUnique({ where: { plate } });
   if (existing && existing.id !== vehicleId) {
-    return { error: "Bu davlat raqami bilan boshqa mashina allaqachon mavjud" };
+    return { error: "Бу давлат рақами билан бошқа машина аллақачон мавжуд" };
   }
 
   await prisma.vehicle.update({
@@ -107,15 +107,15 @@ export async function createDriverAction(
   const salaryValue = Number.isFinite(rawSalaryValue) ? Math.max(0, rawSalaryValue) : 0;
 
   if (!vehicleId || !fullName || !phone || !password) {
-    return { error: "Barcha maydonlarni to'ldiring" };
+    return { error: "Барча майдонларни тўлдиринг" };
   }
   if (password.length < 6) {
-    return { error: "Parol kamida 6 belgidan iborat bo'lishi kerak" };
+    return { error: "Парол камида 6 белгидан иборат бўлиши керак" };
   }
 
   const existing = await prisma.user.findUnique({ where: { phone } });
   if (existing) {
-    return { error: "Bu telefon raqam bilan foydalanuvchi allaqachon mavjud" };
+    return { error: "Бу телефон рақам билан фойдаланувчи аллақачон мавжуд" };
   }
 
   const passwordHash = await bcrypt.hash(password, 10);

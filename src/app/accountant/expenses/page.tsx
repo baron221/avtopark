@@ -9,15 +9,15 @@ import { formatSom, uzMonthName } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
 
 const POINT_LABELS: Record<string, string> = {
-  FARGONA: "Farg'ona",
-  QUVA: "Quva",
-  YOLDA: "Yo'lda",
+  FARGONA: "Фарғона",
+  QUVA: "Қува",
+  YOLDA: "Йўлда",
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
-  STOYANKA: "Stoyanka",
-  OZIQ_OVQAT: "Oziq-ovqat",
-  BOSHQA: "Boshqa",
+  STOYANKA: "Стоянка",
+  OZIQ_OVQAT: "Озиқ-овқат",
+  BOSHQA: "Бошқа",
 };
 
 function monthStart(d: Date) {
@@ -73,31 +73,31 @@ export default async function AccountantExpensesPage({
       <div className="flex justify-between items-center flex-wrap gap-3">
         <div>
           <div className="font-heading font-bold text-xl text-heading">
-            Rasxodlar · {uzMonthName(now)} {now.getFullYear()}
+            Расходлар · {uzMonthName(now)} {now.getFullYear()}
           </div>
           <div className="text-[13px] text-muted-2 font-semibold">
-            Dispetcherlar (Farg&apos;ona, Quva) kiritgan kunlik rasxodlar
+            Диспетчерлар (Фарғона, Қува) киритган кунлик расходлар
           </div>
         </div>
         <Link
           href="/accountant/expenses/new"
           className="bg-danger text-white rounded-[10px] px-[18px] py-2.5 font-extrabold text-[13px]"
         >
-          + Boshqa rasxod
+          + Бошқа расход
         </Link>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="p-4">
-          <div className="text-xs font-bold text-muted-2 uppercase">Farg&apos;ona</div>
+          <div className="text-xs font-bold text-muted-2 uppercase">Фарғона</div>
           <div className="font-heading font-extrabold text-xl text-danger mt-1">−{formatSom(pointTotal.FARGONA)}</div>
         </Card>
         <Card className="p-4">
-          <div className="text-xs font-bold text-muted-2 uppercase">Quva</div>
+          <div className="text-xs font-bold text-muted-2 uppercase">Қува</div>
           <div className="font-heading font-extrabold text-xl text-danger mt-1">−{formatSom(pointTotal.QUVA)}</div>
         </Card>
         <Card className="p-4">
-          <div className="text-xs font-bold text-muted-2 uppercase">Jami (Yo&apos;lda bilan)</div>
+          <div className="text-xs font-bold text-muted-2 uppercase">Жами (Йўлда билан)</div>
           <div className="font-heading font-extrabold text-xl text-heading mt-1">−{formatSom(grandTotal)}</div>
         </Card>
       </div>
@@ -123,7 +123,7 @@ export default async function AccountantExpensesPage({
             <div className="font-extrabold text-danger">−{formatSom(Number(e.amount))}</div>
           </div>
         ))}
-        {expenses.length === 0 && <p className="text-[13px] text-muted-2 px-5 py-4">Bu oy hali rasxod yo&apos;q</p>}
+        {expenses.length === 0 && <p className="text-[13px] text-muted-2 px-5 py-4">Бу ой ҳали расход йўқ</p>}
         <Pagination page={page} totalPages={pages} basePath="/accountant/expenses" />
       </Card>
     </div>

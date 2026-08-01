@@ -18,13 +18,13 @@ export async function giveAdvanceAction(
 ): Promise<GiveAdvanceState> {
   const session = await auth();
   if (!session || (session.user.role !== "ACCOUNTANT" && !(await hasModuleAccess(session.user.role, "PAYROLL")))) {
-    return { error: "Ruxsat yo'q" };
+    return { error: "Рухсат йўқ" };
   }
 
   const userId = String(formData.get("userId") ?? "");
   const amount = Number(formData.get("amount") ?? 0);
   if (!userId || !(amount > 0)) {
-    return { error: "Xodim va summani to'g'ri kiriting" };
+    return { error: "Ходим ва суммани тўғри киритинг" };
   }
 
   const now = new Date();

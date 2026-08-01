@@ -14,13 +14,13 @@ export default async function DriverLayout({ children }: { children: React.React
           <div className="w-9 h-9 rounded-[10px] bg-primary text-white flex items-center justify-center font-heading font-bold text-base">
             FQ
           </div>
-          <div className="font-heading font-bold text-base text-heading">Farg&apos;ona–Quva Avtopark</div>
+          <div className="font-heading font-bold text-base text-heading">Фарғона–Қува Автопарк</div>
         </div>
         <div className="flex items-center gap-2.5">
           <div className="text-[13px] font-semibold text-heading">{session.user.name}</div>
           <form action={logoutAction}>
             <button type="submit" className="text-xs font-bold text-muted-2 hover:text-danger">
-              Chiqish
+              Чиқиш
             </button>
           </form>
         </div>

@@ -11,7 +11,7 @@ import type { Point, Role, SalaryType } from "@prisma/client";
 async function requireAdmin() {
   const session = await auth();
   if (!session || (session.user.role !== "ADMIN" && !(await hasModuleAccess(session.user.role, "USER_MANAGEMENT")))) {
-    throw new Error("Ruxsat yo'q");
+    throw new Error("Рухсат йўқ");
   }
   return session;
 }
@@ -28,15 +28,15 @@ export async function createUserAction(_prevState: CreateUserState, formData: Fo
   const point = (formData.get("point") as Point | null) || null;
 
   if (!fullName || !phone || !password || !role) {
-    return { error: "Barcha maydonlarni to'ldiring" };
+    return { error: "Барча майдонларни тўлдиринг" };
   }
   if (password.length < 6) {
-    return { error: "Parol kamida 6 belgidan iborat bo'lishi kerak" };
+    return { error: "Парол камида 6 белгидан иборат бўлиши керак" };
   }
 
   const existing = await prisma.user.findUnique({ where: { phone } });
   if (existing) {
-    return { error: "Bu telefon raqam bilan foydalanuvchi allaqachon mavjud" };
+    return { error: "Бу телефон рақам билан фойдаланувчи аллақачон мавжуд" };
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
@@ -88,17 +88,17 @@ export async function updateUserAction(
     rawBaseSalary !== null && String(rawBaseSalary).trim() !== "" ? Math.max(0, Math.round(Number(rawBaseSalary))) : null;
 
   if (!userId || !fullName || !phone) {
-    return { error: "Barcha maydonlarni to'ldiring" };
+    return { error: "Барча майдонларни тўлдиринг" };
   }
 
   const user = await prisma.user.findUnique({ where: { id: userId }, include: { driver: true } });
   if (!user) {
-    return { error: "Foydalanuvchi topilmadi" };
+    return { error: "Фойдаланувчи топилмади" };
   }
 
   const existingPhone = await prisma.user.findUnique({ where: { phone } });
   if (existingPhone && existingPhone.id !== userId) {
-    return { error: "Bu telefon raqam bilan boshqa foydalanuvchi allaqachon mavjud" };
+    return { error: "Бу телефон рақам билан бошқа фойдаланувчи аллақачон мавжуд" };
   }
 
   await prisma.user.update({
@@ -146,7 +146,7 @@ export async function deleteUserAction(formData: FormData) {
   if (!user) redirect(backTo);
 
   if (userId === session.user.id) {
-    redirect(`${backTo}${backTo.includes("?") ? "&" : "?"}deleteError=${encodeURIComponent("O'zingizni o'chira olmaysiz")}`);
+    redirect(`${backTo}${backTo.includes("?") ? "&" : "?"}deleteError=${encodeURIComponent("Ўзингизни ўчира олмайсиз")}`);
   }
 
   try {
@@ -160,7 +160,7 @@ export async function deleteUserAction(formData: FormData) {
     // Has trips/expenses/salary/fine/advance history etc. — deleting would
     // either fail on a foreign key or silently erase financial records, so
     // block it and point them at Bloklash instead.
-    const message = `${user.fullName} tizimda tarixga ega (reys, xarajat, maosh va h.k.), shuning uchun o'chirib bo'lmaydi. Buning o'rniga "Bloklash"dan foydalaning.`;
+    const message = `${user.fullName} тизимда тарихга эга (рейс, харажат, маош ва ҳ.к.), шунинг учун ўчириб бўлмайди. Бунинг ўрнига "Блоклаш"дан фойдаланинг.`;
     redirect(`${backTo}${backTo.includes("?") ? "&" : "?"}deleteError=${encodeURIComponent(message)}`);
   }
 
@@ -180,7 +180,7 @@ export async function resetPasswordAction(
   const password = String(formData.get("password") ?? "");
 
   if (password.length < 6) {
-    return { error: "Parol kamida 6 belgidan iborat bo'lishi kerak", success: false };
+    return { error: "Парол камида 6 белгидан иборат бўлиши керак", success: false };
   }
 
   const passwordHash = await bcrypt.hash(password, 10);

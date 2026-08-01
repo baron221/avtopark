@@ -8,7 +8,7 @@ import { hasModuleAccess } from "@/lib/access";
 async function requireAdmin() {
   const session = await auth();
   if (!session || (session.user.role !== "ADMIN" && !(await hasModuleAccess(session.user.role, "SHIFTS")))) {
-    throw new Error("Ruxsat yo'q");
+    throw new Error("Рухсат йўқ");
   }
 }
 

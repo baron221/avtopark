@@ -7,9 +7,9 @@ import { hasModuleAccess } from "@/lib/access";
 import { FuelLogForm } from "./FuelLogForm";
 
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
-  PAID: { bg: "#E4F5EC", color: "#1B9E6B", label: "To'landi" },
-  PARTIAL: { bg: "#EEF0F8", color: "#4F46E5", label: "Qisman to'landi" },
-  PENDING: { bg: "#FFF3E0", color: "#B26A00", label: "To'lov kutilmoqda" },
+  PAID: { bg: "#E4F5EC", color: "#1B9E6B", label: "Тўланди" },
+  PARTIAL: { bg: "#EEF0F8", color: "#4F46E5", label: "Қисман тўланди" },
+  PENDING: { bg: "#FFF3E0", color: "#B26A00", label: "Тўлов кутилмоқда" },
 };
 
 function formatPeriod(start: Date, end: Date) {
@@ -42,22 +42,22 @@ export default async function MechanicFuelPage() {
   return (
     <div className="max-w-[1180px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
       <div>
-        <div className="font-heading font-bold text-xl text-heading">Yoqilg&apos;i hisobi</div>
+        <div className="font-heading font-bold text-xl text-heading">Ёқилғи ҳисоби</div>
         <div className="text-[13px] text-muted-2 font-semibold">
-          {session.user.name} · {stations.length} ta zapravka bilan shartnoma · mashinalar ro&apos;yxati va ta&apos;mir ham
-          mexanik zimmasida
+          {session.user.name} · {stations.length} та заправка билан шартнома · машиналар рўйхати ва таъмир ҳам
+          механик зиммасида
         </div>
       </div>
 
       <Card className="overflow-hidden">
         <div className="hidden lg:grid grid-cols-[1.2fr_0.8fr_0.7fr_0.8fr_0.9fr_0.9fr_1fr] px-6 py-3 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
-          <div>Zapravka</div>
-          <div>Shartnoma</div>
-          <div>Davr</div>
-          <div>Hajm</div>
-          <div>Summa (so&apos;m)</div>
-          <div>Qoldi</div>
-          <div>To&apos;lov holati</div>
+          <div>Заправка</div>
+          <div>Шартнома</div>
+          <div>Давр</div>
+          <div>Ҳажм</div>
+          <div>Сумма (сўм)</div>
+          <div>Қолди</div>
+          <div>Тўлов ҳолати</div>
         </div>
         {payments.map((p) => {
           const style = STATUS_STYLE[p.status];
@@ -86,9 +86,9 @@ export default async function MechanicFuelPage() {
             </div>
           );
         })}
-        {payments.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Hali to&apos;lov yozuvi yo&apos;q</p>}
+        {payments.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Ҳали тўлов ёзуви йўқ</p>}
         <div className="flex justify-between px-6 py-3.5 border-t border-row-divider bg-page">
-          <span className="font-extrabold text-sm text-heading">Jami / Qoldi</span>
+          <span className="font-extrabold text-sm text-heading">Жами / Қолди</span>
           <span className="font-heading font-extrabold text-sm text-heading">
             {formatSom(grandTotal)} / <span className="text-danger">{formatSom(grandRemaining)}</span>
           </span>
@@ -98,7 +98,7 @@ export default async function MechanicFuelPage() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4 items-start">
         <Card className="overflow-hidden">
           <div className="px-6 py-3.5 font-heading font-bold text-[15px] text-heading">
-            Quyish jurnali (mashina bo&apos;yicha)
+            Қуйиш журнали (машина бўйича)
           </div>
           {fuelLogs.map((f) => (
             <div
@@ -117,7 +117,7 @@ export default async function MechanicFuelPage() {
               <div className="font-extrabold text-heading text-right">{formatSom(Number(f.amount))}</div>
             </div>
           ))}
-          {fuelLogs.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Hali quyish yozuvi yo&apos;q</p>}
+          {fuelLogs.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Ҳали қуйиш ёзуви йўқ</p>}
         </Card>
 
         <FuelLogForm vehicles={vehicleOptions} stations={stationOptions} />

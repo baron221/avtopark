@@ -14,7 +14,7 @@ export function GiveAdvanceForm({ users }: { users: UserOption[] }) {
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <div>
-        <div className="text-[13px] font-extrabold text-body mb-1.5">Xodim</div>
+        <div className="text-[13px] font-extrabold text-body mb-1.5">Ходим</div>
         <select
           name="userId"
           required
@@ -28,7 +28,7 @@ export function GiveAdvanceForm({ users }: { users: UserOption[] }) {
         </select>
       </div>
       <div>
-        <div className="text-[13px] font-extrabold text-body mb-1.5">Summa</div>
+        <div className="text-[13px] font-extrabold text-body mb-1.5">Сумма</div>
         <MoneyInput
           name="amount"
           required
@@ -42,7 +42,7 @@ export function GiveAdvanceForm({ users }: { users: UserOption[] }) {
         disabled={pending}
         className="bg-success text-white rounded-xl py-3 text-center font-extrabold text-[15px] disabled:opacity-60"
       >
-        {pending ? "Saqlanmoqda…" : "Avans berish"}
+        {pending ? "Сақланмоқда…" : "Аванс бериш"}
       </button>
     </form>
   );

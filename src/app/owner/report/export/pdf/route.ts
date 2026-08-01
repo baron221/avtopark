@@ -18,7 +18,7 @@ const MUTED = rgb(0.42, 0.42, 0.5);
 export async function GET() {
   const session = await auth();
   if (!session || (session.user.role !== "OWNER" && !(await hasModuleAccess(session.user.role, "FLEET_DASHBOARD")))) {
-    return NextResponse.json({ error: "Ruxsat yo'q" }, { status: 403 });
+    return NextResponse.json({ error: "Рухсат йўқ" }, { status: 403 });
   }
 
   const now = new Date();

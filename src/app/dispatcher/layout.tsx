@@ -5,8 +5,8 @@ import { hasAnyModuleAccess, getGrantedNavLinks, getGuestNavLinks } from "@/lib/
 import { DispatcherNavDesktop, DispatcherNavMobile } from "./DispatcherNav";
 
 const POINT_LABELS: Record<string, string> = {
-  FARGONA: "Farg'ona",
-  QUVA: "Quva",
+  FARGONA: "Фарғона",
+  QUVA: "Қува",
 };
 
 export default async function DispatcherLayout({ children }: { children: React.ReactNode }) {
@@ -33,10 +33,10 @@ export default async function DispatcherLayout({ children }: { children: React.R
             FQ
           </div>
           <div>
-            <div className="font-heading font-bold text-base text-heading">Farg&apos;ona–Quva Avtopark</div>
+            <div className="font-heading font-bold text-base text-heading">Фарғона–Қува Автопарк</div>
             {pointLabel && (
               <span className="bg-primary-tint text-primary text-xs font-extrabold px-2.5 py-0.5 rounded-full">
-                📍 {pointLabel} punkti
+                📍 {pointLabel} пункти
               </span>
             )}
           </div>
@@ -50,7 +50,7 @@ export default async function DispatcherLayout({ children }: { children: React.R
           <div className="text-[13px] font-semibold text-heading">{session.user.name}</div>
           <form action={logoutAction}>
             <button type="submit" className="text-xs font-bold text-muted-2 hover:text-danger">
-              Chiqish
+              Чиқиш
             </button>
           </form>
         </div>

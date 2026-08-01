@@ -5,10 +5,10 @@ import { useTransition } from "react";
 import { updateVehicleStatusAction } from "./actions";
 
 const OPTIONS = [
-  { value: "ACTIVE", label: "Liniyada" },
-  { value: "REPAIR", label: "Ta'mirda" },
-  { value: "RENTED", label: "Ijarada" },
-  { value: "SOLD", label: "Sotilgan" },
+  { value: "ACTIVE", label: "Линияда" },
+  { value: "REPAIR", label: "Таъмирда" },
+  { value: "RENTED", label: "Ижарада" },
+  { value: "SOLD", label: "Сотилган" },
 ];
 
 export function StatusSelect({ vehicleId, status }: { vehicleId: string; status: string }) {

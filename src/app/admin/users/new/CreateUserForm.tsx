@@ -7,12 +7,12 @@ import { createUserAction, type CreateUserState } from "../actions";
 const initialState: CreateUserState = { error: "" };
 
 const ROLE_OPTIONS = [
-  { value: "ADMIN", label: "Admin" },
-  { value: "OWNER", label: "Egasi" },
-  { value: "ACCOUNTANT", label: "Buxgalter" },
-  { value: "DISPATCHER", label: "Dispetcher" },
-  { value: "MECHANIC", label: "Mexanik" },
-  { value: "DRIVER", label: "Haydovchi" },
+  { value: "ADMIN", label: "Админ" },
+  { value: "OWNER", label: "Эгаси" },
+  { value: "ACCOUNTANT", label: "Бухгалтер" },
+  { value: "DISPATCHER", label: "Диспетчер" },
+  { value: "MECHANIC", label: "Механик" },
+  { value: "DRIVER", label: "Ҳайдовчи" },
 ];
 
 const inputClass =
@@ -26,19 +26,19 @@ export function CreateUserForm() {
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <div>
-        <div className={labelClass}>F.I.Sh.</div>
-        <input name="fullName" required className={inputClass} placeholder="Olim Karimov" />
+        <div className={labelClass}>Ф.И.Ш.</div>
+        <input name="fullName" required className={inputClass} placeholder="Олим Каримов" />
       </div>
       <div>
-        <div className={labelClass}>Telefon raqam</div>
+        <div className={labelClass}>Телефон рақам</div>
         <input name="phone" type="tel" required className={inputClass} placeholder="+998 91 234 56 78" />
       </div>
       <div>
-        <div className={labelClass}>Boshlang&apos;ich parol</div>
-        <input name="password" type="text" required minLength={6} className={inputClass} placeholder="kamida 6 belgi" />
+        <div className={labelClass}>Бошланғич парол</div>
+        <input name="password" type="text" required minLength={6} className={inputClass} placeholder="камида 6 белги" />
       </div>
       <div>
-        <div className={labelClass}>Rol</div>
+        <div className={labelClass}>Рол</div>
         <select name="role" value={role} onChange={(e) => setRole(e.target.value)} className={inputClass}>
           {ROLE_OPTIONS.map((r) => (
             <option key={r.value} value={r.value}>
@@ -50,10 +50,10 @@ export function CreateUserForm() {
 
       {role === "DISPATCHER" && (
         <div>
-          <div className={labelClass}>Punkt</div>
+          <div className={labelClass}>Пункт</div>
           <select name="point" className={inputClass} defaultValue="FARGONA">
-            <option value="FARGONA">Farg&apos;ona</option>
-            <option value="QUVA">Quva</option>
+            <option value="FARGONA">Фарғона</option>
+            <option value="QUVA">Қува</option>
           </select>
         </div>
       )}
@@ -61,20 +61,20 @@ export function CreateUserForm() {
       {role === "DRIVER" && (
         <>
           <div>
-            <div className={labelClass}>Guvohnoma raqami</div>
+            <div className={labelClass}>Гувоҳнома рақами</div>
             <input name="licenseNo" className={inputClass} placeholder="FA1234" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <div className={labelClass}>Maosh turi</div>
+              <div className={labelClass}>Маош тури</div>
               <select name="salaryType" className={inputClass} defaultValue="FIXED">
-                <option value="FIXED">Belgilangan</option>
-                <option value="PERCENT">Foiz</option>
-                <option value="PLAN_SURPLUS">Plandan ortig&apos;i</option>
+                <option value="FIXED">Белгиланган</option>
+                <option value="PERCENT">Фоиз</option>
+                <option value="PLAN_SURPLUS">Пландан ортиғи</option>
               </select>
             </div>
             <div>
-              <div className={labelClass}>Maosh summasi</div>
+              <div className={labelClass}>Маош суммаси</div>
               <MoneyInput name="salaryValue" className={inputClass} placeholder="3 000 000" />
             </div>
           </div>
@@ -88,7 +88,7 @@ export function CreateUserForm() {
         disabled={pending}
         className="bg-primary text-white rounded-xl py-3 text-center font-extrabold text-[15px] disabled:opacity-60"
       >
-        {pending ? "Saqlanmoqda…" : "Foydalanuvchi qo'shish"}
+        {pending ? "Сақланмоқда…" : "Фойдаланувчи қўшиш"}
       </button>
     </form>
   );

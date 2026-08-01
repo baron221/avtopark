@@ -10,10 +10,10 @@ import { formatSom } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
 
 const FILTERS = [
-  { key: "ALL", label: "Barchasi" },
-  { key: "ACTIVE", label: "Liniyada" },
-  { key: "RENTED", label: "Ijarada" },
-  { key: "REPAIR", label: "Ta'mirda" },
+  { key: "ALL", label: "Барчаси" },
+  { key: "ACTIVE", label: "Линияда" },
+  { key: "RENTED", label: "Ижарада" },
+  { key: "REPAIR", label: "Таъмирда" },
 ] as const;
 
 export default async function MechanicVehiclesPage({
@@ -44,12 +44,12 @@ export default async function MechanicVehiclesPage({
   return (
     <div className="max-w-[1180px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
       <div className="flex justify-between items-center flex-wrap gap-3">
-        <div className="font-heading font-bold text-xl text-heading">Mashinalar</div>
+        <div className="font-heading font-bold text-xl text-heading">Машиналар</div>
         <Link
           href="/mechanic/vehicles/new"
           className="bg-primary text-white rounded-[10px] px-[18px] py-2.5 font-extrabold text-[13px]"
         >
-          + Mashina qo&apos;shish
+          + Машина қўшиш
         </Link>
       </div>
 
@@ -69,14 +69,14 @@ export default async function MechanicVehiclesPage({
 
       <Card className="overflow-hidden">
         <div className="hidden lg:grid grid-cols-[1.1fr_1fr_0.7fr_0.7fr_1.2fr_0.9fr_0.9fr_0.8fr] px-6 py-3 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
-          <div>Raqam</div>
-          <div>Model</div>
-          <div>Turi</div>
-          <div>Rejim</div>
-          <div>Haydovchi</div>
-          <div>Tushum</div>
-          <div>Foyda</div>
-          <div>Holat</div>
+          <div>Рақам</div>
+          <div>Модел</div>
+          <div>Тури</div>
+          <div>Режим</div>
+          <div>Ҳайдовчи</div>
+          <div>Тушум</div>
+          <div>Фойда</div>
+          <div>Ҳолат</div>
         </div>
         {vehicles.map((v) => (
           <Link
@@ -86,9 +86,9 @@ export default async function MechanicVehiclesPage({
           >
             <div className="font-extrabold text-primary font-heading">{v.plate}</div>
             <div className="font-semibold text-heading">{v.model}</div>
-            <div className="text-muted font-semibold">{v.type === "AVTOBUS" ? "Avtobus" : "Furgon"}</div>
+            <div className="text-muted font-semibold">{v.type === "AVTOBUS" ? "Автобус" : "Фургон"}</div>
             <div className="text-muted font-bold">
-              {v.incomeSource === "TRIPS" ? "Reys" : v.incomeSource === "PLAN" ? "Plan" : "Ijara"}
+              {v.incomeSource === "TRIPS" ? "Рейс" : v.incomeSource === "PLAN" ? "План" : "Ижара"}
             </div>
             <div className="text-body font-semibold col-span-2 lg:col-span-1">{v.driverName}</div>
             <div className="font-bold text-heading">{formatSom(v.income)}</div>
@@ -98,7 +98,7 @@ export default async function MechanicVehiclesPage({
             </div>
           </Link>
         ))}
-        {vehicles.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Bu filtrga mos mashina yo&apos;q</p>}
+        {vehicles.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Бу филтрга мос машина йўқ</p>}
         <Pagination page={page} totalPages={pages} basePath="/mechanic/vehicles" params={{ status }} />
       </Card>
     </div>

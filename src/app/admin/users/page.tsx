@@ -53,14 +53,14 @@ export default async function AdminUsersPage({
     <div className="max-w-[1180px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
       <div className="flex justify-between items-center flex-wrap gap-3">
         <div>
-          <div className="font-heading font-bold text-xl text-heading">Foydalanuvchilar va rollar</div>
+          <div className="font-heading font-bold text-xl text-heading">Фойдаланувчилар ва роллар</div>
           <div className="text-[13px] text-muted-2 font-semibold">{summary}</div>
         </div>
         <Link
           href="/admin/users/new"
           className="bg-primary text-white rounded-[10px] px-[18px] py-2.5 font-extrabold text-[13px]"
         >
-          + Foydalanuvchi qo&apos;shish
+          + Фойдаланувчи қўшиш
         </Link>
       </div>
 
@@ -71,11 +71,11 @@ export default async function AdminUsersPage({
       {/* Desktop table */}
       <Card className="overflow-hidden hidden lg:block">
         <div className="grid grid-cols-[1.2fr_1.1fr_1fr_0.6fr_1.7fr] px-6 py-3 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
-          <div>F.I.Sh.</div>
-          <div>Rol</div>
-          <div>Telefon (login)</div>
-          <div>Holat</div>
-          <div>Amallar</div>
+          <div>Ф.И.Ш.</div>
+          <div>Рол</div>
+          <div>Телефон (логин)</div>
+          <div>Ҳолат</div>
+          <div>Амаллар</div>
         </div>
         {users.map((u) => (
           <div
@@ -93,7 +93,7 @@ export default async function AdminUsersPage({
                   u.isActive ? "bg-success-tint text-success" : "bg-danger-tint text-danger"
                 }`}
               >
-                {u.isActive ? "Faol" : "Bloklangan"}
+                {u.isActive ? "Фаол" : "Блокланган"}
               </span>
             </div>
             <div className="flex gap-2 flex-wrap">
@@ -101,13 +101,13 @@ export default async function AdminUsersPage({
                 href={`/admin/users/${u.id}/edit`}
                 className="bg-page text-heading text-xs font-extrabold px-3 py-1.5 rounded-lg border border-border"
               >
-                Tahrirlash
+                Таҳрирлаш
               </Link>
               <Link
                 href={`/admin/users/${u.id}/reset-password`}
                 className="bg-primary-tint text-primary text-xs font-extrabold px-3 py-1.5 rounded-lg"
               >
-                Parol
+                Парол
               </Link>
               <form action={toggleActiveAction}>
                 <input type="hidden" name="userId" value={u.id} />
@@ -117,7 +117,7 @@ export default async function AdminUsersPage({
                     u.isActive ? "bg-danger-tint text-danger" : "bg-success-tint text-success"
                   }`}
                 >
-                  {u.isActive ? "Bloklash" : "Faollashtirish"}
+                  {u.isActive ? "Блоклаш" : "Фаоллаштириш"}
                 </button>
               </form>
               {u.id !== session.user.id && (
@@ -151,20 +151,20 @@ export default async function AdminUsersPage({
                   u.isActive ? "bg-success-tint text-success" : "bg-danger-tint text-danger"
                 }`}
               >
-                {u.isActive ? "Faol" : "Bloklangan"}
+                {u.isActive ? "Фаол" : "Блокланган"}
               </span>
               <div className="flex gap-2 flex-wrap">
                 <Link
                   href={`/admin/users/${u.id}/edit`}
                   className="bg-page text-heading text-xs font-extrabold px-3 py-1.5 rounded-lg border border-border"
                 >
-                  Tahrirlash
+                  Таҳрирлаш
                 </Link>
                 <Link
                   href={`/admin/users/${u.id}/reset-password`}
                   className="bg-primary-tint text-primary text-xs font-extrabold px-3 py-1.5 rounded-lg"
                 >
-                  Parol
+                  Парол
                 </Link>
                 <form action={toggleActiveAction}>
                   <input type="hidden" name="userId" value={u.id} />
@@ -174,7 +174,7 @@ export default async function AdminUsersPage({
                       u.isActive ? "bg-danger-tint text-danger" : "bg-success-tint text-success"
                     }`}
                   >
-                    {u.isActive ? "Bloklash" : "Faollashtirish"}
+                    {u.isActive ? "Блоклаш" : "Фаоллаштириш"}
                   </button>
                 </form>
                 {u.id !== session.user.id && (

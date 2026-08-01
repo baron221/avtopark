@@ -20,7 +20,7 @@ export function DriverSelect({
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm font-semibold text-body">Haydovchi:</span>
+      <span className="text-sm font-semibold text-body">Ҳайдовчи:</span>
       <select
         name="driverId"
         defaultValue={currentDriverId ?? ""}
@@ -41,11 +41,11 @@ export function DriverSelect({
         }}
         className="bg-card border-2 border-border rounded-lg px-3 py-1.5 text-[13px] font-extrabold text-heading outline-none focus:border-primary"
       >
-        <option value="">— tayinlanmagan —</option>
+        <option value="">— тайинланмаган —</option>
         {drivers.map((d) => (
           <option key={d.id} value={d.id}>
             {d.name}
-            {d.currentPlate && d.id !== currentDriverId ? ` (hozir: ${d.currentPlate})` : ""}
+            {d.currentPlate && d.id !== currentDriverId ? ` (ҳозир: ${d.currentPlate})` : ""}
           </option>
         ))}
       </select>

@@ -73,7 +73,7 @@ export default async function DispatcherPointPage({
       plate: t.vehicle.plate,
       driver: t.driver.user.fullName,
       amount: Number(t.revenue),
-      note: t.kind === "ORDER" ? "Alohida zakaz" : "Reys tushumi",
+      note: t.kind === "ORDER" ? "Алоҳида заказ" : "Рейс тушуми",
     }))
     .sort((a, b) => a.time.getTime() - b.time.getTime());
   const deletePoint = isDispatcher ? undefined : point;
@@ -82,17 +82,17 @@ export default async function DispatcherPointPage({
     .filter((v) => v.driver)
     .map((v) => ({ id: v.id, plate: v.plate, driverName: v.driver!.user.fullName }));
 
-  const pointLabel = point === "FARGONA" ? "Farg'ona" : "Quva";
+  const pointLabel = point === "FARGONA" ? "Фарғона" : "Қува";
 
   return (
     <div className="max-w-[1180px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
       <div className="flex justify-between items-center flex-wrap gap-3">
         <div>
           <div className="font-heading font-bold text-xl text-heading">
-            {pointLabel} punkti · {today.toLocaleDateString("uz-UZ", { day: "numeric", month: "long" })}
+            {pointLabel} пункти · {today.toLocaleDateString("uz-UZ", { day: "numeric", month: "long" })}
           </div>
           <div className="text-[13px] text-muted-2 font-semibold">
-            {session.user.name} · kelgan har mashinadan pul qabul qilinadi
+            {session.user.name} · келган ҳар машинадан пул қабул қилинади
           </div>
         </div>
         {!isDispatcher && (
@@ -103,7 +103,7 @@ export default async function DispatcherPointPage({
                 point === "FARGONA" ? "bg-primary text-white" : "bg-card border border-border text-muted"
               }`}
             >
-              Farg&apos;ona
+              Фарғона
             </Link>
             <Link
               href="/dispatcher/point?point=QUVA"
@@ -111,26 +111,26 @@ export default async function DispatcherPointPage({
                 point === "QUVA" ? "bg-primary text-white" : "bg-card border border-border text-muted"
               }`}
             >
-              Quva
+              Қува
             </Link>
           </div>
         )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard variant="primary" label="Bugun yig'ildi" value={formatSom(collectedToday)} />
-        <KpiCard label="Qabul qilingan mashina" value={`${vehiclesWithMoney.size} / ${vehicles.length}`} />
-        <KpiCard label="Mening rasxodim (bugun)" value={`−${formatSom(myExpenseToday)}`} hintColor="danger" />
-        <KpiCard label="Obed" value={myLunchToday ? `−${formatSom(myLunchToday)}` : "—"} />
+        <KpiCard variant="primary" label="Бугун йиғилди" value={formatSom(collectedToday)} />
+        <KpiCard label="Қабул қилинган машина" value={`${vehiclesWithMoney.size} / ${vehicles.length}`} />
+        <KpiCard label="Менинг расходим (бугун)" value={`−${formatSom(myExpenseToday)}`} hintColor="danger" />
+        <KpiCard label="Обед" value={myLunchToday ? `−${formatSom(myLunchToday)}` : "—"} />
       </div>
 
       <Card className="overflow-hidden">
         <div className="hidden lg:grid grid-cols-[0.6fr_1fr_1.2fr_0.9fr_1fr_24px] px-6 py-3 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
-          <div>Vaqt</div>
-          <div>Mashina</div>
-          <div>Haydovchi</div>
-          <div>Summa</div>
-          <div>Izoh</div>
+          <div>Вақт</div>
+          <div>Машина</div>
+          <div>Ҳайдовчи</div>
+          <div>Сумма</div>
+          <div>Изоҳ</div>
           <div></div>
         </div>
         {entries.map((e) => (
@@ -152,7 +152,7 @@ export default async function DispatcherPointPage({
             </div>
           </div>
         ))}
-        {entries.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Bugun hali yozuv yo&apos;q</p>}
+        {entries.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Бугун ҳали ёзув йўқ</p>}
       </Card>
 
       <div className="max-w-[420px] w-full">
@@ -162,11 +162,11 @@ export default async function DispatcherPointPage({
           point={isDispatcher ? undefined : point}
         />
         <p className="text-xs text-muted-2 font-semibold text-center pt-3">
-          Rasxod va obed qo&apos;shish uchun{" "}
+          Расход ва обед қўшиш учун{" "}
           <Link href="/dispatcher/journal" className="text-primary font-extrabold hover:underline">
-            Jurnal
+            Журнал
           </Link>{" "}
-          bo&apos;limiga o&apos;ting
+          бўлимига ўтинг
         </p>
       </div>
     </div>

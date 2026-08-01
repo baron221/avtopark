@@ -9,7 +9,7 @@ import type { Role } from "@prisma/client";
 
 const LEVEL_STYLE: Record<AccessLevel, { bg: string; color: string; label: string }> = {
   YES: { bg: "#E4F5EC", color: "#1B9E6B", label: "✓" },
-  OWN: { bg: "#FFF3E0", color: "#B26A00", label: "faqat o'ziniki" },
+  OWN: { bg: "#FFF3E0", color: "#B26A00", label: "фақат ўзиники" },
   NO: { bg: "#F6F7FB", color: "#C9CBE3", label: "—" },
 };
 
@@ -17,12 +17,12 @@ const LEVEL_STYLE: Record<AccessLevel, { bg: string; color: string; label: strin
 // four are live checkboxes (RolePermission-backed); Dispetcher/Haydovchi
 // stay static — their point/own-record scoping is hardcoded, not a toggle.
 const COLUMNS: { key: "admin" | "owner" | "acc" | "disp" | "mech" | "drv"; label: string; role: Role | null }[] = [
-  { key: "admin", label: "Admin", role: "ADMIN" },
-  { key: "owner", label: "Egasi", role: "OWNER" },
-  { key: "acc", label: "Buxgalter", role: "ACCOUNTANT" },
-  { key: "disp", label: "Dispetcher", role: null },
-  { key: "mech", label: "Mexanik", role: "MECHANIC" },
-  { key: "drv", label: "Haydovchi", role: null },
+  { key: "admin", label: "Админ", role: "ADMIN" },
+  { key: "owner", label: "Эгаси", role: "OWNER" },
+  { key: "acc", label: "Бухгалтер", role: "ACCOUNTANT" },
+  { key: "disp", label: "Диспетчер", role: null },
+  { key: "mech", label: "Механик", role: "MECHANIC" },
+  { key: "drv", label: "Ҳайдовчи", role: null },
 ];
 
 export default async function AccessMatrixPage() {
@@ -36,18 +36,18 @@ export default async function AccessMatrixPage() {
   return (
     <div className="max-w-[1180px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
       <div>
-        <div className="font-heading font-bold text-xl text-heading">Rollar va kirish huquqlari</div>
+        <div className="font-heading font-bold text-xl text-heading">Роллар ва кириш ҳуқуқлари</div>
         <div className="text-[13px] text-muted-2 font-semibold mt-1">
-          Admin, Egasi, Buxgalter, Mexanik ustunlaridagi katakchalarni bosib, bir-birining bo&apos;limlariga to&apos;liq
-          huquq bera olasiz. Dispetcher va Haydovchi — «faqat o&apos;ziniki» (o&apos;z punkti / o&apos;z yozuvlari)
-          qoidasi kodda qattiq belgilangan, shuning uchun bu yerdan o&apos;zgartirilmaydi.
+          Админ, Эгаси, Бухгалтер, Механик устунларидаги катакчаларни босиб, бир-бирининг бўлимларига тўлиқ
+          ҳуқуқ бера оласиз. Диспетчер ва Ҳайдовчи — «фақат ўзиники» (ўз пункти / ўз ёзувлари)
+          қоидаси кодда қаттиқ белгиланган, шунинг учун бу ердан ўзгартирилмайди.
         </div>
       </div>
 
       {/* Desktop table */}
       <Card className="overflow-hidden hidden lg:block">
         <div className="grid grid-cols-[1.8fr_0.9fr_0.9fr_0.9fr_0.9fr_0.9fr_0.9fr] px-6 py-3 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
-          <div>Bo&apos;lim</div>
+          <div>Бўлим</div>
           {COLUMNS.map((c) => (
             <div key={c.key}>{c.label}</div>
           ))}
@@ -80,7 +80,7 @@ export default async function AccessMatrixPage() {
                 <div key={c.key}>
                   {locked ? (
                     <span className="text-xs font-extrabold px-2.5 py-1 rounded-full whitespace-nowrap bg-success-tint text-success">
-                      ✓ doimiy
+                      ✓ доимий
                     </span>
                   ) : (
                     <form action={toggleModuleGrantAction}>
@@ -134,7 +134,7 @@ export default async function AccessMatrixPage() {
                     <span className="text-muted-2 font-bold">{c.label}</span>
                     {locked ? (
                       <span className="font-extrabold px-2 py-0.5 rounded-full whitespace-nowrap bg-success-tint text-success">
-                        ✓ doimiy
+                        ✓ доимий
                       </span>
                     ) : (
                       <form action={toggleModuleGrantAction}>

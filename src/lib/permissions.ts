@@ -17,22 +17,22 @@ export type AccessRow = {
 // admin/owner/acc/mech columns are now live checkboxes backed by RolePermission
 // (see /admin/access); disp/mech "OWN" scoping stays hardcoded in each page.
 export const ACCESS_MATRIX: AccessRow[] = [
-  { module: "Foyda paneli (butun park)", moduleKey: "FLEET_DASHBOARD", admin: "YES", owner: "YES", acc: "YES", disp: "NO", mech: "NO", drv: "NO" },
-  { module: "Foydalanuvchilar / rollar", moduleKey: "USER_MANAGEMENT", admin: "YES", owner: "NO", acc: "NO", disp: "NO", mech: "NO", drv: "NO" },
-  { module: "Vedomost · avans · jarima · obed", moduleKey: "PAYROLL", admin: "YES", owner: "YES", acc: "YES", disp: "OWN", mech: "OWN", drv: "OWN" },
-  { module: "Pul qabul qilish (punkt)", moduleKey: "COLLECT_PAYMENT", admin: "YES", owner: "NO", acc: "NO", disp: "OWN", mech: "NO", drv: "NO" },
-  { module: "Kirim-chiqim jurnali", moduleKey: "INCOME_EXPENSE_LOG", admin: "YES", owner: "YES", acc: "YES", disp: "OWN", mech: "NO", drv: "OWN" },
-  { module: "Mashinalar (qo'shish, ta'mir)", moduleKey: "VEHICLES", admin: "YES", owner: "NO", acc: "NO", disp: "NO", mech: "YES", drv: "NO" },
-  { module: "Yoqilg'i · zapravka to'lovlari", moduleKey: "FUEL", admin: "YES", owner: "YES", acc: "YES", disp: "NO", mech: "YES", drv: "OWN" },
-  { module: "Smenalar", moduleKey: "SHIFTS", admin: "YES", owner: "YES", acc: "NO", disp: "OWN", mech: "NO", drv: "OWN" },
-  { module: "Reys / zakaz kiritish", moduleKey: "TRIP_ENTRY", admin: "YES", owner: "NO", acc: "NO", disp: "OWN", mech: "NO", drv: "OWN" },
+  { module: "Фойда панели (бутун парк)", moduleKey: "FLEET_DASHBOARD", admin: "YES", owner: "YES", acc: "YES", disp: "NO", mech: "NO", drv: "NO" },
+  { module: "Фойдаланувчилар / роллар", moduleKey: "USER_MANAGEMENT", admin: "YES", owner: "NO", acc: "NO", disp: "NO", mech: "NO", drv: "NO" },
+  { module: "Ведомост · аванс · жарима · обед", moduleKey: "PAYROLL", admin: "YES", owner: "YES", acc: "YES", disp: "OWN", mech: "OWN", drv: "OWN" },
+  { module: "Пул қабул қилиш (пункт)", moduleKey: "COLLECT_PAYMENT", admin: "YES", owner: "NO", acc: "NO", disp: "OWN", mech: "NO", drv: "NO" },
+  { module: "Кирим-чиқим журнали", moduleKey: "INCOME_EXPENSE_LOG", admin: "YES", owner: "YES", acc: "YES", disp: "OWN", mech: "NO", drv: "OWN" },
+  { module: "Машиналар (қўшиш, таъмир)", moduleKey: "VEHICLES", admin: "YES", owner: "NO", acc: "NO", disp: "NO", mech: "YES", drv: "NO" },
+  { module: "Ёқилғи · заправка тўловлари", moduleKey: "FUEL", admin: "YES", owner: "YES", acc: "YES", disp: "NO", mech: "YES", drv: "OWN" },
+  { module: "Сменалар", moduleKey: "SHIFTS", admin: "YES", owner: "YES", acc: "NO", disp: "OWN", mech: "NO", drv: "OWN" },
+  { module: "Рейс / заказ киритиш", moduleKey: "TRIP_ENTRY", admin: "YES", owner: "NO", acc: "NO", disp: "OWN", mech: "NO", drv: "OWN" },
 ];
 
 export const ACCESS_ROLE_COLUMNS = [
-  { key: "admin", label: "Admin" },
-  { key: "owner", label: "Egasi" },
-  { key: "acc", label: "Buxgalter" },
-  { key: "disp", label: "Dispetcher" },
-  { key: "mech", label: "Mexanik" },
-  { key: "drv", label: "Haydovchi" },
+  { key: "admin", label: "Админ" },
+  { key: "owner", label: "Эгаси" },
+  { key: "acc", label: "Бухгалтер" },
+  { key: "disp", label: "Диспетчер" },
+  { key: "mech", label: "Механик" },
+  { key: "drv", label: "Ҳайдовчи" },
 ] as const;

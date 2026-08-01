@@ -16,7 +16,7 @@ export function FuelLogForm({ vehicles, stations }: { vehicles: VehicleOption[];
 
   return (
     <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-3">
-      <div className="font-heading font-bold text-[15px] text-heading">+ Quyish yozuvi</div>
+      <div className="font-heading font-bold text-[15px] text-heading">+ Қуйиш ёзуви</div>
       <form action={addFuelLogAction} className="flex flex-col gap-3">
         <select
           name="vehicleId"
@@ -49,7 +49,7 @@ export function FuelLogForm({ vehicles, stations }: { vehicles: VehicleOption[];
           value={volume}
           onChange={(e) => setVolume(Number(e.target.value) || 0)}
           className="bg-page border-2 border-border rounded-xl px-3.5 py-2.5 font-bold text-sm text-heading outline-none focus:border-primary"
-          placeholder="Hajm (m³ yoki L)"
+          placeholder="Ҳажм (м³ ёки Л)"
         />
         <MoneyInput
           name="amount"
@@ -59,7 +59,7 @@ export function FuelLogForm({ vehicles, stations }: { vehicles: VehicleOption[];
           className="bg-page border-2 border-primary rounded-xl px-3.5 py-3 font-heading text-xl font-bold text-heading outline-none"
         />
         <button type="submit" className="bg-primary text-white rounded-xl py-3 font-extrabold text-sm">
-          Saqlash ✓
+          Сақлаш ✓
         </button>
       </form>
     </div>

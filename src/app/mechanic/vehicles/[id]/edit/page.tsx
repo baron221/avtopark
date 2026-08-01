@@ -20,10 +20,10 @@ export default async function EditVehiclePage({ params }: { params: Promise<{ id
   return (
     <div className="max-w-[520px] mx-auto w-full p-4 sm:p-7">
       <Link href={`/mechanic/vehicles/${vehicle.id}`} className="text-[13px] font-bold text-muted-2 hover:text-primary">
-        ← {vehicle.plate}ga qaytish
+        ← {vehicle.plate}га қайтиш
       </Link>
       <Card className="p-6 sm:p-8 mt-3">
-        <div className="font-heading font-bold text-xl text-heading mb-5">Mashina ma&apos;lumotlarini tahrirlash</div>
+        <div className="font-heading font-bold text-xl text-heading mb-5">Машина маълумотларини таҳрирлаш</div>
         <EditVehicleForm
           vehicleId={vehicle.id}
           plate={vehicle.plate}

@@ -9,7 +9,7 @@ import { hasModuleAccess } from "@/lib/access";
 async function requireAccountant() {
   const session = await auth();
   if (!session || (session.user.role !== "ACCOUNTANT" && !(await hasModuleAccess(session.user.role, "PAYROLL")))) {
-    throw new Error("Ruxsat yo'q");
+    throw new Error("Рухсат йўқ");
   }
   return session.user.id;
 }

@@ -16,14 +16,14 @@ export function DeleteEntryButton({
     <form
       action={action}
       onSubmit={(e) => {
-        if (!window.confirm("Bu yozuvni o'chirishni tasdiqlaysizmi?")) e.preventDefault();
+        if (!window.confirm("Бу ёзувни ўчиришни тасдиқлайсизми?")) e.preventDefault();
       }}
     >
       <input type="hidden" name="id" value={id} />
       {point && <input type="hidden" name="point" value={point} />}
       <button
         type="submit"
-        title="O'chirish"
+        title="Ўчириш"
         className="text-muted-2 hover:text-danger font-extrabold text-base leading-none px-1.5 py-1"
       >
         ✕

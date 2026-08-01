@@ -10,17 +10,17 @@ const ROLE_STYLES: Record<Role, { bg: string; color: string }> = {
 };
 
 export const ROLE_LABELS: Record<Role, string> = {
-  ADMIN: "Admin",
-  OWNER: "Egasi",
-  ACCOUNTANT: "Buxgalter",
-  DISPATCHER: "Dispetcher",
-  MECHANIC: "Mexanik",
-  DRIVER: "Haydovchi",
+  ADMIN: "Админ",
+  OWNER: "Эгаси",
+  ACCOUNTANT: "Бухгалтер",
+  DISPATCHER: "Диспетчер",
+  MECHANIC: "Механик",
+  DRIVER: "Ҳайдовчи",
 };
 
 const POINT_LABELS: Record<Point, string> = {
-  FARGONA: "Farg'ona",
-  QUVA: "Quva",
+  FARGONA: "Фарғона",
+  QUVA: "Қува",
 };
 
 export function RoleBadge({ role, point }: { role: Role; point?: Point | null }) {

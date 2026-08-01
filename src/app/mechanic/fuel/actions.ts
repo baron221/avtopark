@@ -8,7 +8,7 @@ import { hasModuleAccess } from "@/lib/access";
 async function requireMechanic() {
   const session = await auth();
   if (!session || (session.user.role !== "MECHANIC" && !(await hasModuleAccess(session.user.role, "FUEL")))) {
-    throw new Error("Ruxsat yo'q");
+    throw new Error("Рухсат йўқ");
   }
   return session.user.id;
 }

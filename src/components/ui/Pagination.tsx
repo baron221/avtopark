@@ -34,10 +34,10 @@ export function Pagination({
           prevDisabled ? "text-muted-2 pointer-events-none opacity-50" : "text-primary bg-primary-tint"
         }`}
       >
-        ← Oldingi
+        ← Олдинги
       </Link>
       <span className="text-[13px] font-bold text-muted-2">
-        Sahifa {page} / {totalPages}
+        Саҳифа {page} / {totalPages}
       </span>
       <Link
         href={buildHref(basePath, params, Math.min(totalPages, page + 1))}
@@ -46,7 +46,7 @@ export function Pagination({
           nextDisabled ? "text-muted-2 pointer-events-none opacity-50" : "text-primary bg-primary-tint"
         }`}
       >
-        Keyingi →
+        Кейинги →
       </Link>
     </div>
   );

@@ -28,33 +28,33 @@ export type ModuleConfig = {
 };
 
 export const MODULES: ModuleConfig[] = [
-  { key: "FLEET_DASHBOARD", label: "Foyda paneli (butun park)", href: "/owner", navLabel: "Foyda paneli", navIcon: "◉" },
-  { key: "USER_MANAGEMENT", label: "Foydalanuvchilar / rollar", href: "/admin/users", navLabel: "Xodimlar", navIcon: "◈" },
+  { key: "FLEET_DASHBOARD", label: "Фойда панели (бутун парк)", href: "/owner", navLabel: "Фойда панели", navIcon: "◉" },
+  { key: "USER_MANAGEMENT", label: "Фойдаланувчилар / роллар", href: "/admin/users", navLabel: "Ходимлар", navIcon: "◈" },
   {
     key: "PAYROLL",
-    label: "Vedomost · avans · jarima · obed",
+    label: "Ведомост · аванс · жарима · обед",
     href: "/accountant/payroll",
-    navLabel: "Vedomost",
+    navLabel: "Ведомост",
     navIcon: "▤",
   },
   {
     key: "COLLECT_PAYMENT",
-    label: "Pul qabul qilish (punkt)",
+    label: "Пул қабул қилиш (пункт)",
     href: "/dispatcher/point",
-    navLabel: "Pul qabul qilish",
+    navLabel: "Пул қабул қилиш",
     navIcon: "◉",
   },
   {
     key: "INCOME_EXPENSE_LOG",
-    label: "Kirim-chiqim jurnali",
+    label: "Кирим-чиқим журнали",
     href: "/dispatcher/journal",
-    navLabel: "Kirim-chiqim",
+    navLabel: "Кирим-чиқим",
     navIcon: "▤",
   },
-  { key: "VEHICLES", label: "Mashinalar (qo'shish, ta'mir)", href: "/mechanic/vehicles", navLabel: "Mashinalar", navIcon: "▤" },
-  { key: "FUEL", label: "Yoqilg'i · zapravka to'lovlari", href: "/mechanic/fuel", navLabel: "Yoqilg'i", navIcon: "◉" },
-  { key: "SHIFTS", label: "Smenalar", href: "/mechanic/shifts", navLabel: "Smenalar", navIcon: "▥" },
-  { key: "TRIP_ENTRY", label: "Reys / zakaz kiritish", href: "/dispatcher/journal", navLabel: "Reys kiritish", navIcon: "▥" },
+  { key: "VEHICLES", label: "Машиналар (қўшиш, таъмир)", href: "/mechanic/vehicles", navLabel: "Машиналар", navIcon: "▤" },
+  { key: "FUEL", label: "Ёқилғи · заправка тўловлари", href: "/mechanic/fuel", navLabel: "Ёқилғи", navIcon: "◉" },
+  { key: "SHIFTS", label: "Сменалар", href: "/mechanic/shifts", navLabel: "Сменалар", navIcon: "▥" },
+  { key: "TRIP_ENTRY", label: "Рейс / заказ киритиш", href: "/dispatcher/journal", navLabel: "Рейс киритиш", navIcon: "▥" },
 ];
 
 export function moduleConfig(key: ModuleKey): ModuleConfig {
@@ -137,28 +137,28 @@ export async function getGrantedNavLinks(
 // would disappear the moment they followed a cross-granted link out of it.
 const HOME_NAV: Partial<Record<Role, { href: string; label: string; icon: string }[]>> = {
   ADMIN: [
-    { href: "/admin/panel", label: "Panel", icon: "◉" },
-    { href: "/admin/users", label: "Xodimlar", icon: "◈" },
-    { href: "/admin/shifts", label: "Smenalar", icon: "▤" },
-    { href: "/admin/access", label: "Huquqlar", icon: "▨" },
+    { href: "/admin/panel", label: "Панел", icon: "◉" },
+    { href: "/admin/users", label: "Ходимлар", icon: "◈" },
+    { href: "/admin/shifts", label: "Сменалар", icon: "▤" },
+    { href: "/admin/access", label: "Ҳуқуқлар", icon: "▨" },
   ],
   OWNER: [
-    { href: "/owner", label: "Foyda paneli", icon: "◉" },
-    { href: "/owner/report", label: "Hisobot", icon: "▨" },
-    { href: "/owner/drivers", label: "Haydovchilar", icon: "◈" },
+    { href: "/owner", label: "Фойда панели", icon: "◉" },
+    { href: "/owner/report", label: "Ҳисобот", icon: "▨" },
+    { href: "/owner/drivers", label: "Ҳайдовчилар", icon: "◈" },
   ],
   ACCOUNTANT: [
-    { href: "/accountant/report", label: "Hisobot", icon: "▨" },
-    { href: "/accountant/payroll", label: "Vedomost", icon: "▤" },
-    { href: "/accountant/advances", label: "Avanslar", icon: "◈" },
-    { href: "/accountant/fines", label: "Jarimalar", icon: "▥" },
-    { href: "/accountant/expenses", label: "Rasxodlar", icon: "◉" },
+    { href: "/accountant/report", label: "Ҳисобот", icon: "▨" },
+    { href: "/accountant/payroll", label: "Ведомост", icon: "▤" },
+    { href: "/accountant/advances", label: "Аванслар", icon: "◈" },
+    { href: "/accountant/fines", label: "Жарималар", icon: "▥" },
+    { href: "/accountant/expenses", label: "Расходлар", icon: "◉" },
   ],
   MECHANIC: [
-    { href: "/mechanic/fuel", label: "Yoqilg'i", icon: "◉" },
-    { href: "/mechanic/vehicles", label: "Mashinalar", icon: "▤" },
-    { href: "/mechanic/fuel/payments", label: "To'lovlar", icon: "▥" },
-    { href: "/mechanic/shifts", label: "Smenalar", icon: "▦" },
+    { href: "/mechanic/fuel", label: "Ёқилғи", icon: "◉" },
+    { href: "/mechanic/vehicles", label: "Машиналар", icon: "▤" },
+    { href: "/mechanic/fuel/payments", label: "Тўловлар", icon: "▥" },
+    { href: "/mechanic/shifts", label: "Сменалар", icon: "▦" },
   ],
 };
 

@@ -11,14 +11,14 @@ export type AddFineState = { error: string };
 export async function addFineAction(_prevState: AddFineState, formData: FormData): Promise<AddFineState> {
   const session = await auth();
   if (!session || (session.user.role !== "ACCOUNTANT" && !(await hasModuleAccess(session.user.role, "PAYROLL")))) {
-    return { error: "Ruxsat yo'q" };
+    return { error: "Рухсат йўқ" };
   }
 
   const userId = String(formData.get("userId") ?? "");
   const amount = Number(formData.get("amount") ?? 0);
   const reason = String(formData.get("reason") ?? "").trim();
   if (!userId || !(amount > 0) || !reason) {
-    return { error: "Xodim, summa va sababni to'g'ri kiriting" };
+    return { error: "Ходим, сумма ва сабабни тўғри киритинг" };
   }
 
   await prisma.fine.create({

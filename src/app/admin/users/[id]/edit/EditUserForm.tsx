@@ -30,29 +30,29 @@ export function EditUserForm({ userId, fullName, phone, role, point, baseSalary,
       <input type="hidden" name="userId" value={userId} />
 
       <div>
-        <div className={labelClass}>Rol</div>
+        <div className={labelClass}>Рол</div>
         <RoleBadge role={role} point={point} />
       </div>
 
       <div>
-        <div className={labelClass}>F.I.Sh.</div>
+        <div className={labelClass}>Ф.И.Ш.</div>
         <input name="fullName" required defaultValue={fullName} className={inputClass} />
       </div>
       <div>
-        <div className={labelClass}>Telefon raqam</div>
+        <div className={labelClass}>Телефон рақам</div>
         <input name="phone" type="tel" required defaultValue={phone} className={inputClass} />
       </div>
       <div>
-        <div className={labelClass}>Oylik maosh (bazaviy)</div>
+        <div className={labelClass}>Ойлик маош (базавий)</div>
         <MoneyInput name="baseSalary" defaultValue={baseSalary ?? ""} className={inputClass} placeholder="3 000 000" />
       </div>
 
       {role === "DISPATCHER" && (
         <div>
-          <div className={labelClass}>Punkt</div>
+          <div className={labelClass}>Пункт</div>
           <select name="point" className={inputClass} defaultValue={point ?? "FARGONA"}>
-            <option value="FARGONA">Farg&apos;ona</option>
-            <option value="QUVA">Quva</option>
+            <option value="FARGONA">Фарғона</option>
+            <option value="QUVA">Қува</option>
           </select>
         </div>
       )}
@@ -60,20 +60,20 @@ export function EditUserForm({ userId, fullName, phone, role, point, baseSalary,
       {role === "DRIVER" && driver && (
         <>
           <div>
-            <div className={labelClass}>Guvohnoma raqami</div>
+            <div className={labelClass}>Гувоҳнома рақами</div>
             <input name="licenseNo" defaultValue={driver.licenseNo} className={inputClass} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <div className={labelClass}>Maosh turi</div>
+              <div className={labelClass}>Маош тури</div>
               <select name="salaryType" className={inputClass} defaultValue={driver.salaryType}>
-                <option value="FIXED">Belgilangan</option>
-                <option value="PERCENT">Foiz</option>
-                <option value="PLAN_SURPLUS">Plandan ortig&apos;i</option>
+                <option value="FIXED">Белгиланган</option>
+                <option value="PERCENT">Фоиз</option>
+                <option value="PLAN_SURPLUS">Пландан ортиғи</option>
               </select>
             </div>
             <div>
-              <div className={labelClass}>Maosh summasi</div>
+              <div className={labelClass}>Маош суммаси</div>
               <MoneyInput name="salaryValue" defaultValue={driver.salaryValue} className={inputClass} />
             </div>
           </div>
@@ -87,7 +87,7 @@ export function EditUserForm({ userId, fullName, phone, role, point, baseSalary,
         disabled={pending}
         className="bg-primary text-white rounded-xl py-3 text-center font-extrabold text-[15px] disabled:opacity-60"
       >
-        {pending ? "Saqlanmoqda…" : "Saqlash"}
+        {pending ? "Сақланмоқда…" : "Сақлаш"}
       </button>
     </form>
   );

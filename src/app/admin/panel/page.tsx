@@ -20,6 +20,6 @@ export default async function AdminPanelPage({
   const vm = await getOwnerDashboardVM(period);
 
   return (
-    <FleetDashboard vm={vm} period={period} basePath="/admin/panel" userName={session.user.name ?? "Admin"} embedded />
+    <FleetDashboard vm={vm} period={period} basePath="/admin/panel" userName={session.user.name ?? "Админ"} embedded />
   );
 }

@@ -28,7 +28,7 @@ export default async function AccountantReportPage({
       vm={vm}
       period={period}
       basePath="/accountant/report"
-      userName={session.user.name ?? "Buxgalter"}
+      userName={session.user.name ?? "Бухгалтер"}
       embedded
     />
   );

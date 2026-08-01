@@ -20,10 +20,10 @@ export default async function ResetPasswordPage({ params }: { params: Promise<{ 
   return (
     <div className="max-w-[520px] mx-auto w-full p-4 sm:p-7">
       <Link href="/admin/users" className="text-[13px] font-bold text-muted-2 hover:text-primary">
-        ← Foydalanuvchilarga qaytish
+        ← Фойдаланувчиларга қайтиш
       </Link>
       <Card className="p-6 sm:p-8 mt-3">
-        <div className="font-heading font-bold text-xl text-heading">Parolni yangilash</div>
+        <div className="font-heading font-bold text-xl text-heading">Паролни янгилаш</div>
         <div className="text-[13px] text-muted-2 font-semibold mt-1 mb-5">
           {user.fullName} · {user.phone}
         </div>

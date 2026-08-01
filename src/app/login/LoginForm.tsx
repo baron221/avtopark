@@ -11,7 +11,7 @@ export function LoginForm() {
   return (
     <form action={formAction} className="flex flex-col gap-[18px]">
       <div>
-        <div className="text-[13px] font-extrabold text-body mb-1.5">Telefon raqam</div>
+        <div className="text-[13px] font-extrabold text-body mb-1.5">Телефон рақам</div>
         <input
           name="phone"
           type="tel"
@@ -21,7 +21,7 @@ export function LoginForm() {
         />
       </div>
       <div>
-        <div className="text-[13px] font-extrabold text-body mb-1.5">Parol</div>
+        <div className="text-[13px] font-extrabold text-body mb-1.5">Парол</div>
         <input
           name="password"
           type="password"
@@ -36,10 +36,10 @@ export function LoginForm() {
         disabled={pending}
         className="bg-primary text-white rounded-xl py-[15px] text-center font-extrabold text-[15px] disabled:opacity-60"
       >
-        {pending ? "Tekshirilmoqda…" : "Kirish"}
+        {pending ? "Текширилмоқда…" : "Кириш"}
       </button>
       <p className="text-xs text-muted-2 font-semibold text-center">
-        Rol tizim tomonidan aniqlanadi: egasi · dispetcher · haydovchi
+        Рол тизим томонидан аниқланади: эгаси · диспетчер · ҳайдовчи
       </p>
     </form>
   );

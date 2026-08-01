@@ -40,6 +40,11 @@ describe("latinToCyrillic", () => {
     expect(latinToCyrillic("Yo'lovchilar")).toBe("Йўловчилар");
   });
 
+  it("does not treat n + g as the ng digraph when the g starts a g' unit", () => {
+    expect(latinToCyrillic("Boshlang'ich")).toBe("Бошланғич");
+    expect(latinToCyrillic("tanga")).toBe("танга");
+  });
+
   it("handles y as a plain consonant after a vowel", () => {
     expect(latinToCyrillic("reys")).toBe("рейс");
     expect(latinToCyrillic("moy")).toBe("мой");

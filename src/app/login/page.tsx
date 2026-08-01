@@ -10,8 +10,8 @@ export default function LoginPage() {
           <div className="w-[52px] h-[52px] rounded-2xl bg-primary text-white flex items-center justify-center font-heading font-bold text-[22px]">
             FQ
           </div>
-          <div className="font-heading font-bold text-xl text-heading">Farg&apos;ona–Quva Avtopark</div>
-          <div className="text-[13px] text-muted-2 font-semibold">Telefon raqamingiz bilan kiring</div>
+          <div className="font-heading font-bold text-xl text-heading">Фарғона–Қува Автопарк</div>
+          <div className="text-[13px] text-muted-2 font-semibold">Телефон рақамингиз билан киринг</div>
         </div>
         <LoginForm />
         <QuickLoginButtons />

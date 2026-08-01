@@ -16,11 +16,11 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Avtopark Foyda Tizimi",
-  description: "Farg'ona–Quva avtopark uchun foyda hisobi tizimi",
+  title: "Автопарк Фойда Тизими",
+  description: "Фарғона–Қува автопарк учун фойда ҳисоби тизими",
   appleWebApp: {
     capable: true,
-    title: "Avtopark",
+    title: "Автопарк",
     statusBarStyle: "black-translucent",
   },
 };

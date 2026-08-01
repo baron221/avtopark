@@ -7,10 +7,10 @@ import { addStaffExpenseAction, addLunchAction } from "../actions";
 import type { Point } from "@prisma/client";
 
 const CATEGORIES = [
-  { value: "STOYANKA", label: "Stoyanka" },
-  { value: "OZIQ_OVQAT", label: "Shaxsiy oziq-ovqat" },
-  { value: "OBED", label: "Obed" },
-  { value: "BOSHQA", label: "Boshqa rasxod" },
+  { value: "STOYANKA", label: "Стоянка" },
+  { value: "OZIQ_OVQAT", label: "Шахсий озиқ-овқат" },
+  { value: "OBED", label: "Обед" },
+  { value: "BOSHQA", label: "Бошқа расход" },
 ];
 
 export function ExpenseForm({ point }: { point?: Point }) {
@@ -40,7 +40,7 @@ export function ExpenseForm({ point }: { point?: Point }) {
 
   return (
     <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-3">
-      <div className="font-heading font-bold text-[15px] text-danger">− Chiqim kiritish</div>
+      <div className="font-heading font-bold text-[15px] text-danger">− Чиқим киритиш</div>
       <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-3">
         {point && <input type="hidden" name="point" value={point} />}
         {!isLunch && <input type="hidden" name="category" value={category} />}
@@ -61,14 +61,14 @@ export function ExpenseForm({ point }: { point?: Point }) {
         <MoneyInput
           name="amount"
           required
-          placeholder="Summa"
+          placeholder="Сумма"
           key={resetKey}
           className="bg-page border-2 border-danger rounded-xl px-3.5 py-3 font-heading text-xl font-bold text-heading outline-none"
         />
         {!isLunch && (
           <input
             name="note"
-            placeholder="Izoh"
+            placeholder="Изоҳ"
             className="bg-page border-2 border-border rounded-xl px-3.5 py-2.5 text-sm font-semibold text-heading outline-none focus:border-danger"
           />
         )}
@@ -77,11 +77,11 @@ export function ExpenseForm({ point }: { point?: Point }) {
           disabled={pending}
           className="bg-danger text-white rounded-xl py-3 font-extrabold text-sm disabled:opacity-60"
         >
-          {pending ? "Saqlanmoqda…" : "Saqlash ✓"}
+          {pending ? "Сақланмоқда…" : "Сақлаш ✓"}
         </button>
         {saved && (
           <div className="flex items-center justify-center gap-1.5 text-danger font-extrabold text-[13px]">
-            <span>✓</span> Kiritildi
+            <span>✓</span> Киритилди
           </div>
         )}
       </form>

@@ -8,9 +8,9 @@ import { hasModuleAccess } from "@/lib/access";
 import { addStationPaymentInstallmentAction, addStationPaymentAction } from "./actions";
 
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
-  PAID: { bg: "#E4F5EC", color: "#1B9E6B", label: "To'landi" },
-  PARTIAL: { bg: "#EEF0F8", color: "#4F46E5", label: "Qisman to'landi" },
-  PENDING: { bg: "#FFF3E0", color: "#B26A00", label: "To'lov kutilmoqda" },
+  PAID: { bg: "#E4F5EC", color: "#1B9E6B", label: "Тўланди" },
+  PARTIAL: { bg: "#EEF0F8", color: "#4F46E5", label: "Қисман тўланди" },
+  PENDING: { bg: "#FFF3E0", color: "#B26A00", label: "Тўлов кутилмоқда" },
 };
 
 export default async function StationPaymentsPage() {
@@ -25,7 +25,7 @@ export default async function StationPaymentsPage() {
 
   return (
     <div className="max-w-[1000px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
-      <div className="font-heading font-bold text-xl text-heading">Zapravka to&apos;lovlari</div>
+      <div className="font-heading font-bold text-xl text-heading">Заправка тўловлари</div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 items-start">
         <Card className="overflow-hidden">
@@ -55,13 +55,13 @@ export default async function StationPaymentsPage() {
 
                 <div className="flex gap-4 text-xs font-bold flex-wrap">
                   <span className="text-muted-2">
-                    Jami: <span className="text-heading font-extrabold">{formatSom(Number(p.amount))}</span>
+                    Жами: <span className="text-heading font-extrabold">{formatSom(Number(p.amount))}</span>
                   </span>
                   <span className="text-muted-2">
-                    To&apos;landi: <span className="text-success font-extrabold">{formatSom(Number(p.paidAmount))}</span>
+                    Тўланди: <span className="text-success font-extrabold">{formatSom(Number(p.paidAmount))}</span>
                   </span>
                   <span className="text-muted-2">
-                    Qoldi: <span className="text-danger font-extrabold">{formatSom(remaining)}</span>
+                    Қолди: <span className="text-danger font-extrabold">{formatSom(remaining)}</span>
                   </span>
                 </div>
 
@@ -71,18 +71,18 @@ export default async function StationPaymentsPage() {
                       <input type="hidden" name="paymentId" value={p.id} />
                       <MoneyInput
                         name="amount"
-                        placeholder="Summa"
+                        placeholder="Сумма"
                         className="w-32 bg-page border-2 border-border rounded-lg px-2.5 py-1.5 text-xs font-bold text-heading outline-none focus:border-primary"
                       />
                       <button type="submit" className="bg-primary text-white rounded-lg px-3 py-1.5 text-xs font-extrabold">
-                        To&apos;lov qo&apos;shish
+                        Тўлов қўшиш
                       </button>
                     </form>
                     <form action={addStationPaymentInstallmentAction}>
                       <input type="hidden" name="paymentId" value={p.id} />
                       <input type="hidden" name="amount" value={remaining} />
                       <button type="submit" className="bg-success-tint text-success rounded-lg px-3 py-1.5 text-xs font-extrabold">
-                        To&apos;liq to&apos;lash ({formatSom(remaining)})
+                        Тўлиқ тўлаш ({formatSom(remaining)})
                       </button>
                     </form>
                   </div>
@@ -90,11 +90,11 @@ export default async function StationPaymentsPage() {
               </div>
             );
           })}
-          {payments.length === 0 && <p className="text-[13px] text-muted-2 px-5 py-4">Hali to&apos;lov yo&apos;q</p>}
+          {payments.length === 0 && <p className="text-[13px] text-muted-2 px-5 py-4">Ҳали тўлов йўқ</p>}
         </Card>
 
         <Card className="p-5 flex flex-col gap-3">
-          <div className="font-heading font-bold text-[15px] text-heading">+ Yangi to&apos;lov</div>
+          <div className="font-heading font-bold text-[15px] text-heading">+ Янги тўлов</div>
           <form action={addStationPaymentAction} className="flex flex-col gap-3">
             <select
               name="stationId"
@@ -109,7 +109,7 @@ export default async function StationPaymentsPage() {
             </select>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <div className="text-xs font-bold text-muted-2 mb-1">Davr boshi</div>
+                <div className="text-xs font-bold text-muted-2 mb-1">Давр боши</div>
                 <input
                   name="periodStart"
                   type="date"
@@ -118,7 +118,7 @@ export default async function StationPaymentsPage() {
                 />
               </div>
               <div>
-                <div className="text-xs font-bold text-muted-2 mb-1">Davr oxiri</div>
+                <div className="text-xs font-bold text-muted-2 mb-1">Давр охири</div>
                 <input
                   name="periodEnd"
                   type="date"
@@ -133,17 +133,17 @@ export default async function StationPaymentsPage() {
               required
               min={1}
               step="0.1"
-              placeholder="Jami hajm"
+              placeholder="Жами ҳажм"
               className="bg-page border-2 border-border rounded-xl px-3.5 py-2.5 font-bold text-sm text-heading outline-none focus:border-primary"
             />
             <MoneyInput
               name="amount"
               required
-              placeholder="Summa"
+              placeholder="Сумма"
               className="bg-page border-2 border-primary rounded-xl px-3.5 py-3 font-heading text-xl font-bold text-heading outline-none"
             />
             <button type="submit" className="bg-primary text-white rounded-xl py-3 font-extrabold text-sm">
-              Saqlash ✓
+              Сақлаш ✓
             </button>
           </form>
         </Card>

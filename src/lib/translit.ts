@@ -78,7 +78,10 @@ function transliterateWord(word: string): string {
       prevWasVowel = false;
       continue;
     }
-    if (c2 === "ng") {
+    // "n" right before a g' unit (e.g. "boshlang'ich") is a plain н — the g'
+    // belongs to the NEXT letter-pair, not to an "ng" digraph with this n.
+    const nextStartsGApostrophe = c === "n" && lower[i + 1] === "g" && APOSTROPHES.has(lower[i + 2] ?? "");
+    if (c2 === "ng" && !nextStartsGApostrophe) {
       out += "нг";
       i += 2;
       prevWasVowel = false;

@@ -5,12 +5,12 @@ import { MoneyInput } from "@/components/ui/MoneyInput";
 import { addVehicleExpenseAction } from "./actions";
 
 const CATEGORIES = [
-  { value: "FUEL", label: "Yoqilg'i" },
-  { value: "REPAIR", label: "Ta'mirlash" },
-  { value: "INSURANCE", label: "Sug'urta" },
-  { value: "TAX", label: "Soliq" },
-  { value: "TOLL", label: "Yo'l haqi" },
-  { value: "OTHER", label: "Boshqa" },
+  { value: "FUEL", label: "Ёқилғи" },
+  { value: "REPAIR", label: "Таъмирлаш" },
+  { value: "INSURANCE", label: "Суғурта" },
+  { value: "TAX", label: "Солиқ" },
+  { value: "TOLL", label: "Йўл ҳақи" },
+  { value: "OTHER", label: "Бошқа" },
 ];
 
 export function ExpenseForm({ vehicleId }: { vehicleId: string }) {
@@ -38,16 +38,16 @@ export function ExpenseForm({ vehicleId }: { vehicleId: string }) {
         <MoneyInput
           name="amount"
           required
-          placeholder="Summa"
+          placeholder="Сумма"
           className="flex-1 bg-page border-2 border-primary rounded-xl px-3.5 py-2.5 font-heading text-base font-bold text-heading outline-none"
         />
         <input
           name="note"
-          placeholder="Izoh"
+          placeholder="Изоҳ"
           className="flex-1 bg-page border-2 border-border rounded-xl px-3.5 py-2.5 text-sm font-semibold text-heading outline-none focus:border-primary"
         />
         <button type="submit" className="bg-primary-tint text-primary rounded-xl px-4 font-extrabold text-sm">
-          + Qo&apos;shish
+          + Қўшиш
         </button>
       </div>
     </form>

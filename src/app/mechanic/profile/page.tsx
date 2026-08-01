@@ -15,10 +15,10 @@ export default async function MechanicProfilePage() {
           {session.user.name?.[0]?.toUpperCase() ?? "?"}
         </div>
         <div className="font-heading font-bold text-lg text-heading">{session.user.name}</div>
-        <div className="text-[13px] text-muted-2 font-semibold">Mexanik</div>
+        <div className="text-[13px] text-muted-2 font-semibold">Механик</div>
         <form action={logoutAction} className="mt-2">
           <button type="submit" className="bg-danger-tint text-danger rounded-xl px-5 py-2.5 text-[13px] font-extrabold">
-            Chiqish
+            Чиқиш
           </button>
         </form>
       </Card>

@@ -6,10 +6,10 @@ const STYLES: Record<string, string> = {
 };
 
 const LABELS: Record<string, string> = {
-  ACTIVE: "Liniyada",
-  REPAIR: "Ta'mirda",
-  RENTED: "Ijarada",
-  SOLD: "Sotilgan",
+  ACTIVE: "Линияда",
+  REPAIR: "Таъмирда",
+  RENTED: "Ижарада",
+  SOLD: "Сотилган",
 };
 
 export function StatusPill({ status }: { status: string }) {

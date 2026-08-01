@@ -64,23 +64,23 @@ export default async function PayrollPage({
       <div className="flex justify-between items-center flex-wrap gap-3">
         <div>
           <div className="font-heading font-bold text-xl text-heading">
-            Oylik hisob-kitob · {uzMonthName(now)} {now.getFullYear()}
+            Ойлик ҳисоб-китоб · {uzMonthName(now)} {now.getFullYear()}
           </div>
           <div className="text-[13px] text-muted-2 font-semibold">
-            Maosh + bonus − avans − jarima − obed = qo&apos;lga tegadi
+            Маош + бонус − аванс − жарима − обед = қўлга тегади
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
           <form action={generatePayrollAction}>
             <button type="submit" className="bg-primary-tint text-primary rounded-[10px] px-4 py-2.5 font-extrabold text-[13px]">
-              Vedomostni yaratish/yangilash
+              Ведомостни яратиш/янгилаш
             </button>
           </form>
           <Link
             href="/accountant/payroll/export"
             className="bg-card border border-border text-body rounded-[10px] px-4 py-2.5 font-extrabold text-[13px]"
           >
-            ⬇ Vedomost (Excel)
+            ⬇ Ведомост (Excel)
           </Link>
           <form action={approvePayrollAction}>
             <button
@@ -88,30 +88,30 @@ export default async function PayrollPage({
               disabled={salaries.length === 0 || allApproved}
               className="bg-primary text-white rounded-[10px] px-4 py-2.5 font-extrabold text-[13px] disabled:opacity-50"
             >
-              To&apos;lovni tasdiqlash
+              Тўловни тасдиқлаш
             </button>
           </form>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <KpiCard label="Jami maosh fondi" value={formatMillions(salaryFund)} />
-        <KpiCard label="Berilgan avanslar" value={`−${formatMillions(advancesTotal)}`} />
-        <KpiCard label="Jarimalar (ushlab qolinadi)" value={`−${formatMillions(finesTotal)}`} hintColor="danger" />
-        <KpiCard label="Obed xarajati" value={`−${formatMillions(lunchTotal)}`} />
-        <KpiCard variant="primary" label="Sof foyda (barcha hisobdan keyin)" value={formatMillions(netProfitAfterAll)} />
+        <KpiCard label="Жами маош фонди" value={formatMillions(salaryFund)} />
+        <KpiCard label="Берилган аванслар" value={`−${formatMillions(advancesTotal)}`} />
+        <KpiCard label="Жарималар (ушлаб қолинади)" value={`−${formatMillions(finesTotal)}`} hintColor="danger" />
+        <KpiCard label="Обед харажати" value={`−${formatMillions(lunchTotal)}`} />
+        <KpiCard variant="primary" label="Соф фойда (барча ҳисобдан кейин)" value={formatMillions(netProfitAfterAll)} />
       </div>
 
       <Card className="overflow-hidden">
         <div className="hidden lg:grid grid-cols-[1.3fr_0.9fr_0.85fr_0.8fr_0.75fr_0.75fr_0.9fr_1fr] px-6 py-3 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
-          <div>Xodim</div>
-          <div>Rol</div>
-          <div>Maosh</div>
-          <div>Avans</div>
-          <div>Jarima</div>
-          <div>Obed</div>
-          <div>Bonus</div>
-          <div>Qo&apos;lga tegadi</div>
+          <div>Ходим</div>
+          <div>Рол</div>
+          <div>Маош</div>
+          <div>Аванс</div>
+          <div>Жарима</div>
+          <div>Обед</div>
+          <div>Бонус</div>
+          <div>Қўлга тегади</div>
         </div>
         {users.map((u) => {
           const salary = salaryByUser.get(u.id);
@@ -157,7 +157,7 @@ export default async function PayrollPage({
             </div>
           );
         })}
-        {users.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Xodim topilmadi</p>}
+        {users.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Ходим топилмади</p>}
         <Pagination page={page} totalPages={pages} basePath="/accountant/payroll" />
       </Card>
     </div>

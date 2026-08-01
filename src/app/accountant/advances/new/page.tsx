@@ -23,10 +23,10 @@ export default async function NewAdvancePage() {
   return (
     <div className="max-w-[520px] mx-auto w-full p-4 sm:p-7">
       <Link href="/accountant/advances" className="text-[13px] font-bold text-muted-2 hover:text-primary">
-        ← Avanslarga qaytish
+        ← Авансларга қайтиш
       </Link>
       <Card className="p-6 sm:p-8 mt-3">
-        <div className="font-heading font-bold text-xl text-heading mb-5">Avans berish</div>
+        <div className="font-heading font-bold text-xl text-heading mb-5">Аванс бериш</div>
         <GiveAdvanceForm users={options} />
       </Card>
     </div>

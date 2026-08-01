@@ -50,15 +50,15 @@ export default async function AdvancesPage({
       <div className="flex justify-between items-center flex-wrap gap-3">
         <div>
           <div className="font-heading font-bold text-xl text-heading">
-            Avanslar · {uzMonthName(now)} {now.getFullYear()}
+            Аванслар · {uzMonthName(now)} {now.getFullYear()}
           </div>
-          <div className="text-[13px] text-muted-2 font-semibold">Jami berilgan: {formatSom(total)}</div>
+          <div className="text-[13px] text-muted-2 font-semibold">Жами берилган: {formatSom(total)}</div>
         </div>
         <Link
           href="/accountant/advances/new"
           className="bg-success text-white rounded-[10px] px-[18px] py-2.5 font-extrabold text-[13px]"
         >
-          + Avans berish
+          + Аванс бериш
         </Link>
       </div>
 
@@ -78,7 +78,7 @@ export default async function AdvancesPage({
             <div className="font-extrabold text-primary">−{formatSom(Number(a.amount))}</div>
           </div>
         ))}
-        {advances.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Bu oy hali avans berilmagan</p>}
+        {advances.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Бу ой ҳали аванс берилмаган</p>}
         <Pagination page={page} totalPages={pages} basePath="/accountant/advances" />
       </Card>
     </div>

@@ -18,20 +18,20 @@ export default async function OwnerDriversPage() {
   return (
     <div className="max-w-[1180px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
       <div className="flex justify-between items-center flex-wrap gap-3">
-        <div className="font-heading font-bold text-xl text-heading">Haydovchilar · {rows.length}</div>
+        <div className="font-heading font-bold text-xl text-heading">Ҳайдовчилар · {rows.length}</div>
         <Link href="/owner" className="text-[13px] font-bold text-muted-2 hover:text-primary">
-          ← Panel
+          ← Панел
         </Link>
       </div>
 
       <Card className="overflow-hidden">
         <div className="hidden lg:grid grid-cols-[1.4fr_1.1fr_0.7fr_1.3fr_0.8fr_1fr] px-6 py-3 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
-          <div>Haydovchi</div>
-          <div>Mashina</div>
-          <div>Reyslar</div>
-          <div>Plan bajarilishi</div>
-          <div>Maosh</div>
-          <div>Sof hissa</div>
+          <div>Ҳайдовчи</div>
+          <div>Машина</div>
+          <div>Рейслар</div>
+          <div>План бажарилиши</div>
+          <div>Маош</div>
+          <div>Соф ҳисса</div>
         </div>
         {rows.map((d) => (
           <div
@@ -43,7 +43,7 @@ export default async function OwnerDriversPage() {
             <div className="text-body font-bold">{d.tripCount}</div>
             <div className="flex items-center gap-2.5">
               {d.planPct === null ? (
-                <span className="text-xs text-muted-2 font-bold">reys asosida</span>
+                <span className="text-xs text-muted-2 font-bold">рейс асосида</span>
               ) : (
                 <>
                   <div className="flex-1 h-2 bg-primary-tint rounded-md overflow-hidden max-w-[120px]">
@@ -63,7 +63,7 @@ export default async function OwnerDriversPage() {
             </div>
           </div>
         ))}
-        {rows.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Haydovchi topilmadi</p>}
+        {rows.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Ҳайдовчи топилмади</p>}
       </Card>
     </div>
   );

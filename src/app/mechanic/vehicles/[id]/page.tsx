@@ -13,13 +13,13 @@ import { DriverSelect } from "./DriverSelect";
 import { AddDriverForm } from "./AddDriverForm";
 
 const CATEGORY_LABELS: Record<string, string> = {
-  FUEL: "Yoqilg'i",
-  REPAIR: "Ta'mirlash",
-  SALARY: "Maosh",
-  INSURANCE: "Sug'urta",
-  TAX: "Soliq",
-  TOLL: "Yo'l haqi",
-  OTHER: "Boshqa",
+  FUEL: "Ёқилғи",
+  REPAIR: "Таъмирлаш",
+  SALARY: "Маош",
+  INSURANCE: "Суғурта",
+  TAX: "Солиқ",
+  TOLL: "Йўл ҳақи",
+  OTHER: "Бошқа",
 };
 
 export default async function VehicleDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -50,7 +50,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
       <div className="flex justify-between items-center flex-wrap gap-3">
         <div className="flex items-center gap-3.5 flex-wrap">
           <Link href="/mechanic/vehicles" className="text-[13px] font-bold text-muted-2 hover:text-primary">
-            ← Mashinalar
+            ← Машиналар
           </Link>
           <div className="font-heading font-bold text-xl text-heading">
             {vehicle.plate} · {vehicle.model}
@@ -60,7 +60,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
             href={`/mechanic/vehicles/${vehicle.id}/edit`}
             className="bg-page text-heading text-xs font-extrabold px-3 py-1.5 rounded-lg border border-border"
           >
-            Tahrirlash
+            Таҳрирлаш
           </Link>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
@@ -70,15 +70,15 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard label={`Tushum · ${vm.periodLabel}`} value={formatSom(row?.income ?? 0)} />
-        <KpiCard label={`Xarajat · ${vm.periodLabel}`} value={formatSom(row?.expense ?? 0)} hintColor="danger" />
-        <KpiCard variant="primary" label={`Sof foyda · ${vm.periodLabel}`} value={formatSom(row?.profit ?? 0)} />
-        <KpiCard label={`Reyslar · ${vm.periodLabel}`} value={String(row?.tripCount ?? 0)} />
+        <KpiCard label={`Тушум · ${vm.periodLabel}`} value={formatSom(row?.income ?? 0)} />
+        <KpiCard label={`Харажат · ${vm.periodLabel}`} value={formatSom(row?.expense ?? 0)} hintColor="danger" />
+        <KpiCard variant="primary" label={`Соф фойда · ${vm.periodLabel}`} value={formatSom(row?.profit ?? 0)} />
+        <KpiCard label={`Рейслар · ${vm.periodLabel}`} value={String(row?.tripCount ?? 0)} />
       </div>
 
       <Card className="overflow-hidden">
         <div className="flex justify-between items-center px-6 py-3.5">
-          <div className="font-heading font-bold text-base text-heading">Oxirgi xarajatlar</div>
+          <div className="font-heading font-bold text-base text-heading">Охирги харажатлар</div>
         </div>
         <div className="px-6 pb-4">
           <ExpenseForm vehicleId={vehicle.id} />
@@ -100,7 +100,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
             <div className="font-extrabold text-heading text-right">−{formatSom(Number(e.amount))}</div>
           </div>
         ))}
-        {expenses.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Hali xarajat yo&apos;q</p>}
+        {expenses.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Ҳали харажат йўқ</p>}
       </Card>
     </div>
   );

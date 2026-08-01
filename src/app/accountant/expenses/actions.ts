@@ -15,7 +15,7 @@ export async function addStaffExpenseAction(
 ): Promise<AddExpenseState> {
   const session = await auth();
   if (!session || (session.user.role !== "ACCOUNTANT" && !(await hasModuleAccess(session.user.role, "PAYROLL")))) {
-    return { error: "Ruxsat yo'q" };
+    return { error: "Рухсат йўқ" };
   }
 
   const point = formData.get("point") as StaffExpensePoint;
@@ -23,7 +23,7 @@ export async function addStaffExpenseAction(
   const amount = Number(formData.get("amount") ?? 0);
   const note = String(formData.get("note") ?? "").trim() || null;
   if (!point || !category || !(amount > 0)) {
-    return { error: "Punkt, toifa va summani to'g'ri kiriting" };
+    return { error: "Пункт, тоифа ва суммани тўғри киритинг" };
   }
 
   await prisma.staffExpense.create({

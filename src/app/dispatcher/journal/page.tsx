@@ -26,9 +26,9 @@ function formatTime(d: Date) {
 }
 
 const EXPENSE_CATEGORY_LABELS: Record<string, string> = {
-  STOYANKA: "Stoyanka",
-  OZIQ_OVQAT: "Oziq-ovqat",
-  BOSHQA: "Boshqa",
+  STOYANKA: "Стоянка",
+  OZIQ_OVQAT: "Озиқ-овқат",
+  BOSHQA: "Бошқа",
 };
 
 export default async function DispatcherJournalPage({
@@ -98,10 +98,10 @@ export default async function DispatcherJournalPage({
     ...trips.map((t) => ({
       id: t.id,
       time: t.createdAt,
-      kind: t.kind === "ORDER" ? "Zakaz" : "Reys",
+      kind: t.kind === "ORDER" ? "Заказ" : "Рейс",
       kindBg: t.kind === "ORDER" ? "#E4F5EC" : "#EEF0F8",
       kindColor: t.kind === "ORDER" ? "#1B9E6B" : "#4F46E5",
-      detail: t.note ?? `${t.vehicle.plate} · Farg'ona → Quva`,
+      detail: t.note ?? `${t.vehicle.plate} · Фарғона → Қува`,
       amount: Number(t.revenue),
       deleteAction: canTripEntry ? deleteTripAction : undefined,
     })),
@@ -118,10 +118,10 @@ export default async function DispatcherJournalPage({
     ...lunches.map((l) => ({
       id: l.id,
       time: l.lunchDate,
-      kind: "Obed",
+      kind: "Обед",
       kindBg: "#FFF3E0",
       kindColor: "#B26A00",
-      detail: "Tushlik",
+      detail: "Тушлик",
       amount: -Number(l.amount),
       deleteAction: canIncomeExpense ? deleteLunchAction : undefined,
     })),
@@ -132,14 +132,14 @@ export default async function DispatcherJournalPage({
       <div className="flex justify-between items-center flex-wrap gap-3">
         <div>
           <div className="font-heading font-bold text-xl text-heading">
-            Kirim-chiqim · {today.toLocaleDateString("uz-UZ", { day: "numeric", month: "long" })}
+            Кирим-чиқим · {today.toLocaleDateString("uz-UZ", { day: "numeric", month: "long" })}
           </div>
           <div className="text-[13px] text-muted-2 font-semibold">{session.user.name}</div>
         </div>
         <div className="flex gap-4 text-sm font-extrabold flex-wrap items-center">
-          <span className="text-success">Kirim: +{formatSom(kirim)}</span>
-          <span className="text-danger">Chiqim: −{formatSom(chiqim)}</span>
-          <span className="text-heading">Qoldiq: {formatSom(qoldiq)}</span>
+          <span className="text-success">Кирим: +{formatSom(kirim)}</span>
+          <span className="text-danger">Чиқим: −{formatSom(chiqim)}</span>
+          <span className="text-heading">Қолдиқ: {formatSom(qoldiq)}</span>
           {!isDispatcher && (
             <div className="flex gap-2">
               <Link
@@ -148,7 +148,7 @@ export default async function DispatcherJournalPage({
                   point === "FARGONA" ? "bg-primary text-white" : "bg-card border border-border text-muted"
                 }`}
               >
-                Farg&apos;ona
+                Фарғона
               </Link>
               <Link
                 href="/dispatcher/journal?point=QUVA"
@@ -156,7 +156,7 @@ export default async function DispatcherJournalPage({
                   point === "QUVA" ? "bg-primary text-white" : "bg-card border border-border text-muted"
                 }`}
               >
-                Quva
+                Қува
               </Link>
             </div>
           )}
@@ -174,7 +174,7 @@ export default async function DispatcherJournalPage({
         {canIncomeExpense && <ExpenseForm point={isDispatcher ? undefined : point} />}
 
         <Card className="overflow-hidden">
-          <div className="px-5 py-3.5 font-heading font-bold text-[15px] text-heading">Bugungi jurnal</div>
+          <div className="px-5 py-3.5 font-heading font-bold text-[15px] text-heading">Бугунги журнал</div>
           {log.map((l) => (
             <div
               key={l.id}
@@ -199,7 +199,7 @@ export default async function DispatcherJournalPage({
               </div>
             </div>
           ))}
-          {log.length === 0 && <p className="text-[13px] text-muted-2 px-5 py-4">Bugun hali yozuv yo&apos;q</p>}
+          {log.length === 0 && <p className="text-[13px] text-muted-2 px-5 py-4">Бугун ҳали ёзув йўқ</p>}
         </Card>
       </div>
     </div>

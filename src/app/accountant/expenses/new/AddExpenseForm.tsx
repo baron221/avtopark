@@ -16,28 +16,28 @@ export function AddExpenseForm() {
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <div>
-        <div className={labelClass}>Punkt</div>
+        <div className={labelClass}>Пункт</div>
         <select name="point" required className={inputClass} defaultValue="FARGONA">
-          <option value="FARGONA">Farg&apos;ona</option>
-          <option value="QUVA">Quva</option>
-          <option value="YOLDA">Yo&apos;lda</option>
+          <option value="FARGONA">Фарғона</option>
+          <option value="QUVA">Қува</option>
+          <option value="YOLDA">Йўлда</option>
         </select>
       </div>
       <div>
-        <div className={labelClass}>Toifa</div>
+        <div className={labelClass}>Тоифа</div>
         <select name="category" required className={inputClass} defaultValue="BOSHQA">
-          <option value="STOYANKA">Stoyanka</option>
-          <option value="OZIQ_OVQAT">Oziq-ovqat</option>
-          <option value="BOSHQA">Boshqa</option>
+          <option value="STOYANKA">Стоянка</option>
+          <option value="OZIQ_OVQAT">Озиқ-овқат</option>
+          <option value="BOSHQA">Бошқа</option>
         </select>
       </div>
       <div>
-        <div className={labelClass}>Summa</div>
+        <div className={labelClass}>Сумма</div>
         <MoneyInput name="amount" required className={inputClass} placeholder="50 000" />
       </div>
       <div>
-        <div className={labelClass}>Izoh</div>
-        <input name="note" className={inputClass} placeholder="Ixtiyoriy" />
+        <div className={labelClass}>Изоҳ</div>
+        <input name="note" className={inputClass} placeholder="Ихтиёрий" />
       </div>
 
       {state.error && <p className="text-danger text-[13px] font-bold">{state.error}</p>}
@@ -47,7 +47,7 @@ export function AddExpenseForm() {
         disabled={pending}
         className="bg-primary text-white rounded-xl py-3 text-center font-extrabold text-[15px] disabled:opacity-60"
       >
-        {pending ? "Saqlanmoqda…" : "Saqlash"}
+        {pending ? "Сақланмоқда…" : "Сақлаш"}
       </button>
     </form>
   );

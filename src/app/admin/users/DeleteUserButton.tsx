@@ -17,7 +17,7 @@ export function DeleteUserButton({
     <form
       action={deleteUserAction}
       onSubmit={(e) => {
-        if (!window.confirm(`${fullName}ni butunlay o'chirib tashlaysizmi? Bu amalni ortga qaytarib bo'lmaydi.`)) {
+        if (!window.confirm(`${fullName}ни бутунлай ўчириб ташлайсизми? Бу амални ортга қайтариб бўлмайди.`)) {
           e.preventDefault();
         }
       }}
@@ -25,7 +25,7 @@ export function DeleteUserButton({
       <input type="hidden" name="userId" value={userId} />
       <input type="hidden" name="page" value={page} />
       <button type="submit" className={className}>
-        O&apos;chirish
+        Ўчириш
       </button>
     </form>
   );

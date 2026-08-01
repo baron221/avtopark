@@ -37,9 +37,9 @@ export default async function ShiftsPage({
     <div className="max-w-[1180px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
       <div className="flex justify-between items-center flex-wrap gap-3">
         <div>
-          <div className="font-heading font-bold text-xl text-heading">Smenalar · {monthStr}</div>
+          <div className="font-heading font-bold text-xl text-heading">Сменалар · {monthStr}</div>
           <div className="text-[13px] text-muted-2 font-semibold">
-            Har mashinaga oy uchun bitta haydovchi (kunlik to&apos;liq smena) tayinlanadi
+            Ҳар машинага ой учун битта ҳайдовчи (кунлик тўлиқ смена) тайинланади
           </div>
         </div>
         <form className="flex gap-2 items-center">
@@ -50,16 +50,16 @@ export default async function ShiftsPage({
             className="bg-card border-2 border-border rounded-xl px-3 py-2 text-sm font-bold text-heading outline-none focus:border-primary"
           />
           <button type="submit" className="bg-primary-tint text-primary text-[13px] font-extrabold px-4 py-2 rounded-xl">
-            Ko&apos;rish
+            Кўриш
           </button>
         </form>
       </div>
 
       <Card className="overflow-hidden">
         <div className="hidden lg:grid grid-cols-[1fr_2fr_0.8fr] px-6 py-3 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
-          <div>Mashina</div>
-          <div>Haydovchi (shu oy uchun)</div>
-          <div>Holat</div>
+          <div>Машина</div>
+          <div>Ҳайдовчи (шу ой учун)</div>
+          <div>Ҳолат</div>
         </div>
         {vehicles.map((v) => (
           <div
@@ -80,11 +80,11 @@ export default async function ShiftsPage({
               action={assignShiftAction}
               className="w-full max-w-[320px] bg-card border-2 border-border rounded-lg px-2.5 py-1.5 text-[13px] font-bold text-heading outline-none focus:border-primary"
             >
-              <option value="">— tayinlanmagan —</option>
+              <option value="">— тайинланмаган —</option>
               {drivers.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.user.fullName}
-                  {d.vehicle ? ` · ${d.vehicle.plate}` : " · bo'sh"}
+                  {d.vehicle ? ` · ${d.vehicle.plate}` : " · бўш"}
                 </option>
               ))}
             </ShiftSelect>
@@ -93,7 +93,7 @@ export default async function ShiftsPage({
             </div>
           </div>
         ))}
-        {vehicles.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Mashina yo&apos;q</p>}
+        {vehicles.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Машина йўқ</p>}
       </Card>
     </div>
   );

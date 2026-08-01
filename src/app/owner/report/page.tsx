@@ -8,9 +8,9 @@ import { formatMillions, formatSom, uzMonthName } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
 
 const INCOME_LABELS: Record<string, string> = {
-  TRIPS: "Reys tushumi",
-  RENTAL: "Oylik ijara",
-  PLAN: "Kunlik plan",
+  TRIPS: "Рейс тушуми",
+  RENTAL: "Ойлик ижара",
+  PLAN: "Кунлик план",
 };
 
 export default async function OwnerReportPage() {
@@ -42,10 +42,10 @@ export default async function OwnerReportPage() {
       <div className="flex justify-between items-center flex-wrap gap-3">
         <div>
           <div className="font-heading font-bold text-xl text-heading">
-            Oylik hisobot · {uzMonthName(new Date())} {new Date().getFullYear()}
+            Ойлик ҳисобот · {uzMonthName(new Date())} {new Date().getFullYear()}
           </div>
           <div className="text-[13px] text-muted-2 font-semibold">
-            {vm.vehicleCount} mashina · {vm.driverCount} haydovchi · {totalTrips} reys
+            {vm.vehicleCount} машина · {vm.driverCount} ҳайдовчи · {totalTrips} рейс
           </div>
         </div>
         <div className="flex gap-2">
@@ -62,21 +62,21 @@ export default async function OwnerReportPage() {
             ⬇ PDF
           </Link>
           <Link href="/owner" className="text-[13px] font-bold text-muted-2 hover:text-primary self-center ml-2">
-            ← Panel
+            ← Панел
           </Link>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard label="Jami tushum" value={formatMillions(vm.totalIncome)} />
-        <KpiCard label="Jami xarajat" value={formatMillions(vm.totalExpense)} hintColor="danger" />
-        <KpiCard variant="primary" label="Sof foyda" value={formatMillions(vm.netProfit)} />
-        <KpiCard label="Rentabellik" value={`${margin.toFixed(0)}%`} hintColor="success" />
+        <KpiCard label="Жами тушум" value={formatMillions(vm.totalIncome)} />
+        <KpiCard label="Жами харажат" value={formatMillions(vm.totalExpense)} hintColor="danger" />
+        <KpiCard variant="primary" label="Соф фойда" value={formatMillions(vm.netProfit)} />
+        <KpiCard label="Рентабеллик" value={`${margin.toFixed(0)}%`} hintColor="success" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="p-5">
-          <div className="font-heading font-bold text-[15px] text-heading mb-3">Daromad manbalari</div>
+          <div className="font-heading font-bold text-[15px] text-heading mb-3">Даромад манбалари</div>
           {incomeSplit.map((i) => (
             <div key={i.name} className="flex justify-between py-2.5 border-t border-row-divider first:border-t-0 text-sm">
               <span className="font-semibold text-body">{i.name}</span>
@@ -85,11 +85,11 @@ export default async function OwnerReportPage() {
               </span>
             </div>
           ))}
-          {incomeSplit.length === 0 && <p className="text-[13px] text-muted-2">Bu davrda daromad yo&apos;q</p>}
+          {incomeSplit.length === 0 && <p className="text-[13px] text-muted-2">Бу даврда даромад йўқ</p>}
         </Card>
 
         <Card className="p-5">
-          <div className="font-heading font-bold text-[15px] text-heading mb-3">Xarajat toifalari</div>
+          <div className="font-heading font-bold text-[15px] text-heading mb-3">Харажат тоифалари</div>
           {vm.expenseBreakdown.map((e) => (
             <div key={e.category} className="flex justify-between py-2.5 border-t border-row-divider first:border-t-0 text-sm">
               <span className="font-semibold text-body">{e.category}</span>
@@ -98,12 +98,12 @@ export default async function OwnerReportPage() {
               </span>
             </div>
           ))}
-          {vm.expenseBreakdown.length === 0 && <p className="text-[13px] text-muted-2">Bu davrda xarajat yo&apos;q</p>}
+          {vm.expenseBreakdown.length === 0 && <p className="text-[13px] text-muted-2">Бу даврда харажат йўқ</p>}
         </Card>
       </div>
 
       <Card className="p-5">
-        <div className="font-heading font-bold text-[15px] text-heading mb-4">Oxirgi 6 oy dinamikasi</div>
+        <div className="font-heading font-bold text-[15px] text-heading mb-4">Охирги 6 ой динамикаси</div>
         <div className="flex items-end gap-4 h-[160px]">
           {trend.map((t) => (
             <div key={t.label} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">

@@ -20,10 +20,10 @@ export default async function EditUserPage({ params }: { params: Promise<{ id: s
   return (
     <div className="max-w-[520px] mx-auto w-full p-4 sm:p-7">
       <Link href="/admin/users" className="text-[13px] font-bold text-muted-2 hover:text-primary">
-        ← Foydalanuvchilarga qaytish
+        ← Фойдаланувчиларга қайтиш
       </Link>
       <Card className="p-6 sm:p-8 mt-3">
-        <div className="font-heading font-bold text-xl text-heading mb-5">Foydalanuvchini tahrirlash</div>
+        <div className="font-heading font-bold text-xl text-heading mb-5">Фойдаланувчини таҳрирлаш</div>
         <EditUserForm
           userId={user.id}
           fullName={user.fullName}

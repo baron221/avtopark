@@ -9,7 +9,7 @@ import type { Role } from "@prisma/client";
 async function requireAdmin() {
   const session = await auth();
   if (!session || session.user.role !== "ADMIN") {
-    throw new Error("Ruxsat yo'q");
+    throw new Error("Рухсат йўқ");
   }
 }
 

@@ -12,7 +12,7 @@ function monthStart(d: Date) {
 export async function GET() {
   const session = await auth();
   if (!session || session.user.role !== "ACCOUNTANT") {
-    return NextResponse.json({ error: "Ruxsat yo'q" }, { status: 403 });
+    return NextResponse.json({ error: "Рухсат йўқ" }, { status: 403 });
   }
 
   const now = new Date();
@@ -34,16 +34,16 @@ export async function GET() {
   workbook.creator = "Avtopark Foyda Tizimi";
   workbook.created = now;
 
-  const sheet = workbook.addWorksheet(`Vedomost ${uzMonthName(now)} ${now.getFullYear()}`);
+  const sheet = workbook.addWorksheet(`Ведомост ${uzMonthName(now)} ${now.getFullYear()}`);
   sheet.columns = [
-    { header: "Xodim", key: "name", width: 26 },
-    { header: "Rol", key: "role", width: 16 },
-    { header: "Maosh", key: "salary", width: 14 },
-    { header: "Avans", key: "advance", width: 14 },
-    { header: "Jarima", key: "fines", width: 14 },
-    { header: "Obed", key: "lunch", width: 14 },
-    { header: "Bonus", key: "bonus", width: 14 },
-    { header: "Qo'lga tegadi", key: "net", width: 16 },
+    { header: "Ходим", key: "name", width: 26 },
+    { header: "Рол", key: "role", width: 16 },
+    { header: "Маош", key: "salary", width: 14 },
+    { header: "Аванс", key: "advance", width: 14 },
+    { header: "Жарима", key: "fines", width: 14 },
+    { header: "Обед", key: "lunch", width: 14 },
+    { header: "Бонус", key: "bonus", width: 14 },
+    { header: "Қўлга тегади", key: "net", width: 16 },
   ];
 
   const headerRow = sheet.getRow(1);

@@ -4,11 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV = [
-  { href: "/mechanic/fuel", label: "Yoqilg'i", icon: "◉", exact: true },
-  { href: "/mechanic/vehicles", label: "Mashinalar", icon: "▤", exact: false },
-  { href: "/mechanic/fuel/payments", label: "To'lovlar", icon: "▥", exact: false },
-  { href: "/mechanic/shifts", label: "Smenalar", icon: "▦", exact: false },
-  { href: "/mechanic/profile", label: "Profil", icon: "◈", exact: false },
+  { href: "/mechanic/fuel", label: "Ёқилғи", icon: "◉", exact: true },
+  { href: "/mechanic/vehicles", label: "Машиналар", icon: "▤", exact: false },
+  { href: "/mechanic/fuel/payments", label: "Тўловлар", icon: "▥", exact: false },
+  { href: "/mechanic/shifts", label: "Сменалар", icon: "▦", exact: false },
+  { href: "/mechanic/profile", label: "Профил", icon: "◈", exact: false },
 ];
 
 type NavItem = { href: string; label: string; icon: string };

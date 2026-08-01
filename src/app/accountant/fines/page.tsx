@@ -58,15 +58,15 @@ export default async function FinesPage({
       <div className="flex justify-between items-center flex-wrap gap-3">
         <div>
           <div className="font-heading font-bold text-xl text-heading">
-            Jarimalar · {uzMonthName(now)} {now.getFullYear()}
+            Жарималар · {uzMonthName(now)} {now.getFullYear()}
           </div>
-          <div className="text-[13px] text-muted-2 font-semibold">Ushlab qolinadigan jami: {formatSom(total)}</div>
+          <div className="text-[13px] text-muted-2 font-semibold">Ушлаб қолинадиган жами: {formatSom(total)}</div>
         </div>
         <Link
           href="/accountant/fines/new"
           className="bg-danger text-white rounded-[10px] px-[18px] py-2.5 font-extrabold text-[13px]"
         >
-          + Jarima qo&apos;shish
+          + Жарима қўшиш
         </Link>
       </div>
 
@@ -94,12 +94,12 @@ export default async function FinesPage({
                   f.deducted ? "bg-danger-tint text-danger" : "bg-success-tint text-success"
                 }`}
               >
-                {f.deducted ? "Ushlanmoqda" : "Bekor qilingan"}
+                {f.deducted ? "Ушланмоқда" : "Бекор қилинган"}
               </button>
             </form>
           </div>
         ))}
-        {fines.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Bu oy hali jarima yo&apos;q</p>}
+        {fines.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Бу ой ҳали жарима йўқ</p>}
         <Pagination page={page} totalPages={pages} basePath="/accountant/fines" />
       </Card>
     </div>

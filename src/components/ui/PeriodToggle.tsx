@@ -1,9 +1,9 @@
 import Link from "next/link";
 
 const OPTIONS = [
-  { value: "DAY", label: "Kun" },
-  { value: "WEEK", label: "Hafta" },
-  { value: "MONTH", label: "Oy" },
+  { value: "DAY", label: "Кун" },
+  { value: "WEEK", label: "Ҳафта" },
+  { value: "MONTH", label: "Ой" },
 ] as const;
 
 export function PeriodToggle({ active, basePath }: { active: string; basePath: string }) {

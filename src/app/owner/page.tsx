@@ -30,12 +30,12 @@ export default async function OwnerPage({
       vm={vm}
       period={period}
       basePath="/owner"
-      userName={session.user.name ?? "Egasi"}
+      userName={session.user.name ?? "Эгаси"}
       extraLinks={
         isOwner
           ? [
-              { href: "/owner/report", label: "Hisobot" },
-              { href: "/owner/drivers", label: "Haydovchilar" },
+              { href: "/owner/report", label: "Ҳисобот" },
+              { href: "/owner/drivers", label: "Ҳайдовчилар" },
               ...grantedLinks.map((l) => ({ href: l.href, label: l.label })),
             ]
           : grantedLinks.map((l) => ({ href: l.href, label: l.label }))

@@ -4,8 +4,8 @@ import { Card } from "@/components/ui/Card";
 import { logoutAction } from "@/app/actions";
 
 const POINT_LABELS: Record<string, string> = {
-  FARGONA: "Farg'ona",
-  QUVA: "Quva",
+  FARGONA: "Фарғона",
+  QUVA: "Қува",
 };
 
 export default async function DispatcherProfilePage() {
@@ -20,10 +20,10 @@ export default async function DispatcherProfilePage() {
           {session.user.name?.[0]?.toUpperCase() ?? "?"}
         </div>
         <div className="font-heading font-bold text-lg text-heading">{session.user.name}</div>
-        <div className="text-[13px] text-muted-2 font-semibold">Dispetcher · {POINT_LABELS[session.user.point]}</div>
+        <div className="text-[13px] text-muted-2 font-semibold">Диспетчер · {POINT_LABELS[session.user.point]}</div>
         <form action={logoutAction} className="mt-2">
           <button type="submit" className="bg-danger-tint text-danger rounded-xl px-5 py-2.5 text-[13px] font-extrabold">
-            Chiqish
+            Чиқиш
           </button>
         </form>
       </Card>

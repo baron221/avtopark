@@ -6,15 +6,15 @@ import { uzMonthName } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
 
 const INCOME_LABELS: Record<string, string> = {
-  TRIPS: "Reys tushumi",
-  RENTAL: "Oylik ijara",
-  PLAN: "Kunlik plan",
+  TRIPS: "Рейс тушуми",
+  RENTAL: "Ойлик ижара",
+  PLAN: "Кунлик план",
 };
 
 export async function GET() {
   const session = await auth();
   if (!session || (session.user.role !== "OWNER" && !(await hasModuleAccess(session.user.role, "FLEET_DASHBOARD")))) {
-    return NextResponse.json({ error: "Ruxsat yo'q" }, { status: 403 });
+    return NextResponse.json({ error: "Рухсат йўқ" }, { status: 403 });
   }
 
   const now = new Date();
@@ -27,27 +27,27 @@ export async function GET() {
   workbook.creator = "Avtopark Foyda Tizimi";
   workbook.created = now;
 
-  const summarySheet = workbook.addWorksheet("Xulosa");
+  const summarySheet = workbook.addWorksheet("Хулоса");
   summarySheet.columns = [
-    { header: "Ko'rsatkich", key: "label", width: 30 },
-    { header: "Qiymat (so'm)", key: "value", width: 20 },
+    { header: "Кўрсаткич", key: "label", width: 30 },
+    { header: "Қиймат (сўм)", key: "value", width: 20 },
   ];
   summarySheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
   summarySheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4F46E5" } };
   summarySheet.addRows([
-    { label: "Jami tushum", value: vm.totalIncome },
-    { label: "Jami xarajat", value: vm.totalExpense },
-    { label: "Sof foyda", value: vm.netProfit },
-    { label: "Mashinalar soni", value: vm.vehicleCount },
-    { label: "Haydovchilar soni", value: vm.driverCount },
+    { label: "Жами тушум", value: vm.totalIncome },
+    { label: "Жами харажат", value: vm.totalExpense },
+    { label: "Соф фойда", value: vm.netProfit },
+    { label: "Машиналар сони", value: vm.vehicleCount },
+    { label: "Ҳайдовчилар сони", value: vm.driverCount },
   ]);
   summarySheet.getColumn("value").numFmt = "#,##0";
 
-  const incomeSheet = workbook.addWorksheet("Daromad manbalari");
+  const incomeSheet = workbook.addWorksheet("Даромад манбалари");
   incomeSheet.columns = [
-    { header: "Manba", key: "name", width: 24 },
-    { header: "Summa (so'm)", key: "amount", width: 18 },
-    { header: "Ulush (%)", key: "pct", width: 12 },
+    { header: "Манба", key: "name", width: 24 },
+    { header: "Сумма (сўм)", key: "amount", width: 18 },
+    { header: "Улуш (%)", key: "pct", width: 12 },
   ];
   incomeSheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
   incomeSheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4F46E5" } };
@@ -61,11 +61,11 @@ export async function GET() {
   }
   incomeSheet.getColumn("amount").numFmt = "#,##0";
 
-  const expenseSheet = workbook.addWorksheet("Xarajat toifalari");
+  const expenseSheet = workbook.addWorksheet("Харажат тоифалари");
   expenseSheet.columns = [
-    { header: "Toifa", key: "category", width: 24 },
-    { header: "Summa (so'm)", key: "amount", width: 18 },
-    { header: "Ulush (%)", key: "pct", width: 12 },
+    { header: "Тоифа", key: "category", width: 24 },
+    { header: "Сумма (сўм)", key: "amount", width: 18 },
+    { header: "Улуш (%)", key: "pct", width: 12 },
   ];
   expenseSheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
   expenseSheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4F46E5" } };
@@ -74,12 +74,12 @@ export async function GET() {
   }
   expenseSheet.getColumn("amount").numFmt = "#,##0";
 
-  const trendSheet = workbook.addWorksheet("6 oylik trend");
+  const trendSheet = workbook.addWorksheet("6 ойлик тренд");
   trendSheet.columns = [
-    { header: "Oy", key: "label", width: 14 },
-    { header: "Tushum", key: "income", width: 16 },
-    { header: "Xarajat", key: "expense", width: 16 },
-    { header: "Foyda", key: "profit", width: 16 },
+    { header: "Ой", key: "label", width: 14 },
+    { header: "Тушум", key: "income", width: 16 },
+    { header: "Харажат", key: "expense", width: 16 },
+    { header: "Фойда", key: "profit", width: 16 },
   ];
   trendSheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
   trendSheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4F46E5" } };

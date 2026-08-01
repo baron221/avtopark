@@ -14,7 +14,7 @@ export function AddFineForm({ users }: { users: UserOption[] }) {
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <div>
-        <div className="text-[13px] font-extrabold text-body mb-1.5">Xodim</div>
+        <div className="text-[13px] font-extrabold text-body mb-1.5">Ходим</div>
         <select
           name="userId"
           required
@@ -28,7 +28,7 @@ export function AddFineForm({ users }: { users: UserOption[] }) {
         </select>
       </div>
       <div>
-        <div className="text-[13px] font-extrabold text-body mb-1.5">Summa</div>
+        <div className="text-[13px] font-extrabold text-body mb-1.5">Сумма</div>
         <MoneyInput
           name="amount"
           required
@@ -37,11 +37,11 @@ export function AddFineForm({ users }: { users: UserOption[] }) {
         />
       </div>
       <div>
-        <div className="text-[13px] font-extrabold text-body mb-1.5">Sabab</div>
+        <div className="text-[13px] font-extrabold text-body mb-1.5">Сабаб</div>
         <input
           name="reason"
           required
-          placeholder="Kechikish, radar…"
+          placeholder="Кечикиш, радар…"
           className="w-full bg-card border-2 border-border rounded-xl px-4 py-2.5 text-sm font-semibold text-heading outline-none focus:border-primary"
         />
       </div>
@@ -51,7 +51,7 @@ export function AddFineForm({ users }: { users: UserOption[] }) {
         disabled={pending}
         className="bg-danger text-white rounded-xl py-3 text-center font-extrabold text-[15px] disabled:opacity-60"
       >
-        {pending ? "Saqlanmoqda…" : "Jarima qo'shish"}
+        {pending ? "Сақланмоқда…" : "Жарима қўшиш"}
       </button>
     </form>
   );
