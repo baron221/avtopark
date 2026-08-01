@@ -11,6 +11,7 @@ import { StatusSelect } from "./StatusSelect";
 import { ExpenseForm } from "./ExpenseForm";
 import { DriverSelect } from "./DriverSelect";
 import { AddDriverForm } from "./AddDriverForm";
+import { OilChangeForm } from "./OilChangeForm";
 
 const CATEGORY_LABELS: Record<string, string> = {
   FUEL: "Ёқилғи",
@@ -29,14 +30,27 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
 
   const { id } = await params;
 
-  const [vehicle, vm, expenses, drivers] = await Promise.all([
+  const [vehicle, vm, expenses, drivers, oilChanges] = await Promise.all([
     prisma.vehicle.findUnique({ where: { id }, include: { driver: { include: { user: true } } } }),
     getOwnerDashboardVM("MONTH"),
     prisma.expense.findMany({ where: { vehicleId: id }, orderBy: { expenseDate: "desc" }, take: 10 }),
     prisma.driver.findMany({ include: { user: true, vehicle: true }, orderBy: { user: { fullName: "asc" } } }),
+    prisma.oilChange.findMany({ where: { vehicleId: id }, orderBy: { changedAt: "desc" }, take: 10 }),
   ]);
 
   if (!vehicle) notFound();
+
+  const lastOilChange = oilChanges[0] ?? null;
+  let oilStatus: { overdue: boolean; kmRemaining: number; daysRemaining: number } | null = null;
+  if (lastOilChange) {
+    const nextDueKm = lastOilChange.odometerKm + lastOilChange.intervalKm;
+    const nextDueDate = new Date(lastOilChange.changedAt);
+    nextDueDate.setMonth(nextDueDate.getMonth() + lastOilChange.intervalMonths);
+    const currentKm = vehicle.odometerKm ?? lastOilChange.odometerKm;
+    const kmRemaining = nextDueKm - currentKm;
+    const daysRemaining = Math.ceil((nextDueDate.getTime() - new Date().getTime()) / 86_400_000);
+    oilStatus = { overdue: kmRemaining <= 0 || daysRemaining <= 0, kmRemaining, daysRemaining };
+  }
 
   const row = vm.vehicles.find((v) => v.vehicleId === id);
   const driverOptions = drivers.map((d) => ({
@@ -101,6 +115,40 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
           </div>
         ))}
         {expenses.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Ҳали харажат йўқ</p>}
+      </Card>
+
+      <Card className="overflow-hidden">
+        <div className="flex justify-between items-center px-6 py-3.5 flex-wrap gap-2">
+          <div className="font-heading font-bold text-base text-heading">Мой алмаштириш</div>
+          {oilStatus && (
+            <span
+              className={`text-xs font-extrabold px-2.5 py-1 rounded-full ${
+                oilStatus.overdue ? "bg-danger-tint text-danger" : "bg-success-tint text-success"
+              }`}
+            >
+              {oilStatus.overdue
+                ? "Муддати ўтган"
+                : `${Math.max(0, oilStatus.kmRemaining).toLocaleString("uz-UZ")} км / ${Math.max(0, oilStatus.daysRemaining)} кун қолди`}
+            </span>
+          )}
+        </div>
+        <div className="px-6 pb-4">
+          <OilChangeForm vehicleId={vehicle.id} lastOdometerKm={vehicle.odometerKm} />
+        </div>
+        {oilChanges.map((o) => (
+          <div
+            key={o.id}
+            className="grid grid-cols-[0.6fr_0.9fr_2fr_1fr] px-6 py-3 border-t border-row-divider items-center text-sm gap-2"
+          >
+            <div className="text-muted-2 font-bold">
+              {o.changedAt.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" })}
+            </div>
+            <div className="text-body font-semibold">{o.odometerKm.toLocaleString("uz-UZ")} км</div>
+            <div className="text-muted-2 text-xs font-semibold">{o.note ?? "—"}</div>
+            <div className="font-extrabold text-heading text-right">−{formatSom(Number(o.amount))}</div>
+          </div>
+        ))}
+        {oilChanges.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Ҳали мой алмаштирилмаган</p>}
       </Card>
     </div>
   );

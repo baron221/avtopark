@@ -142,6 +142,7 @@ model User {
   planPaymentsReceived PlanPayment[] @relation("PlanPaymentReceivedBy")
   advances         Advance[]        @relation("AdvanceUser")
   advancesEntered  Advance[]        @relation("AdvanceEnteredBy")
+  oilChangesEntered OilChange[]     @relation("OilChangeEnteredBy")
 
   @@index([role])
   @@index([point])
@@ -158,6 +159,7 @@ model Vehicle {
   point         Point?
   purchasePrice BigInt        @map("purchase_price")
   purchaseDate  DateTime      @map("purchase_date")
+  odometerKm    Int?          @map("odometer_km")
 
   driver          Driver?
   trips           Trip[]
@@ -167,10 +169,33 @@ model Vehicle {
   shifts          Shift[]
   fines           Fine[]
   fuelLogs        FuelLog[]
+  oilChanges      OilChange[]
 
   @@index([point])
   @@index([status])
   @@map("vehicles")
+}
+
+// A serviced oil change also creates a matching Expense (category REPAIR) so
+// its cost is already counted in profit/expense reports — this model exists
+// only to track the maintenance-specific due-date/due-mileage data that
+// Expense has no room for.
+model OilChange {
+  id             String   @id @default(uuid())
+  vehicleId      String   @map("vehicle_id")
+  changedAt      DateTime @map("changed_at")
+  odometerKm     Int      @map("odometer_km")
+  intervalKm     Int      @map("interval_km")
+  intervalMonths Int      @map("interval_months")
+  amount         BigInt
+  note           String?
+  enteredBy      String   @map("entered_by")
+
+  vehicle       Vehicle @relation(fields: [vehicleId], references: [id])
+  enteredByUser User    @relation("OilChangeEnteredBy", fields: [enteredBy], references: [id])
+
+  @@index([vehicleId, changedAt])
+  @@map("oil_changes")
 }
 
 model Driver {

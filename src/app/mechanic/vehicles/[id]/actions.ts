@@ -76,6 +76,41 @@ export async function addVehicleExpenseAction(formData: FormData) {
   revalidatePath("/mechanic/vehicles");
 }
 
+export async function addOilChangeAction(formData: FormData) {
+  const userId = await requireMechanic();
+
+  const vehicleId = String(formData.get("vehicleId") ?? "");
+  const odometerKm = Math.round(Number(formData.get("odometerKm") ?? 0));
+  const intervalKm = Math.round(Number(formData.get("intervalKm") ?? 0));
+  const intervalMonths = Math.round(Number(formData.get("intervalMonths") ?? 0));
+  const amount = Number(formData.get("amount") ?? 0);
+  const note = String(formData.get("note") ?? "").trim() || null;
+
+  if (!vehicleId || !(odometerKm > 0) || !(intervalKm > 0) || !(intervalMonths > 0) || !(amount > 0)) return;
+
+  const changedAt = new Date();
+
+  await prisma.$transaction([
+    prisma.oilChange.create({
+      data: { vehicleId, changedAt, odometerKm, intervalKm, intervalMonths, amount: BigInt(Math.round(amount)), note, enteredBy: userId },
+    }),
+    prisma.expense.create({
+      data: {
+        vehicleId,
+        category: "REPAIR",
+        amount: BigInt(Math.round(amount)),
+        expenseDate: changedAt,
+        note: note ? `Мой алмаштириш · ${note}` : "Мой алмаштириш",
+        enteredBy: userId,
+      },
+    }),
+    prisma.vehicle.update({ where: { id: vehicleId }, data: { odometerKm } }),
+  ]);
+
+  revalidatePath(`/mechanic/vehicles/${vehicleId}`);
+  revalidatePath("/mechanic/vehicles");
+}
+
 export async function updateVehicleStatusAction(formData: FormData) {
   await requireMechanic();
 
