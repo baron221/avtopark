@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/app/actions";
-import { hasAnyModuleAccess, getGrantedNavLinks } from "@/lib/access";
+import { hasAnyModuleAccess, getGrantedNavLinks, getGuestNavLinks } from "@/lib/access";
 import { DispatcherNavDesktop, DispatcherNavMobile } from "./DispatcherNav";
 
 const POINT_LABELS: Record<string, string> = {
@@ -23,7 +23,7 @@ export default async function DispatcherLayout({ children }: { children: React.R
   const pointLabel = isDispatcher ? (POINT_LABELS[session.user.point!] ?? session.user.point) : null;
   const extra = isDispatcher
     ? await getGrantedNavLinks(session.user.role, ["COLLECT_PAYMENT", "INCOME_EXPENSE_LOG", "TRIP_ENTRY"])
-    : await getGrantedNavLinks(session.user.role);
+    : await getGuestNavLinks(session.user.role);
 
   return (
     <div className="min-h-screen flex flex-col pb-16 lg:pb-0">

@@ -116,3 +116,57 @@ export async function getGrantedNavLinks(
   }
   return links;
 }
+
+// Mirrors each grantable role's own hardcoded nav (see <Role>Nav.tsx). Kept
+// here too so a granted guest keeps seeing their own section's links while
+// browsing a module granted to them elsewhere — without this, every layout's
+// "guest" branch replaces `base` with `[]`, so a role's own navbar options
+// would disappear the moment they followed a cross-granted link out of it.
+const HOME_NAV: Partial<Record<Role, { href: string; label: string; icon: string }[]>> = {
+  ADMIN: [
+    { href: "/admin/panel", label: "Panel", icon: "◉" },
+    { href: "/admin/users", label: "Xodimlar", icon: "◈" },
+    { href: "/admin/shifts", label: "Smenalar", icon: "▤" },
+    { href: "/admin/access", label: "Huquqlar", icon: "▨" },
+  ],
+  OWNER: [
+    { href: "/owner", label: "Foyda paneli", icon: "◉" },
+    { href: "/owner/report", label: "Hisobot", icon: "▨" },
+    { href: "/owner/drivers", label: "Haydovchilar", icon: "◈" },
+  ],
+  ACCOUNTANT: [
+    { href: "/accountant/report", label: "Hisobot", icon: "▨" },
+    { href: "/accountant/payroll", label: "Vedomost", icon: "▤" },
+    { href: "/accountant/advances", label: "Avanslar", icon: "◈" },
+    { href: "/accountant/fines", label: "Jarimalar", icon: "▥" },
+    { href: "/accountant/expenses", label: "Rasxodlar", icon: "◉" },
+  ],
+  MECHANIC: [
+    { href: "/mechanic/fuel", label: "Yoqilg'i", icon: "◉" },
+    { href: "/mechanic/vehicles", label: "Mashinalar", icon: "▤" },
+    { href: "/mechanic/fuel/payments", label: "To'lovlar", icon: "▥" },
+    { href: "/mechanic/shifts", label: "Smenalar", icon: "▦" },
+  ],
+};
+
+/**
+ * For a role acting as a "guest" outside its own section: its own native nav
+ * plus every module granted to it elsewhere, deduped by href — so the
+ * navbar's option count stays the same no matter which granted screen it's
+ * currently on, instead of shrinking to just that screen's local extras.
+ */
+export async function getGuestNavLinks(
+  role: Role,
+  excludeKeys: ModuleKey[] = []
+): Promise<{ href: string; label: string; icon: string }[]> {
+  const home = HOME_NAV[role] ?? [];
+  const granted = await getGrantedNavLinks(role, excludeKeys);
+  const seenHref = new Set(home.map((l) => l.href));
+  const links = [...home];
+  for (const l of granted) {
+    if (seenHref.has(l.href)) continue;
+    seenHref.add(l.href);
+    links.push(l);
+  }
+  return links;
+}

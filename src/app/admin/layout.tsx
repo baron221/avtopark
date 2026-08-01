@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/app/actions";
-import { hasAnyModuleAccess, getGrantedNavLinks } from "@/lib/access";
+import { hasAnyModuleAccess, getGuestNavLinks } from "@/lib/access";
 import { AdminNavDesktop, AdminNavMobile } from "./AdminNav";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -11,7 +11,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!isAdmin && !(await hasAnyModuleAccess(session.user.role, ["FLEET_DASHBOARD", "USER_MANAGEMENT", "SHIFTS"]))) {
     redirect("/coming-soon");
   }
-  const extra = isAdmin ? [] : await getGrantedNavLinks(session.user.role);
+  const extra = isAdmin ? [] : await getGuestNavLinks(session.user.role);
 
   return (
     <div className="min-h-screen flex flex-col pb-16 lg:pb-0">

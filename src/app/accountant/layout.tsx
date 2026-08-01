@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/app/actions";
-import { hasAnyModuleAccess, getGrantedNavLinks } from "@/lib/access";
+import { hasAnyModuleAccess, getGrantedNavLinks, getGuestNavLinks } from "@/lib/access";
 import { AccountantNavDesktop, AccountantNavMobile } from "./AccountantNav";
 
 export default async function AccountantLayout({ children }: { children: React.ReactNode }) {
@@ -13,7 +13,7 @@ export default async function AccountantLayout({ children }: { children: React.R
   }
   const extra = isAccountant
     ? await getGrantedNavLinks(session.user.role, ["FLEET_DASHBOARD", "PAYROLL"])
-    : await getGrantedNavLinks(session.user.role);
+    : await getGuestNavLinks(session.user.role);
 
   return (
     <div className="min-h-screen flex flex-col pb-16 lg:pb-0">
