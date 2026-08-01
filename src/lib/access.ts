@@ -99,6 +99,18 @@ export async function getGrantedModuleKeys(role: Role): Promise<ModuleKey[]> {
   return rows.map((r) => r.module as ModuleKey);
 }
 
+// A few roles already show a module's exact same data on one of their own
+// native screens (ACCOUNTANT's "Hisobot" and ADMIN's "Panel" both embed the
+// identical fleet dashboard as /owner, just wrapped in their own nav style).
+// For those roles, point the granted module at that native screen instead of
+// the standalone /owner page — its own distinct header/nav would otherwise
+// look like a jarringly different app, and getGuestNavLinks's href-dedup then
+// drops the now-redundant duplicate automatically.
+const ROLE_HREF_OVERRIDE: Partial<Record<Role, Partial<Record<ModuleKey, string>>>> = {
+  ACCOUNTANT: { FLEET_DASHBOARD: "/accountant/report" },
+  ADMIN: { FLEET_DASHBOARD: "/admin/panel" },
+};
+
 /** Extra nav links for modules a role has beyond its own native screens. */
 export async function getGrantedNavLinks(
   role: Role,
@@ -110,9 +122,10 @@ export async function getGrantedNavLinks(
   for (const m of MODULES) {
     if (excludeKeys.includes(m.key)) continue;
     if (!granted.has(m.key)) continue;
-    if (seenHref.has(m.href)) continue;
-    seenHref.add(m.href);
-    links.push({ href: m.href, label: m.navLabel, icon: m.navIcon });
+    const href = ROLE_HREF_OVERRIDE[role]?.[m.key] ?? m.href;
+    if (seenHref.has(href)) continue;
+    seenHref.add(href);
+    links.push({ href, label: m.navLabel, icon: m.navIcon });
   }
   return links;
 }
