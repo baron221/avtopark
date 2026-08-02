@@ -20,9 +20,9 @@ export function IncomeForm({
 }) {
   const router = useRouter();
   const [kind, setKind] = useState<"TRIP" | "ORDER">("TRIP");
-  const [passengerCountText, setPassengerCountText] = useState("0");
+  const [passengerCountText, setPassengerCountText] = useState("");
   const passengerCount = Number(passengerCountText) || 0;
-  const [tripNumberText, setTripNumberText] = useState("0");
+  const [tripNumberText, setTripNumberText] = useState("");
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
   const [resetKey, setResetKey] = useState(0);
@@ -106,7 +106,8 @@ export function IncomeForm({
             />
             <MoneyInput
               name="revenue"
-              defaultValue={passengerCount * baseFare}
+              defaultValue={passengerCount > 0 ? passengerCount * baseFare : undefined}
+              placeholder="Сумма"
               key={`trip-${passengerCount}-${resetKey}`}
               className="bg-page border-2 border-success rounded-xl px-3.5 py-3 font-heading text-xl font-bold text-heading outline-none"
             />
