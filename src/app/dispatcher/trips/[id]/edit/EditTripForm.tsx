@@ -16,6 +16,7 @@ export function EditTripForm({
   kind: initialKind,
   driverId,
   passengerCount,
+  tripNumber,
   revenue,
   note,
   drivers,
@@ -26,6 +27,7 @@ export function EditTripForm({
   kind: TripKind;
   driverId: string;
   passengerCount: number;
+  tripNumber: number | null;
   revenue: number;
   note: string;
   drivers: { id: string; name: string }[];
@@ -75,16 +77,28 @@ export function EditTripForm({
       </div>
 
       {kind === "TRIP" && (
-        <div>
-          <div className={labelClass}>Йўловчилар сони</div>
-          <input
-            name="passengerCount"
-            type="number"
-            min={1}
-            defaultValue={passengerCount}
-            className={inputClass}
-          />
-        </div>
+        <>
+          <div>
+            <div className={labelClass}>Йўловчилар сони</div>
+            <input
+              name="passengerCount"
+              type="number"
+              min={1}
+              defaultValue={passengerCount}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <div className={labelClass}>Нечанчи рейс (ихтиёрий)</div>
+            <input
+              name="tripNumber"
+              type="number"
+              min={1}
+              defaultValue={tripNumber ?? ""}
+              className={inputClass}
+            />
+          </div>
+        </>
       )}
 
       <div>

@@ -22,6 +22,7 @@ export function IncomeForm({
   const [kind, setKind] = useState<"TRIP" | "ORDER">("TRIP");
   const [passengerCountText, setPassengerCountText] = useState("0");
   const passengerCount = Number(passengerCountText) || 0;
+  const [tripNumberText, setTripNumberText] = useState("0");
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
   const [resetKey, setResetKey] = useState(0);
@@ -92,6 +93,16 @@ export function IncomeForm({
               onChange={(e) => setPassengerCountText(e.target.value)}
               className="bg-page border-2 border-border rounded-xl px-3.5 py-2.5 font-bold text-sm text-heading outline-none focus:border-success"
               placeholder="Йўловчилар сони"
+            />
+            <input
+              name="tripNumber"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              value={tripNumberText}
+              onChange={(e) => setTripNumberText(e.target.value)}
+              className="bg-page border-2 border-border rounded-xl px-3.5 py-2.5 font-bold text-sm text-heading outline-none focus:border-success"
+              placeholder="Нечанчи рейс (ихтиёрий)"
             />
             <MoneyInput
               name="revenue"

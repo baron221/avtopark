@@ -268,6 +268,7 @@ model Trip {
   tripDate        DateTime @map("trip_date")
   departureTime   DateTime @map("departure_time")
   passengerCount  Int      @map("passenger_count")
+  tripNumber      Int?     @map("trip_number")
   revenue         BigInt
   kind            TripKind @default(TRIP)
   note            String?

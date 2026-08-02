@@ -67,10 +67,13 @@ export async function addTripAction(formData: FormData) {
 
   let passengerCount = 1;
   let revenue = Number(formData.get("revenue") ?? 0);
+  let tripNumber: number | null = null;
 
   if (kind === "TRIP") {
     passengerCount = Number(formData.get("passengerCount") ?? 0);
     if (!revenue) revenue = passengerCount * route.baseFare;
+    const rawTripNumber = Number(formData.get("tripNumber") ?? "");
+    tripNumber = Number.isFinite(rawTripNumber) && rawTripNumber >= 1 ? Math.floor(rawTripNumber) : null;
   }
   if (!(revenue > 0) || !Number.isFinite(passengerCount) || passengerCount < 1) return;
 
@@ -83,6 +86,7 @@ export async function addTripAction(formData: FormData) {
       tripDate: new Date(),
       departureTime: new Date(),
       passengerCount,
+      tripNumber,
       revenue: BigInt(Math.round(revenue)),
       kind,
       note,
@@ -111,8 +115,11 @@ export async function updateTripAction(
   const note = String(formData.get("note") ?? "").trim() || null;
   const revenue = Number(formData.get("revenue") ?? 0);
   let passengerCount = 1;
+  let tripNumber: number | null = null;
   if (kind === "TRIP") {
     passengerCount = Number(formData.get("passengerCount") ?? 0);
+    const rawTripNumber = Number(formData.get("tripNumber") ?? "");
+    tripNumber = Number.isFinite(rawTripNumber) && rawTripNumber >= 1 ? Math.floor(rawTripNumber) : null;
   }
 
   if (!driverId) return { error: "Ҳайдовчини танланг" };
@@ -123,7 +130,7 @@ export async function updateTripAction(
 
   await prisma.trip.update({
     where: { id },
-    data: { driverId, kind, passengerCount, revenue: BigInt(Math.round(revenue)), note },
+    data: { driverId, kind, passengerCount, tripNumber, revenue: BigInt(Math.round(revenue)), note },
   });
 
   const backTo = String(formData.get("backTo") ?? "") === "point" ? "/dispatcher/point" : "/dispatcher/journal";

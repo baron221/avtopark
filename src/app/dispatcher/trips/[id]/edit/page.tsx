@@ -51,6 +51,7 @@ export default async function EditTripPage({
           kind={trip.kind}
           driverId={trip.driverId}
           passengerCount={trip.passengerCount}
+          tripNumber={trip.tripNumber}
           revenue={Number(trip.revenue)}
           note={trip.note ?? ""}
           drivers={driverOptions}

@@ -76,7 +76,7 @@ export default async function DispatcherPointPage({
       plate: t.vehicle.plate,
       driver: t.driver.user.fullName,
       amount: Number(t.revenue),
-      note: t.kind === "ORDER" ? "Алоҳида заказ" : "Рейс тушуми",
+      note: t.kind === "ORDER" ? "Алоҳида заказ" : t.tripNumber ? `${t.tripNumber}-рейс тушуми` : "Рейс тушуми",
     }))
     .sort((a, b) => a.time.getTime() - b.time.getTime());
   const deletePoint = isDispatcher ? undefined : point;

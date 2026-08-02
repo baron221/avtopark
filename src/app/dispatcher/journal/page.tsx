@@ -91,7 +91,7 @@ export default async function DispatcherJournalPage({
       kind: t.kind === "ORDER" ? "Заказ" : "Рейс",
       kindBg: t.kind === "ORDER" ? "#E4F5EC" : "#EEF0F8",
       kindColor: t.kind === "ORDER" ? "#1B9E6B" : "#4F46E5",
-      detail: t.note ?? `${t.vehicle.plate} · Фарғона → Қува`,
+      detail: t.note ?? `${t.vehicle.plate}${t.tripNumber ? ` · ${t.tripNumber}-рейс` : ""} · Фарғона → Қува`,
       amount: Number(t.revenue),
       deleteAction: canTripEntry ? deleteTripAction : undefined,
       editHref: canTripEntry
