@@ -8,6 +8,7 @@ const NAV = [
   { href: "/admin/users", label: "Ходимлар", icon: "◈" },
   { href: "/admin/shifts", label: "Сменалар", icon: "▤" },
   { href: "/admin/access", label: "Ҳуқуқлар", icon: "▨" },
+  { href: "/admin/deletions", label: "Ўчирилганлар", icon: "▩" },
 ];
 
 type NavItem = { href: string; label: string; icon: string };

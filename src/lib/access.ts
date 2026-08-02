@@ -141,6 +141,7 @@ const HOME_NAV: Partial<Record<Role, { href: string; label: string; icon: string
     { href: "/admin/users", label: "Ходимлар", icon: "◈" },
     { href: "/admin/shifts", label: "Сменалар", icon: "▤" },
     { href: "/admin/access", label: "Ҳуқуқлар", icon: "▨" },
+    { href: "/admin/deletions", label: "Ўчирилганлар", icon: "▩" },
   ],
   OWNER: [
     { href: "/owner", label: "Фойда панели", icon: "◉" },
