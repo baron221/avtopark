@@ -43,13 +43,16 @@ export default async function DispatcherPointPage({
   const to = endOfDay(today);
 
   const [vehicles, tripsToday, myExpenseAgg, myLunch, baseFareRoute] = await Promise.all([
+    // The fleet is shared between both points (the same vehicles shuttle
+    // Farg'ona <-> Quva), so every point's dispatcher picks from the whole
+    // active fleet rather than a per-point subset.
     prisma.vehicle.findMany({
-      where: { point, status: "ACTIVE" },
+      where: { status: "ACTIVE" },
       include: { driver: { include: { user: true } } },
       orderBy: { plate: "asc" },
     }),
     prisma.trip.findMany({
-      where: { tripDate: { gte: from, lte: to }, vehicle: { point } },
+      where: { tripDate: { gte: from, lte: to }, point },
       include: { vehicle: true, driver: { include: { user: true } } },
       orderBy: { createdAt: "asc" },
     }),

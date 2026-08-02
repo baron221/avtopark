@@ -27,8 +27,8 @@ export default async function EditTripPage({
 
   const point: Point = isDispatcher ? session.user.point! : pointParam === "QUVA" ? "QUVA" : "FARGONA";
 
-  const trip = await prisma.trip.findUnique({ where: { id }, include: { vehicle: true } });
-  if (!trip || trip.vehicle.point !== point) notFound();
+  const trip = await prisma.trip.findUnique({ where: { id } });
+  if (!trip || trip.point !== point) notFound();
 
   const drivers = await prisma.driver.findMany({ include: { user: true }, orderBy: { user: { fullName: "asc" } } });
   const driverOptions = drivers.map((d) => ({ id: d.id, name: d.user.fullName }));

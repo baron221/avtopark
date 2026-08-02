@@ -55,8 +55,12 @@ export async function addTripAction(formData: FormData) {
   const vehicleId = String(formData.get("vehicleId") ?? "");
   const note = String(formData.get("note") ?? "").trim() || null;
 
+  // The fleet is shared: the same vehicles shuttle between both points, so a
+  // vehicle has no single "home" point — any active vehicle can be picked
+  // here, and the point that matters (who collected the cash) is the acting
+  // dispatcher's own point, stored on the Trip itself below.
   const vehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId }, include: { driver: true } });
-  if (!vehicle || vehicle.point !== point || !vehicle.driver) return;
+  if (!vehicle || vehicle.status !== "ACTIVE" || !vehicle.driver) return;
 
   const route = await prisma.route.findFirst({ where: { isActive: true } });
   if (!route) return;
@@ -75,6 +79,7 @@ export async function addTripAction(formData: FormData) {
       vehicleId,
       driverId: vehicle.driver.id,
       routeId: route.id,
+      point,
       tripDate: new Date(),
       departureTime: new Date(),
       passengerCount,
@@ -98,8 +103,8 @@ export async function updateTripAction(
   const { point } = await requireDispatcherOrGranted(formData, ["TRIP_ENTRY", "COLLECT_PAYMENT"]);
   const id = String(formData.get("id") ?? "");
 
-  const trip = await prisma.trip.findUnique({ where: { id }, include: { vehicle: true } });
-  if (!trip || trip.vehicle.point !== point) return { error: "Рейс топилмади" };
+  const trip = await prisma.trip.findUnique({ where: { id } });
+  if (!trip || trip.point !== point) return { error: "Рейс топилмади" };
 
   const driverId = String(formData.get("driverId") ?? "").trim();
   const kind = (formData.get("kind") === "ORDER" ? "ORDER" : "TRIP") as TripKind;
@@ -135,7 +140,7 @@ export async function deleteTripAction(formData: FormData) {
     where: { id },
     include: { vehicle: true, driver: { include: { user: true } } },
   });
-  if (!trip || trip.vehicle.point !== point) return;
+  if (!trip || trip.point !== point) return;
 
   const kindLabel = trip.kind === "ORDER" ? "Заказ" : "Рейс";
   await logDeletion(

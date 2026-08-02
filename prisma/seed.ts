@@ -182,6 +182,7 @@ async function main() {
             vehicleId: vehicles[i].id,
             driverId,
             routeId: route.id,
+            point: vehicles[i].point!,
             tripDate: daysAgo(d),
             departureTime: daysAgo(d),
             passengerCount,

@@ -260,6 +260,11 @@ model Trip {
   vehicleId       String   @map("vehicle_id")
   driverId        String   @map("driver_id")
   routeId         String   @map("route_id")
+  // Which point's dispatcher collected/entered this trip's revenue. Kept
+  // separate from Vehicle.point because the same shared fleet shuttles both
+  // Farg'ona and Quva — a vehicle has no single "home" point, so the point
+  // that matters for cash-collection reporting has to live on the Trip itself.
+  point           Point
   tripDate        DateTime @map("trip_date")
   departureTime   DateTime @map("departure_time")
   passengerCount  Int      @map("passenger_count")
@@ -277,6 +282,7 @@ model Trip {
   @@index([vehicleId, tripDate])
   @@index([driverId])
   @@index([tripDate])
+  @@index([point, tripDate])
   @@map("trips")
 }
 

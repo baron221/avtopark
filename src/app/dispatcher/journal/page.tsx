@@ -53,7 +53,7 @@ export default async function DispatcherJournalPage({
 
   const [trips, expenses, lunches] = await Promise.all([
     prisma.trip.findMany({
-      where: { tripDate: { gte: from, lte: to }, vehicle: { point } },
+      where: { tripDate: { gte: from, lte: to }, point },
       include: { vehicle: true },
       orderBy: { createdAt: "asc" },
     }),
