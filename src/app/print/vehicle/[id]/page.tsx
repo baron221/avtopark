@@ -33,9 +33,13 @@ export default async function VehicleReportPrintPage({
   return (
     <div className="max-w-[420px] mx-auto p-8 text-black bg-white">
       <PrintTrigger />
-      <h1 className="text-center text-xl font-extrabold mb-1">{report.plate}</h1>
+      <h1 className="text-center text-xl font-extrabold mb-1">
+        {report.plate}
+        {report.driverName ? ` · ${report.driverName}` : ""}
+      </h1>
       <p className="text-center text-sm text-gray-600 mb-4">
-        {report.periodLabel} · {report.rangeLabel}
+        {report.periodLabel} · {report.rangeLabel} · {report.tripCount} рейс
+        {report.orderCount > 0 ? ` · ${report.orderCount} заказ` : ""}
       </p>
       <table className="w-full border-collapse text-sm">
         <thead>

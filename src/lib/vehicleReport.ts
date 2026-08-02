@@ -10,8 +10,11 @@ export type VehicleReportLine = { label: string; amount: number };
 
 export type VehicleReport = {
   plate: string;
+  driverName: string | null;
   periodLabel: string;
   rangeLabel: string;
+  tripCount: number;
+  orderCount: number;
   expenseLines: VehicleReportLine[];
   totalExpense: number;
   income: number;
@@ -25,7 +28,7 @@ function fmtDate(d: Date) {
 export async function getVehicleReport(vehicleId: string, period: Period): Promise<VehicleReport | null> {
   const vehicle = await prisma.vehicle.findUnique({
     where: { id: vehicleId },
-    include: { driver: true },
+    include: { driver: { include: { user: true } } },
   });
   if (!vehicle) return null;
 
@@ -38,7 +41,7 @@ export async function getVehicleReport(vehicleId: string, period: Period): Promi
 
   const [trips, dailyPlans, fuelLogs, expenses, activeVehicleCount, driverSalary, staffSalaryAgg, staffExpenseAgg] =
     await Promise.all([
-      prisma.trip.findMany({ where: { vehicleId, tripDate: { gte: from, lte: to } }, select: { revenue: true } }),
+      prisma.trip.findMany({ where: { vehicleId, tripDate: { gte: from, lte: to } }, select: { revenue: true, kind: true } }),
       prisma.dailyPlan.findMany({ where: { vehicleId, planDate: { gte: from, lte: to } }, select: { paidAmount: true } }),
       prisma.fuelLog.findMany({
         where: { vehicleId, filledAt: { gte: from, lte: to } },
@@ -58,6 +61,8 @@ export async function getVehicleReport(vehicleId: string, period: Period): Promi
 
   const income =
     trips.reduce((s, t) => s + Number(t.revenue), 0) + dailyPlans.reduce((s, p) => s + Number(p.paidAmount), 0);
+  const tripCount = trips.filter((t) => t.kind === "TRIP").length;
+  const orderCount = trips.filter((t) => t.kind === "ORDER").length;
 
   const fuelByTypeMap = new Map<string, number>();
   for (const log of fuelLogs) {
@@ -99,8 +104,11 @@ export async function getVehicleReport(vehicleId: string, period: Period): Promi
 
   return {
     plate: vehicle.plate,
+    driverName: vehicle.driver?.user.fullName ?? null,
     periodLabel: PERIOD_LABELS[period],
     rangeLabel: period === "DAY" ? fmtDate(from) : `${fmtDate(from)} – ${fmtDate(to)}`,
+    tripCount,
+    orderCount,
     expenseLines,
     totalExpense,
     income,

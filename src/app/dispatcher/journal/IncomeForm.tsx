@@ -20,7 +20,8 @@ export function IncomeForm({
 }) {
   const router = useRouter();
   const [kind, setKind] = useState<"TRIP" | "ORDER">("TRIP");
-  const [passengerCount, setPassengerCount] = useState(10);
+  const [passengerCountText, setPassengerCountText] = useState("10");
+  const passengerCount = Number(passengerCountText) || 0;
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
   const [resetKey, setResetKey] = useState(0);
@@ -85,9 +86,10 @@ export function IncomeForm({
             <input
               name="passengerCount"
               type="number"
+              inputMode="numeric"
               min={1}
-              value={passengerCount}
-              onChange={(e) => setPassengerCount(Number(e.target.value) || 0)}
+              value={passengerCountText}
+              onChange={(e) => setPassengerCountText(e.target.value)}
               className="bg-page border-2 border-border rounded-xl px-3.5 py-2.5 font-bold text-sm text-heading outline-none focus:border-success"
               placeholder="Йўловчилар сони"
             />

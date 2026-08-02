@@ -193,8 +193,14 @@ export default async function VehicleDetailPage({
         <Card className="overflow-hidden">
           <div className="flex justify-between items-center px-6 py-3.5 flex-wrap gap-3">
             <div>
-              <div className="font-heading font-bold text-base text-heading">{report.plate}</div>
-              <div className="text-xs text-muted-2 font-semibold">{report.rangeLabel}</div>
+              <div className="font-heading font-bold text-base text-heading">
+                {report.plate}
+                {report.driverName ? ` · ${report.driverName}` : ""}
+              </div>
+              <div className="text-xs text-muted-2 font-semibold">
+                {report.rangeLabel} · {report.tripCount} рейс
+                {report.orderCount > 0 ? ` · ${report.orderCount} заказ` : ""}
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <PeriodToggle active={period} basePath={`/mechanic/vehicles/${vehicle.id}`} />
