@@ -13,6 +13,7 @@ export function PeriodToggle({ active, basePath }: { active: string; basePath: s
         <Link
           key={opt.value}
           href={`${basePath}?period=${opt.value}`}
+          scroll={false}
           className={`px-[18px] py-[7px] rounded-lg text-[13px] font-bold ${
             active === opt.value ? "bg-primary text-white" : "text-muted"
           }`}
