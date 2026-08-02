@@ -5,7 +5,14 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hasAnyModuleAccess, type ModuleKey } from "@/lib/access";
+import { logDeletion } from "@/lib/deletionLog";
 import type { Point, StaffExpenseCategory, StaffExpensePoint, TripKind } from "@prisma/client";
+
+const EXPENSE_CATEGORY_LABELS: Record<string, string> = {
+  STOYANKA: "Стоянка",
+  OZIQ_OVQAT: "Озиқ-овқат",
+  BOSHQA: "Бошқа",
+};
 
 function startOfDay(d: Date) {
   const x = new Date(d);
@@ -121,12 +128,22 @@ export async function updateTripAction(
 }
 
 export async function deleteTripAction(formData: FormData) {
-  const { point } = await requireDispatcherOrGranted(formData, ["TRIP_ENTRY", "COLLECT_PAYMENT"]);
+  const { userId, point } = await requireDispatcherOrGranted(formData, ["TRIP_ENTRY", "COLLECT_PAYMENT"]);
   const id = String(formData.get("id") ?? "");
 
-  const trip = await prisma.trip.findUnique({ where: { id }, include: { vehicle: true } });
+  const trip = await prisma.trip.findUnique({
+    where: { id },
+    include: { vehicle: true, driver: { include: { user: true } } },
+  });
   if (!trip || trip.vehicle.point !== point) return;
 
+  const kindLabel = trip.kind === "ORDER" ? "Заказ" : "Рейс";
+  await logDeletion(
+    "Trip",
+    trip.id,
+    `${kindLabel} · ${trip.vehicle.plate} · ${trip.driver.user.fullName} · ${trip.revenue.toString()} сўм`,
+    userId
+  );
   await prisma.trip.delete({ where: { id } });
 
   revalidatePath("/dispatcher/journal");
@@ -187,12 +204,18 @@ export async function updateStaffExpenseAction(
 }
 
 export async function deleteStaffExpenseAction(formData: FormData) {
-  const { point } = await requireDispatcherOrGranted(formData, "INCOME_EXPENSE_LOG");
+  const { userId, point } = await requireDispatcherOrGranted(formData, "INCOME_EXPENSE_LOG");
   const id = String(formData.get("id") ?? "");
 
   const expense = await prisma.staffExpense.findUnique({ where: { id } });
   if (!expense || expense.point !== toStaffExpensePoint(point)) return;
 
+  await logDeletion(
+    "StaffExpense",
+    expense.id,
+    `${EXPENSE_CATEGORY_LABELS[expense.category] ?? expense.category} · ${expense.amount.toString()} сўм${expense.note ? ` · ${expense.note}` : ""}`,
+    userId
+  );
   await prisma.staffExpense.delete({ where: { id } });
 
   revalidatePath("/dispatcher/journal");
@@ -241,12 +264,18 @@ export async function updateLunchAction(
 }
 
 export async function deleteLunchAction(formData: FormData) {
-  const { point } = await requireDispatcherOrGranted(formData, "INCOME_EXPENSE_LOG");
+  const { userId, point } = await requireDispatcherOrGranted(formData, "INCOME_EXPENSE_LOG");
   const id = String(formData.get("id") ?? "");
 
   const lunch = await prisma.lunch.findUnique({ where: { id }, include: { user: true } });
   if (!lunch || lunch.user.point !== point) return;
 
+  await logDeletion(
+    "Lunch",
+    lunch.id,
+    `Тушлик · ${lunch.user.fullName} · ${lunch.amount.toString()} сўм`,
+    userId
+  );
   await prisma.lunch.delete({ where: { id } });
 
   revalidatePath("/dispatcher/journal");

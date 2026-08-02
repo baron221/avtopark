@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hasModuleAccess } from "@/lib/access";
+import { ROLE_LABELS } from "@/components/ui/RoleBadge";
 import type { Point, Role, SalaryType } from "@prisma/client";
 
 async function requireAdmin() {
@@ -151,6 +152,14 @@ export async function deleteUserAction(formData: FormData) {
 
   try {
     await prisma.$transaction(async (tx) => {
+      await tx.deletionLog.create({
+        data: {
+          entityType: "User",
+          entityId: user.id,
+          summary: `${ROLE_LABELS[user.role]} · ${user.fullName} · ${user.phone}`,
+          deletedBy: session.user.id,
+        },
+      });
       if (user.driver) {
         await tx.driver.delete({ where: { id: user.driver.id } });
       }

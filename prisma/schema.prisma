@@ -143,10 +143,31 @@ model User {
   advances         Advance[]        @relation("AdvanceUser")
   advancesEntered  Advance[]        @relation("AdvanceEnteredBy")
   oilChangesEntered OilChange[]     @relation("OilChangeEnteredBy")
+  deletionsPerformed DeletionLog[]  @relation("DeletionLogDeletedBy")
 
   @@index([role])
   @@index([point])
   @@map("users")
+}
+
+// Deleting a Trip/StaffExpense/Lunch/User removes the row entirely (this app
+// intentionally has no soft-delete), so without this there was no way to
+// answer "who deleted this and when" after the fact. entityType/entityId are
+// plain strings, not a real FK, since the row they point at is gone by the
+// time this exists.
+model DeletionLog {
+  id         String   @id @default(uuid())
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  summary    String
+  deletedBy  String   @map("deleted_by")
+  deletedAt  DateTime @default(now()) @map("deleted_at")
+
+  deletedByUser User @relation("DeletionLogDeletedBy", fields: [deletedBy], references: [id])
+
+  @@index([deletedAt])
+  @@index([entityType, entityId])
+  @@map("deletion_logs")
 }
 
 model Vehicle {
