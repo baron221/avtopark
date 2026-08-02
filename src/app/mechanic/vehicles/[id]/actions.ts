@@ -155,6 +155,7 @@ export async function createDriverAction(
 
   const passwordHash = await bcrypt.hash(password, 10);
 
+  const now = new Date();
   const driver = await prisma.$transaction(async (tx) => {
     const user = await tx.user.create({
       data: { fullName, phone, role: "DRIVER", passwordHash },
@@ -162,16 +163,23 @@ export async function createDriverAction(
     // Same free-then-assign rule as assignDriverAction, in case this vehicle
     // already had a driver.
     await tx.driver.updateMany({ where: { vehicleId }, data: { vehicleId: null } });
-    return tx.driver.create({
+    // Close out whoever was previously logged as driving this vehicle, so
+    // the assignment history shows a clean handoff instead of overlapping.
+    await tx.driverAssignmentLog.updateMany({ where: { vehicleId, endedAt: null }, data: { endedAt: now } });
+    const newDriver = await tx.driver.create({
       data: {
         userId: user.id,
         vehicleId,
         licenseNo: licenseNo || "—",
         salaryType,
         salaryValue,
-        hiredAt: new Date(),
+        hiredAt: now,
       },
     });
+    await tx.driverAssignmentLog.create({
+      data: { vehicleId, driverId: newDriver.id, startedAt: now, endedAt: null },
+    });
+    return newDriver;
   });
 
   // Keep this month's Shift row in sync so the Smenalar pages show the same

@@ -8,6 +8,7 @@ import { PeriodToggle } from "@/components/ui/PeriodToggle";
 import { formatSom } from "@/lib/format";
 import { getOwnerDashboardVM, type Period } from "@/lib/dashboard";
 import { getVehicleReport } from "@/lib/vehicleReport";
+import { getDriverAssignmentHistory } from "@/lib/driverAssignment";
 import { hasModuleAccess } from "@/lib/access";
 import { StatusSelect } from "./StatusSelect";
 import { ExpenseForm } from "./ExpenseForm";
@@ -44,13 +45,14 @@ export default async function VehicleDetailPage({
   const { period: periodParam } = await searchParams;
   const period: Period = isPeriod(periodParam) ? periodParam : "MONTH";
 
-  const [vehicle, vm, expenses, drivers, oilChanges, report] = await Promise.all([
+  const [vehicle, vm, expenses, drivers, oilChanges, report, assignmentHistory] = await Promise.all([
     prisma.vehicle.findUnique({ where: { id }, include: { driver: { include: { user: true } } } }),
     getOwnerDashboardVM("MONTH"),
     prisma.expense.findMany({ where: { vehicleId: id }, orderBy: { expenseDate: "desc" }, take: 10 }),
     prisma.driver.findMany({ include: { user: true, vehicle: true }, orderBy: { user: { fullName: "asc" } } }),
     prisma.oilChange.findMany({ where: { vehicleId: id }, orderBy: { changedAt: "desc" }, take: 10 }),
     getVehicleReport(id, period),
+    getDriverAssignmentHistory(id),
   ]);
 
   if (!vehicle) notFound();
@@ -97,6 +99,27 @@ export default async function VehicleDetailPage({
           <AddDriverForm vehicleId={vehicle.id} />
         </div>
       </div>
+
+      {assignmentHistory.length > 0 && (
+        <Card className="overflow-hidden">
+          <div className="px-6 py-3.5 font-heading font-bold text-base text-heading">Ҳайдовчилар тарихи</div>
+          {assignmentHistory.map((a, i) => (
+            <div
+              key={i}
+              className="flex justify-between items-center px-6 py-2.5 border-t border-row-divider text-sm gap-2"
+            >
+              <div className="font-bold text-heading">{a.driverName}</div>
+              <div className="text-muted-2 font-semibold text-xs">
+                {a.startedAt.toLocaleDateString("uz-UZ", { day: "numeric", month: "long" })}
+                {" – "}
+                {a.endedAt
+                  ? a.endedAt.toLocaleDateString("uz-UZ", { day: "numeric", month: "long" })
+                  : "ҳозиргача"}
+              </div>
+            </div>
+          ))}
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard label={`Тушум · ${vm.periodLabel}`} value={formatSom(row?.income ?? 0)} />

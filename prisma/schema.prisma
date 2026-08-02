@@ -170,6 +170,7 @@ model Vehicle {
   fines           Fine[]
   fuelLogs        FuelLog[]
   oilChanges      OilChange[]
+  assignmentLogs  DriverAssignmentLog[]
 
   @@index([point])
   @@index([status])
@@ -210,11 +211,12 @@ model Driver {
   user    User     @relation(fields: [userId], references: [id])
   vehicle Vehicle? @relation(fields: [vehicleId], references: [id])
 
-  trips      Trip[]
-  dailyPlans DailyPlan[]
-  expenses   Expense[]
-  shifts     Shift[]
-  fuelLogs   FuelLog[]
+  trips          Trip[]
+  dailyPlans     DailyPlan[]
+  expenses       Expense[]
+  shifts         Shift[]
+  fuelLogs       FuelLog[]
+  assignmentLogs DriverAssignmentLog[]
 
   @@map("drivers")
 }
@@ -330,6 +332,27 @@ model Shift {
   @@unique([vehicleId, month])
   @@index([driverId])
   @@map("shifts")
+}
+
+// A dated log of exactly who drove which vehicle when — separate from Shift
+// (which only ever tracks the current month's single assignment) so that
+// mid-month driver swaps (e.g. one driver gets tired and hands off to
+// another) leave a real audit trail instead of silently overwriting who
+// drove earlier in the month. endedAt is null while the assignment is still
+// current.
+model DriverAssignmentLog {
+  id        String    @id @default(uuid())
+  vehicleId String    @map("vehicle_id")
+  driverId  String    @map("driver_id")
+  startedAt DateTime  @map("started_at")
+  endedAt   DateTime? @map("ended_at")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+  driver  Driver  @relation(fields: [driverId], references: [id])
+
+  @@index([vehicleId, startedAt])
+  @@index([driverId])
+  @@map("driver_assignment_logs")
 }
 
 model Fine {
