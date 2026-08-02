@@ -20,7 +20,7 @@ export function IncomeForm({
 }) {
   const router = useRouter();
   const [kind, setKind] = useState<"TRIP" | "ORDER">("TRIP");
-  const [passengerCountText, setPassengerCountText] = useState("10");
+  const [passengerCountText, setPassengerCountText] = useState("0");
   const passengerCount = Number(passengerCountText) || 0;
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
