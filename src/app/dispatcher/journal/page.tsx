@@ -82,6 +82,7 @@ export default async function DispatcherJournalPage({
     detail: string;
     amount: number;
     deleteAction?: (formData: FormData) => Promise<void>;
+    editHref?: string;
   };
   const log: LogEntry[] = [
     ...trips.map((t) => ({
@@ -93,6 +94,9 @@ export default async function DispatcherJournalPage({
       detail: t.note ?? `${t.vehicle.plate} · Фарғона → Қува`,
       amount: Number(t.revenue),
       deleteAction: canTripEntry ? deleteTripAction : undefined,
+      editHref: canTripEntry
+        ? `/dispatcher/trips/${t.id}/edit?from=journal${isDispatcher ? "" : `&point=${point}`}`
+        : undefined,
     })),
     ...expenses.map((e) => ({
       id: e.id,
@@ -103,6 +107,9 @@ export default async function DispatcherJournalPage({
       detail: e.note ?? EXPENSE_CATEGORY_LABELS[e.category] ?? e.category,
       amount: -Number(e.amount),
       deleteAction: canIncomeExpense ? deleteStaffExpenseAction : undefined,
+      editHref: canIncomeExpense
+        ? `/dispatcher/expenses/${e.id}/edit?from=journal${isDispatcher ? "" : `&point=${point}`}`
+        : undefined,
     })),
     ...lunches.map((l) => ({
       id: l.id,
@@ -113,6 +120,9 @@ export default async function DispatcherJournalPage({
       detail: "Тушлик",
       amount: -Number(l.amount),
       deleteAction: canIncomeExpense ? deleteLunchAction : undefined,
+      editHref: canIncomeExpense
+        ? `/dispatcher/lunches/${l.id}/edit?from=journal${isDispatcher ? "" : `&point=${point}`}`
+        : undefined,
     })),
   ].sort((a, b) => a.time.getTime() - b.time.getTime());
 
@@ -160,7 +170,7 @@ export default async function DispatcherJournalPage({
           {log.map((l) => (
             <div
               key={l.id}
-              className="grid grid-cols-[52px_100px_1fr_auto_24px] gap-2.5 px-5 py-2.5 border-t border-row-divider items-center text-[13px]"
+              className="grid grid-cols-[52px_100px_1fr_auto_48px] gap-2.5 px-5 py-2.5 border-t border-row-divider items-center text-[13px]"
             >
               <div className="text-muted-2 font-bold">{formatTime(l.time)}</div>
               <div>
@@ -176,7 +186,12 @@ export default async function DispatcherJournalPage({
                 {l.amount >= 0 ? "+" : "−"}
                 {formatSom(Math.abs(l.amount))}
               </div>
-              <div>
+              <div className="flex items-center gap-1.5">
+                {l.editHref && (
+                  <Link href={l.editHref} title="Таҳрирлаш" className="text-muted-2 hover:text-primary text-base leading-none px-1">
+                    ✎
+                  </Link>
+                )}
                 {l.deleteAction && <DeleteEntryButton action={l.deleteAction} id={l.id} point={deletePoint} />}
               </div>
             </div>

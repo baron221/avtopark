@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hasAnyModuleAccess, type ModuleKey } from "@/lib/access";
@@ -81,6 +82,44 @@ export async function addTripAction(formData: FormData) {
   revalidatePath("/dispatcher/point");
 }
 
+export type UpdateTripState = { error: string };
+
+export async function updateTripAction(
+  _prevState: UpdateTripState,
+  formData: FormData
+): Promise<UpdateTripState> {
+  const { point } = await requireDispatcherOrGranted(formData, ["TRIP_ENTRY", "COLLECT_PAYMENT"]);
+  const id = String(formData.get("id") ?? "");
+
+  const trip = await prisma.trip.findUnique({ where: { id }, include: { vehicle: true } });
+  if (!trip || trip.vehicle.point !== point) return { error: "Рейс топилмади" };
+
+  const driverId = String(formData.get("driverId") ?? "").trim();
+  const kind = (formData.get("kind") === "ORDER" ? "ORDER" : "TRIP") as TripKind;
+  const note = String(formData.get("note") ?? "").trim() || null;
+  const revenue = Number(formData.get("revenue") ?? 0);
+  let passengerCount = 1;
+  if (kind === "TRIP") {
+    passengerCount = Number(formData.get("passengerCount") ?? 0);
+  }
+
+  if (!driverId) return { error: "Ҳайдовчини танланг" };
+  if (!(revenue > 0)) return { error: "Суммани тўғри киритинг" };
+  if (kind === "TRIP" && (!Number.isFinite(passengerCount) || passengerCount < 1)) {
+    return { error: "Йўловчилар сонини тўғри киритинг" };
+  }
+
+  await prisma.trip.update({
+    where: { id },
+    data: { driverId, kind, passengerCount, revenue: BigInt(Math.round(revenue)), note },
+  });
+
+  const backTo = String(formData.get("backTo") ?? "") === "point" ? "/dispatcher/point" : "/dispatcher/journal";
+  revalidatePath("/dispatcher/journal");
+  revalidatePath("/dispatcher/point");
+  redirect(backTo);
+}
+
 export async function deleteTripAction(formData: FormData) {
   const { point } = await requireDispatcherOrGranted(formData, ["TRIP_ENTRY", "COLLECT_PAYMENT"]);
   const id = String(formData.get("id") ?? "");
@@ -118,6 +157,35 @@ export async function addStaffExpenseAction(formData: FormData) {
   revalidatePath("/dispatcher/point");
 }
 
+export type UpdateStaffExpenseState = { error: string };
+
+export async function updateStaffExpenseAction(
+  _prevState: UpdateStaffExpenseState,
+  formData: FormData
+): Promise<UpdateStaffExpenseState> {
+  const { point } = await requireDispatcherOrGranted(formData, "INCOME_EXPENSE_LOG");
+  const id = String(formData.get("id") ?? "");
+
+  const expense = await prisma.staffExpense.findUnique({ where: { id } });
+  if (!expense || expense.point !== toStaffExpensePoint(point)) return { error: "Ёзув топилмади" };
+
+  const category = formData.get("category") as StaffExpenseCategory;
+  const amount = Number(formData.get("amount") ?? 0);
+  const note = String(formData.get("note") ?? "").trim() || null;
+  if (!category) return { error: "Тоифани танланг" };
+  if (!(amount > 0)) return { error: "Суммани тўғри киритинг" };
+
+  await prisma.staffExpense.update({
+    where: { id },
+    data: { category, amount: BigInt(Math.round(amount)), note },
+  });
+
+  const backTo = String(formData.get("backTo") ?? "") === "point" ? "/dispatcher/point" : "/dispatcher/journal";
+  revalidatePath("/dispatcher/journal");
+  revalidatePath("/dispatcher/point");
+  redirect(backTo);
+}
+
 export async function deleteStaffExpenseAction(formData: FormData) {
   const { point } = await requireDispatcherOrGranted(formData, "INCOME_EXPENSE_LOG");
   const id = String(formData.get("id") ?? "");
@@ -147,6 +215,29 @@ export async function addLunchAction(formData: FormData) {
 
   revalidatePath("/dispatcher/journal");
   revalidatePath("/dispatcher/point");
+}
+
+export type UpdateLunchState = { error: string };
+
+export async function updateLunchAction(
+  _prevState: UpdateLunchState,
+  formData: FormData
+): Promise<UpdateLunchState> {
+  const { point } = await requireDispatcherOrGranted(formData, "INCOME_EXPENSE_LOG");
+  const id = String(formData.get("id") ?? "");
+
+  const lunch = await prisma.lunch.findUnique({ where: { id }, include: { user: true } });
+  if (!lunch || lunch.user.point !== point) return { error: "Ёзув топилмади" };
+
+  const amount = Number(formData.get("amount") ?? 0);
+  if (!(amount > 0)) return { error: "Суммани тўғри киритинг" };
+
+  await prisma.lunch.update({ where: { id }, data: { amount: BigInt(Math.round(amount)) } });
+
+  const backTo = String(formData.get("backTo") ?? "") === "point" ? "/dispatcher/point" : "/dispatcher/journal";
+  revalidatePath("/dispatcher/journal");
+  revalidatePath("/dispatcher/point");
+  redirect(backTo);
 }
 
 export async function deleteLunchAction(formData: FormData) {
