@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hasAnyModuleAccess, type ModuleKey } from "@/lib/access";
 import { logDeletion } from "@/lib/deletionLog";
+import { sendSms } from "@/lib/sms";
 import type { Point, StaffExpenseCategory, StaffExpensePoint, TripKind } from "@prisma/client";
 
 const EXPENSE_CATEGORY_LABELS: Record<string, string> = {
@@ -13,6 +14,15 @@ const EXPENSE_CATEGORY_LABELS: Record<string, string> = {
   OZIQ_OVQAT: "Озиқ-овқат",
   BOSHQA: "Бошқа",
 };
+
+const POINT_LABELS: Record<Point, string> = {
+  FARGONA: "Фарғона",
+  QUVA: "Қува",
+};
+
+function formatTime(d: Date) {
+  return d.toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" });
+}
 
 function startOfDay(d: Date) {
   const x = new Date(d);
@@ -59,7 +69,10 @@ export async function addTripAction(formData: FormData) {
   // vehicle has no single "home" point — any active vehicle can be picked
   // here, and the point that matters (who collected the cash) is the acting
   // dispatcher's own point, stored on the Trip itself below.
-  const vehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId }, include: { driver: true } });
+  const vehicle = await prisma.vehicle.findUnique({
+    where: { id: vehicleId },
+    include: { driver: { include: { user: true } } },
+  });
   if (!vehicle || vehicle.status !== "ACTIVE" || !vehicle.driver) return;
 
   const route = await prisma.route.findFirst({ where: { isActive: true } });
@@ -77,14 +90,15 @@ export async function addTripAction(formData: FormData) {
   }
   if (!(revenue > 0) || !Number.isFinite(passengerCount) || passengerCount < 1) return;
 
+  const now = new Date();
   await prisma.trip.create({
     data: {
       vehicleId,
       driverId: vehicle.driver.id,
       routeId: route.id,
       point,
-      tripDate: new Date(),
-      departureTime: new Date(),
+      tripDate: now,
+      departureTime: now,
       passengerCount,
       tripNumber,
       revenue: BigInt(Math.round(revenue)),
@@ -93,6 +107,15 @@ export async function addTripAction(formData: FormData) {
       enteredBy: userId,
     },
   });
+
+  const kindLabel = kind === "ORDER" ? "Алоҳида заказ" : tripNumber ? `${tripNumber}-рейс` : "Рейс";
+  // Awaited (not fired-and-forgotten) — on a serverless runtime the
+  // function can be frozen the instant this action returns, which would
+  // silently drop an in-flight SMS request.
+  await sendSms(
+    vehicle.driver.user.phone,
+    `Ҳурматли ${vehicle.driver.user.fullName}, ${kindLabel} қайд этилди. Пункт: ${POINT_LABELS[point]}. Сумма: ${Math.round(revenue).toLocaleString("uz-UZ")} сўм. Вақт: ${formatTime(now)}.`
+  );
 
   revalidatePath("/dispatcher/journal");
   revalidatePath("/dispatcher/point");
