@@ -8,6 +8,8 @@ import { DEFAULT_PAGE_SIZE, parsePage, paginationSkip, totalPages } from "@/lib/
 import { formatSom, uzMonthName } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
 import { monthStart, monthEnd } from "@/lib/month";
+import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
+import { deleteExpenseAction } from "./actions";
 
 const POINT_LABELS: Record<string, string> = {
   FARGONA: "Фарғона",
@@ -117,6 +119,21 @@ export default async function AccountantExpensesPage({
               {CATEGORY_LABELS[e.category] ?? e.category}
             </span>
             <div className="font-extrabold text-danger">−{formatSom(Number(e.amount))}</div>
+            <div className="flex items-center gap-1.5">
+              <Link
+                href={`/accountant/expenses/${e.id}/edit`}
+                title="Таҳрирлаш"
+                className="text-muted-2 hover:text-primary text-base leading-none px-1"
+              >
+                ✎
+              </Link>
+              <ConfirmDeleteButton
+                action={deleteExpenseAction}
+                id={e.id}
+                confirmText="Бу расходни ўчиришни тасдиқлайсизми?"
+                className="text-muted-2 hover:text-danger font-extrabold text-base leading-none px-1.5 py-1"
+              />
+            </div>
           </div>
         ))}
         {expenses.length === 0 && <p className="text-[13px] text-muted-2 px-5 py-4">Бу ой ҳали расход йўқ</p>}

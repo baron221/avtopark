@@ -7,9 +7,10 @@ import { RoleBadge } from "@/components/ui/RoleBadge";
 import { Pagination } from "@/components/ui/Pagination";
 import { DEFAULT_PAGE_SIZE, parsePage, paginationSkip, totalPages } from "@/lib/paginate";
 import { formatSom, uzMonthName } from "@/lib/format";
-import { toggleFineDeductedAction } from "./actions";
+import { toggleFineDeductedAction, deleteFineAction } from "./actions";
 import { hasModuleAccess } from "@/lib/access";
 import { monthStart, monthEnd } from "@/lib/month";
+import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
 
 export default async function FinesPage({
   searchParams,
@@ -91,6 +92,21 @@ export default async function FinesPage({
                 {f.deducted ? "Ушланмоқда" : "Бекор қилинган"}
               </button>
             </form>
+            <div className="flex items-center gap-1.5">
+              <Link
+                href={`/accountant/fines/${f.id}/edit`}
+                title="Таҳрирлаш"
+                className="text-muted-2 hover:text-primary text-base leading-none px-1"
+              >
+                ✎
+              </Link>
+              <ConfirmDeleteButton
+                action={deleteFineAction}
+                id={f.id}
+                confirmText="Бу жаримани ўчиришни тасдиқлайсизми?"
+                className="text-muted-2 hover:text-danger font-extrabold text-base leading-none px-1.5 py-1"
+              />
+            </div>
           </div>
         ))}
         {fines.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Бу ой ҳали жарима йўқ</p>}

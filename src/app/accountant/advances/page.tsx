@@ -9,6 +9,8 @@ import { DEFAULT_PAGE_SIZE, parsePage, paginationSkip, totalPages } from "@/lib/
 import { formatSom, uzMonthName } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
 import { monthStart } from "@/lib/month";
+import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
+import { deleteAdvanceAction } from "./actions";
 
 export default async function AdvancesPage({
   searchParams,
@@ -73,6 +75,21 @@ export default async function AdvancesPage({
             </div>
             <RoleBadge role={a.user.role} point={a.user.point} />
             <div className="font-extrabold text-primary">−{formatSom(Number(a.amount))}</div>
+            <div className="flex items-center gap-1.5">
+              <Link
+                href={`/accountant/advances/${a.id}/edit`}
+                title="Таҳрирлаш"
+                className="text-muted-2 hover:text-primary text-base leading-none px-1"
+              >
+                ✎
+              </Link>
+              <ConfirmDeleteButton
+                action={deleteAdvanceAction}
+                id={a.id}
+                confirmText="Бу авансни ўчиришни тасдиқлайсизми?"
+                className="text-muted-2 hover:text-danger font-extrabold text-base leading-none px-1.5 py-1"
+              />
+            </div>
           </div>
         ))}
         {advances.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Бу ой ҳали аванс берилмаган</p>}
