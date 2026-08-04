@@ -132,10 +132,6 @@ export default async function DriverPage() {
               <span className="text-muted-2 font-semibold">Жарима</span>
               <span className="font-bold text-danger">−{formatSom(Number(salary.finesTotal))}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-2 font-semibold">Обед</span>
-              <span className="font-bold text-warning">−{formatSom(Number(salary.lunchTotal))}</span>
-            </div>
             <div className="flex justify-between pt-2 border-t border-row-divider">
               <span className="text-heading font-extrabold">Қўлга тегади</span>
               <span className="font-extrabold text-heading">{formatSom(Number(salary.netPay))}</span>

@@ -51,7 +51,7 @@ export default async function DispatcherJournalPage({
   const from = startOfDay(today);
   const to = endOfDay(today);
 
-  const [trips, expenses, lunches] = await Promise.all([
+  const [trips, expenses, lunches, drivers, dispatchers] = await Promise.all([
     prisma.trip.findMany({
       where: { tripDate: { gte: from, lte: to }, point },
       include: { vehicle: true },
@@ -61,9 +61,23 @@ export default async function DispatcherJournalPage({
       where: { point: staffExpensePoint, expenseDate: { gte: from, lte: to } },
     }),
     prisma.lunch.findMany({
-      where: { lunchDate: { gte: from, lte: to }, user: { point } },
+      where: { lunchDate: { gte: from, lte: to }, point },
+      include: { user: true },
+    }),
+    prisma.driver.findMany({ include: { user: true, vehicle: true }, orderBy: { user: { fullName: "asc" } } }),
+    prisma.user.findMany({
+      where: { role: "DISPATCHER", isActive: true },
+      orderBy: { fullName: "asc" },
     }),
   ]);
+
+  const lunchPeople = [
+    ...drivers.map((d) => ({
+      userId: d.userId,
+      label: d.vehicle ? `${d.vehicle.plate} · ${d.user.fullName}` : d.user.fullName,
+    })),
+    ...dispatchers.map((u) => ({ userId: u.id, label: u.fullName })),
+  ];
 
   const kirim = trips.reduce((s, t) => s + Number(t.revenue), 0);
   const chiqim = expenses.reduce((s, e) => s + Number(e.amount), 0) + lunches.reduce((s, l) => s + Number(l.amount), 0);
@@ -117,7 +131,7 @@ export default async function DispatcherJournalPage({
       kind: "Обед",
       kindBg: "#FFF3E0",
       kindColor: "#B26A00",
-      detail: "Тушлик",
+      detail: `Тушлик · ${l.user.fullName}`,
       amount: -Number(l.amount),
       deleteAction: canIncomeExpense ? deleteLunchAction : undefined,
       editHref: canIncomeExpense
@@ -163,7 +177,7 @@ export default async function DispatcherJournalPage({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4 items-start">
-        {canIncomeExpense && <ExpenseForm point={isDispatcher ? undefined : point} />}
+        {canIncomeExpense && <ExpenseForm point={isDispatcher ? undefined : point} people={lunchPeople} />}
 
         <Card className="overflow-hidden">
           <div className="px-5 py-3.5 font-heading font-bold text-[15px] text-heading">Бугунги журнал</div>

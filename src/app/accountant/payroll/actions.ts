@@ -29,14 +29,10 @@ export async function generatePayrollAction() {
     const existing = await prisma.salary.findUnique({ where: { userId_month: { userId: user.id, month } } });
     if (existing && existing.status !== "DRAFT") continue;
 
-    const [finesAgg, lunchAgg, advancesAgg] = await Promise.all([
+    const [finesAgg, advancesAgg] = await Promise.all([
       prisma.fine.aggregate({
         _sum: { amount: true },
         where: { userId: user.id, deducted: true, fineDate: { gte: from, lte: to } },
-      }),
-      prisma.lunch.aggregate({
-        _sum: { amount: true },
-        where: { userId: user.id, lunchDate: { gte: from, lte: to } },
       }),
       prisma.advance.aggregate({
         _sum: { amount: true },
@@ -47,14 +43,13 @@ export async function generatePayrollAction() {
     const baseSalary = user.baseSalary ?? BigInt(0);
     const bonus = existing?.bonus ?? BigInt(0);
     const finesTotal = finesAgg._sum.amount ?? BigInt(0);
-    const lunchTotal = lunchAgg._sum.amount ?? BigInt(0);
     const advancesTotal = advancesAgg._sum.amount ?? BigInt(0);
-    const netPay = computeNetPay({ baseSalary, bonus, advancesTotal, finesTotal, lunchTotal });
+    const netPay = computeNetPay({ baseSalary, bonus, advancesTotal, finesTotal });
 
     await prisma.salary.upsert({
       where: { userId_month: { userId: user.id, month } },
-      create: { userId: user.id, month, baseSalary, bonus, advancesTotal, finesTotal, lunchTotal, netPay, status: "DRAFT" },
-      update: { baseSalary, advancesTotal, finesTotal, lunchTotal, netPay },
+      create: { userId: user.id, month, baseSalary, bonus, advancesTotal, finesTotal, netPay, status: "DRAFT" },
+      update: { baseSalary, advancesTotal, finesTotal, netPay },
     });
   }
 
@@ -88,7 +83,6 @@ export async function setBonusAction(formData: FormData) {
     bonus,
     advancesTotal: salary.advancesTotal,
     finesTotal: salary.finesTotal,
-    lunchTotal: salary.lunchTotal,
   });
   await prisma.salary.update({ where: { id: salaryId }, data: { bonus, netPay } });
 

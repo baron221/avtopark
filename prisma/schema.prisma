@@ -404,6 +404,10 @@ model Fine {
 model Lunch {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")
+  // Which point's dispatcher recorded this lunch — kept separate from the
+  // recipient's own point (drivers have none, since the fleet is shared)
+  // for the same reason Trip.point exists.
+  point     Point
   amount    BigInt
   lunchDate DateTime @map("lunch_date")
   enteredBy String   @map("entered_by")
@@ -412,6 +416,7 @@ model Lunch {
   enteredByUser User @relation("LunchEnteredBy", fields: [enteredBy], references: [id])
 
   @@unique([userId, lunchDate])
+  @@index([point, lunchDate])
   @@map("lunches")
 }
 

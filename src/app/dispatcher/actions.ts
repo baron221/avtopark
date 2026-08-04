@@ -237,15 +237,19 @@ export async function deleteStaffExpenseAction(formData: FormData) {
 const DEFAULT_LUNCH_AMOUNT = 12_000;
 
 export async function addLunchAction(formData: FormData) {
-  const { userId } = await requireDispatcherOrGranted(formData, "INCOME_EXPENSE_LOG");
+  const { userId, point } = await requireDispatcherOrGranted(formData, "INCOME_EXPENSE_LOG");
+  // A dispatcher can log lunch for any driver or dispatcher, not just
+  // themselves — the "forUserId" field carries who it's for, and falls back
+  // to self when omitted so the simple self-lunch flow keeps working.
+  const forUserId = String(formData.get("forUserId") ?? "").trim() || userId;
   const raw = Number(formData.get("amount"));
   const amount = Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_LUNCH_AMOUNT;
   const lunchDate = startOfDay(new Date());
 
   await prisma.lunch.upsert({
-    where: { userId_lunchDate: { userId, lunchDate } },
-    create: { userId, amount: BigInt(Math.round(amount)), lunchDate, enteredBy: userId },
-    update: { amount: BigInt(Math.round(amount)) },
+    where: { userId_lunchDate: { userId: forUserId, lunchDate } },
+    create: { userId: forUserId, point, amount: BigInt(Math.round(amount)), lunchDate, enteredBy: userId },
+    update: { amount: BigInt(Math.round(amount)), point },
   });
 
   revalidatePath("/dispatcher/journal");
@@ -261,8 +265,8 @@ export async function updateLunchAction(
   const { point } = await requireDispatcherOrGranted(formData, "INCOME_EXPENSE_LOG");
   const id = String(formData.get("id") ?? "");
 
-  const lunch = await prisma.lunch.findUnique({ where: { id }, include: { user: true } });
-  if (!lunch || lunch.user.point !== point) return { error: "Ёзув топилмади" };
+  const lunch = await prisma.lunch.findUnique({ where: { id } });
+  if (!lunch || lunch.point !== point) return { error: "Ёзув топилмади" };
 
   const amount = Number(formData.get("amount") ?? 0);
   if (!(amount > 0)) return { error: "Суммани тўғри киритинг" };
@@ -280,7 +284,7 @@ export async function deleteLunchAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
 
   const lunch = await prisma.lunch.findUnique({ where: { id }, include: { user: true } });
-  if (!lunch || lunch.user.point !== point) return;
+  if (!lunch || lunch.point !== point) return;
 
   await logDeletion(
     "Lunch",

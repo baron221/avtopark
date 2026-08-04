@@ -27,7 +27,7 @@ export default async function EditLunchPage({
   const point: Point = isDispatcher ? session.user.point! : pointParam === "QUVA" ? "QUVA" : "FARGONA";
 
   const lunch = await prisma.lunch.findUnique({ where: { id }, include: { user: true } });
-  if (!lunch || lunch.user.point !== point) notFound();
+  if (!lunch || lunch.point !== point) notFound();
 
   const backTo: "journal" | "point" = from === "point" ? "point" : "journal";
   const backHref = backTo === "point" ? "/dispatcher/point" : "/dispatcher/journal";
@@ -41,7 +41,9 @@ export default async function EditLunchPage({
         ← Орқага
       </Link>
       <Card className="p-6 sm:p-8 mt-3">
-        <div className="font-heading font-bold text-xl text-heading mb-5">Обедни таҳрирлаш</div>
+        <div className="font-heading font-bold text-xl text-heading mb-5">
+          Обедни таҳрирлаш · {lunch.user.fullName}
+        </div>
         <EditLunchForm
           lunchId={lunch.id}
           amount={Number(lunch.amount)}

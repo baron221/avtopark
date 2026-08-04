@@ -39,7 +39,7 @@ export async function getVehicleReport(vehicleId: string, period: Period): Promi
   const monthDays = daysInMonth(monthStart.getUTCFullYear(), monthStart.getUTCMonth());
   const proration = days / monthDays;
 
-  const [trips, dailyPlans, fuelLogs, expenses, activeVehicleCount, driverSalary, staffSalaryAgg, staffExpenseAgg] =
+  const [trips, dailyPlans, fuelLogs, expenses, activeVehicleCount, driverSalary, staffSalaryAgg, staffExpenseAgg, lunchAgg] =
     await Promise.all([
       prisma.trip.findMany({ where: { vehicleId, tripDate: { gte: from, lte: to } }, select: { revenue: true, kind: true } }),
       prisma.dailyPlan.findMany({ where: { vehicleId, planDate: { gte: from, lte: to } }, select: { paidAmount: true } }),
@@ -57,6 +57,9 @@ export async function getVehicleReport(vehicleId: string, period: Period): Promi
         where: { month: monthStart, user: { role: { notIn: ["DRIVER", "OWNER"] } } },
       }),
       prisma.staffExpense.aggregate({ _sum: { amount: true }, where: { expenseDate: { gte: from, lte: to } } }),
+      // Lunch is a general company expense now (not a payroll deduction),
+      // so it belongs in the same shared-overhead pool as StaffExpense.
+      prisma.lunch.aggregate({ _sum: { amount: true }, where: { lunchDate: { gte: from, lte: to } } }),
     ]);
 
   const income =
@@ -86,7 +89,9 @@ export async function getVehicleReport(vehicleId: string, period: Period): Promi
   const driverSalaryAmount = driverSalary ? Number(driverSalary.netPay) * proration : 0;
   const overheadShare =
     activeVehicleCount > 0
-      ? ((Number(staffSalaryAgg._sum.netPay ?? 0) * proration + Number(staffExpenseAgg._sum.amount ?? 0)) /
+      ? ((Number(staffSalaryAgg._sum.netPay ?? 0) * proration +
+          Number(staffExpenseAgg._sum.amount ?? 0) +
+          Number(lunchAgg._sum.amount ?? 0)) /
           activeVehicleCount)
       : 0;
 

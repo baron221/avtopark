@@ -51,13 +51,13 @@ export default async function PayrollPage({
   const salaryFund = allUsers.reduce((s, u) => s + Number(u.baseSalary ?? BigInt(0)), 0);
   const advancesTotal = advances.reduce((s, a) => s + Number(a.amount), 0);
   const finesTotal = salaries.reduce((s, sal) => s + Number(sal.finesTotal), 0);
-  const lunchTotal = salaries.reduce((s, sal) => s + Number(sal.lunchTotal), 0);
   const bonusTotal = salaries.reduce((s, sal) => s + Number(sal.bonus), 0);
-  // Advances and lunch money are pre-payments of the very same base salary
-  // (already inside salaryFund) that get clawed back at settlement, so they
-  // net out — including them here on top of salaryFund would double-count
-  // them. A fine reduces what the company actually pays out, so it's added
-  // back rather than subtracted again.
+  // Advances are a pre-payment of the very same base salary (already inside
+  // salaryFund) that gets clawed back at settlement, so it nets out —
+  // including it here on top of salaryFund would double-count it. A fine
+  // reduces what the company actually pays out, so it's added back rather
+  // than subtracted again. Lunch is no longer a payroll deduction — it's a
+  // general expense, already counted inside fleetVM.netProfit.
   const netProfitAfterAll = fleetVM.netProfit - (salaryFund + bonusTotal - finesTotal);
 
   const allApproved = salaries.length > 0 && salaries.every((s) => s.status !== "DRAFT");
@@ -70,7 +70,7 @@ export default async function PayrollPage({
             Ойлик ҳисоб-китоб · {uzMonthName(now)} {now.getFullYear()}
           </div>
           <div className="text-[13px] text-muted-2 font-semibold">
-            Маош + бонус − аванс − жарима − обед = қўлга тегади
+            Маош + бонус − аванс − жарима = қўлга тегади
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -97,22 +97,20 @@ export default async function PayrollPage({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard label="Жами маош фонди" value={formatMillions(salaryFund)} />
         <KpiCard label="Берилган аванслар" value={`−${formatMillions(advancesTotal)}`} />
         <KpiCard label="Жарималар (ушлаб қолинади)" value={`−${formatMillions(finesTotal)}`} hintColor="danger" />
-        <KpiCard label="Обед харажати" value={`−${formatMillions(lunchTotal)}`} />
         <KpiCard variant="primary" label="Соф фойда (барча ҳисобдан кейин)" value={formatMillions(netProfitAfterAll)} />
       </div>
 
       <Card className="overflow-hidden">
-        <div className="hidden lg:grid grid-cols-[1.3fr_0.9fr_0.85fr_0.8fr_0.75fr_0.75fr_0.9fr_1fr] px-6 py-3 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
+        <div className="hidden lg:grid grid-cols-[1.3fr_0.9fr_0.85fr_0.8fr_0.75fr_0.9fr_1fr] px-6 py-3 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
           <div>Ходим</div>
           <div>Рол</div>
           <div>Маош</div>
           <div>Аванс</div>
           <div>Жарима</div>
-          <div>Обед</div>
           <div>Бонус</div>
           <div>Қўлга тегади</div>
         </div>
@@ -123,7 +121,7 @@ export default async function PayrollPage({
           return (
             <div
               key={u.id}
-              className="grid grid-cols-2 lg:grid-cols-[1.3fr_0.9fr_0.85fr_0.8fr_0.75fr_0.75fr_0.9fr_1fr] gap-y-1.5 gap-x-2 px-6 py-3.5 border-t border-row-divider items-center text-sm"
+              className="grid grid-cols-2 lg:grid-cols-[1.3fr_0.9fr_0.85fr_0.8fr_0.75fr_0.9fr_1fr] gap-y-1.5 gap-x-2 px-6 py-3.5 border-t border-row-divider items-center text-sm"
             >
               <div className="font-extrabold text-heading col-span-2 lg:col-span-1">{u.fullName}</div>
               <div>
@@ -133,9 +131,6 @@ export default async function PayrollPage({
               <div className="font-extrabold text-primary">{advance > 0 ? `−${formatSom(advance)}` : "0"}</div>
               <div className="font-extrabold text-danger">
                 {salary && Number(salary.finesTotal) > 0 ? `−${formatSom(Number(salary.finesTotal))}` : "0"}
-              </div>
-              <div className="font-bold text-warning">
-                {salary && Number(salary.lunchTotal) > 0 ? `−${formatSom(Number(salary.lunchTotal))}` : "0"}
               </div>
               <div>
                 {salary && editable ? (

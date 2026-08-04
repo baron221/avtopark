@@ -83,7 +83,7 @@ function dayIndex(date: Date, rangeStart: Date) {
 }
 
 async function computeDailyChart(chartFrom: Date, chartTo: Date, days: number) {
-  const [trips, expenses, plans, rentals] = await Promise.all([
+  const [trips, expenses, lunches, plans, rentals] = await Promise.all([
     prisma.trip.findMany({
       where: { tripDate: { gte: chartFrom, lte: chartTo } },
       select: { tripDate: true, revenue: true },
@@ -91,6 +91,10 @@ async function computeDailyChart(chartFrom: Date, chartTo: Date, days: number) {
     prisma.expense.findMany({
       where: { expenseDate: { gte: chartFrom, lte: chartTo } },
       select: { expenseDate: true, amount: true },
+    }),
+    prisma.lunch.findMany({
+      where: { lunchDate: { gte: chartFrom, lte: chartTo } },
+      select: { lunchDate: true, amount: true },
     }),
     prisma.dailyPlan.findMany({
       where: { planDate: { gte: chartFrom, lte: chartTo } },
@@ -116,6 +120,10 @@ async function computeDailyChart(chartFrom: Date, chartTo: Date, days: number) {
     const i = dayIndex(e.expenseDate, chartFrom);
     if (i >= 0 && i < days) expense[i] += Number(e.amount);
   }
+  for (const l of lunches) {
+    const i = dayIndex(l.lunchDate, chartFrom);
+    if (i >= 0 && i < days) expense[i] += Number(l.amount);
+  }
   for (let i = 0; i < days; i++) {
     const day = addDays(chartFrom, i);
     for (const r of rentals) {
@@ -134,10 +142,13 @@ async function computeDailyChart(chartFrom: Date, chartTo: Date, days: number) {
 }
 
 async function computeTotals(from: Date, to: Date) {
-  const [tripsAgg, plansAgg, expensesAgg, rentals] = await Promise.all([
+  const [tripsAgg, plansAgg, expensesAgg, lunchAgg, rentals] = await Promise.all([
     prisma.trip.aggregate({ _sum: { revenue: true }, where: { tripDate: { gte: from, lte: to } } }),
     prisma.dailyPlan.aggregate({ _sum: { paidAmount: true }, where: { planDate: { gte: from, lte: to } } }),
     prisma.expense.aggregate({ _sum: { amount: true }, where: { expenseDate: { gte: from, lte: to } } }),
+    // Lunch is a general company expense, not an individual payroll
+    // deduction (see payroll.ts) — it still has to reduce fleet-wide profit.
+    prisma.lunch.aggregate({ _sum: { amount: true }, where: { lunchDate: { gte: from, lte: to } } }),
     prisma.rental.findMany({ where: { startDate: { lte: to }, OR: [{ endDate: null }, { endDate: { gte: from } }] } }),
   ]);
 
@@ -150,7 +161,7 @@ async function computeTotals(from: Date, to: Date) {
   }, 0);
 
   const totalIncome = tripIncome + planIncome + rentalIncome;
-  const totalExpense = Number(expensesAgg._sum.amount ?? BigInt(0));
+  const totalExpense = Number(expensesAgg._sum.amount ?? BigInt(0)) + Number(lunchAgg._sum.amount ?? BigInt(0));
 
   return { totalIncome, totalExpense };
 }
@@ -169,6 +180,7 @@ export async function getOwnerDashboardVM(period: Period): Promise<OwnerDashboar
     vehicleCount,
     driverCount,
     expensesByCategory,
+    lunchTotalAgg,
     dailyPlansToday,
     vehiclesFlat,
     driversFlat,
@@ -187,6 +199,7 @@ export async function getOwnerDashboardVM(period: Period): Promise<OwnerDashboar
       _sum: { amount: true },
       where: { expenseDate: { gte: from, lte: to } },
     }),
+    prisma.lunch.aggregate({ _sum: { amount: true }, where: { lunchDate: { gte: from, lte: to } } }),
     prisma.dailyPlan.findMany({ where: { planDate: { gte: startOfDay(now), lte: endOfDay(now) } } }),
     // Fetched flat (no nested `include`) and joined in JS below — a single
     // vehicle.findMany with 5 nested relations was measured at ~1.9s against
@@ -245,15 +258,17 @@ export async function getOwnerDashboardVM(period: Period): Promise<OwnerDashboar
     total: vehicleCount,
   };
 
-  const categoryTotal = expensesByCategory.reduce((s, e) => s + Number(e._sum.amount ?? BigInt(0)), 0);
+  const lunchExpenseTotal = Number(lunchTotalAgg._sum.amount ?? BigInt(0));
+  const categoryTotal =
+    expensesByCategory.reduce((s, e) => s + Number(e._sum.amount ?? BigInt(0)), 0) + lunchExpenseTotal;
   const categoryLabels: Record<string, string> = {
-    FUEL: "Yoqilg'i",
-    REPAIR: "Ta'mirlash",
-    SALARY: "Maosh",
-    INSURANCE: "Sug'urta",
-    TAX: "Soliq",
-    TOLL: "Yo'l haqi",
-    OTHER: "Boshqa",
+    FUEL: "Ёқилғи",
+    REPAIR: "Таъмирлаш",
+    SALARY: "Маош",
+    INSURANCE: "Суғурта",
+    TAX: "Солиқ",
+    TOLL: "Йўл ҳақи",
+    OTHER: "Бошқа",
   };
   const expenseBreakdown: ExpenseBreakdownItem[] = expensesByCategory
     .map((e) => {
@@ -264,6 +279,11 @@ export async function getOwnerDashboardVM(period: Period): Promise<OwnerDashboar
         pct: categoryTotal > 0 ? (amount / categoryTotal) * 100 : 0,
       };
     })
+    .concat(
+      lunchExpenseTotal > 0
+        ? [{ category: "Обед", amount: lunchExpenseTotal, pct: categoryTotal > 0 ? (lunchExpenseTotal / categoryTotal) * 100 : 0 }]
+        : []
+    )
     .sort((a, b) => b.amount - a.amount);
 
   const vehicleRows: VehicleProfitRow[] = vehiclesFlat.map((v) => {

@@ -38,7 +38,6 @@ export async function GET() {
     { header: "Маош", key: "salary", width: 14 },
     { header: "Аванс", key: "advance", width: 14 },
     { header: "Жарима", key: "fines", width: 14 },
-    { header: "Обед", key: "lunch", width: 14 },
     { header: "Бонус", key: "bonus", width: 14 },
     { header: "Қўлга тегади", key: "net", width: 16 },
   ];
@@ -55,13 +54,12 @@ export async function GET() {
       salary: Number(u.baseSalary ?? BigInt(0)),
       advance: advanceByUser.get(u.id) ?? 0,
       fines: Number(salary?.finesTotal ?? 0),
-      lunch: Number(salary?.lunchTotal ?? 0),
       bonus: Number(salary?.bonus ?? 0),
       net: salary ? Number(salary.netPay) : null,
     });
   }
 
-  for (const key of ["salary", "advance", "fines", "lunch", "bonus", "net"]) {
+  for (const key of ["salary", "advance", "fines", "bonus", "net"]) {
     sheet.getColumn(key).numFmt = "#,##0";
   }
 

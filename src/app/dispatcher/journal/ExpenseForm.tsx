@@ -13,7 +13,9 @@ const CATEGORIES = [
   { value: "BOSHQA", label: "Бошқа расход" },
 ];
 
-export function ExpenseForm({ point }: { point?: Point }) {
+type LunchPerson = { userId: string; label: string };
+
+export function ExpenseForm({ point, people }: { point?: Point; people: LunchPerson[] }) {
   const router = useRouter();
   const [category, setCategory] = useState("STOYANKA");
   const isLunch = category === "OBED";
@@ -58,6 +60,20 @@ export function ExpenseForm({ point }: { point?: Point }) {
             </button>
           ))}
         </div>
+        {isLunch && (
+          <select
+            name="forUserId"
+            defaultValue=""
+            className="bg-page border-2 border-border rounded-xl px-3.5 py-2.5 font-bold text-sm text-heading outline-none focus:border-danger"
+          >
+            <option value="">Ўзим (сиз)</option>
+            {people.map((p) => (
+              <option key={p.userId} value={p.userId}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+        )}
         <MoneyInput
           name="amount"
           required
