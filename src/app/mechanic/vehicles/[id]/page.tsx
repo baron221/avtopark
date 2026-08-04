@@ -9,6 +9,7 @@ import { formatSom } from "@/lib/format";
 import { getOwnerDashboardVM, type Period } from "@/lib/dashboard";
 import { getVehicleReport } from "@/lib/vehicleReport";
 import { getDriverAssignmentHistory } from "@/lib/driverAssignment";
+import { getWialonUnitByPlate, getWialonMileageToday, type WialonUnit } from "@/lib/wialon";
 import { hasModuleAccess } from "@/lib/access";
 import { StatusSelect } from "./StatusSelect";
 import { ExpenseForm } from "./ExpenseForm";
@@ -56,6 +57,15 @@ export default async function VehicleDetailPage({
   ]);
 
   if (!vehicle) notFound();
+
+  let gpsUnit: WialonUnit | null = null;
+  let gpsMileageToday: number | null = null;
+  try {
+    gpsUnit = await getWialonUnitByPlate(vehicle.plate);
+    if (gpsUnit) gpsMileageToday = await getWialonMileageToday(gpsUnit.id);
+  } catch {
+    gpsUnit = null;
+  }
 
   const lastOilChange = oilChanges[0] ?? null;
   let oilStatus: { overdue: boolean; kmRemaining: number; daysRemaining: number } | null = null;
@@ -118,6 +128,42 @@ export default async function VehicleDetailPage({
               </div>
             </div>
           ))}
+        </Card>
+      )}
+
+      {gpsUnit && (
+        <Card className="overflow-hidden">
+          <div className="flex justify-between items-center px-6 py-3.5 flex-wrap gap-2">
+            <div className="font-heading font-bold text-base text-heading">GPS</div>
+            <a
+              href={`https://www.google.com/maps?q=${gpsUnit.lat},${gpsUnit.lon}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary font-extrabold text-xs hover:underline"
+            >
+              Харитада кўриш ↗
+            </a>
+          </div>
+          <div className="grid grid-cols-3 px-6 pb-4 gap-3 text-sm">
+            <div>
+              <div className="text-xs text-muted-2 font-bold">Тезлик</div>
+              <div className={`font-extrabold ${gpsUnit.speedKmh > 0 ? "text-success" : "text-muted-2"}`}>
+                {gpsUnit.speedKmh > 0 ? `${gpsUnit.speedKmh} км/соат` : "тўхтаган"}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-2 font-bold">Бугун босиб ўтган</div>
+              <div className="font-extrabold text-heading">
+                {gpsMileageToday !== null ? `${gpsMileageToday.toFixed(0)} км` : "—"}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-2 font-bold">Сўнгги алоқа</div>
+              <div className="font-extrabold text-heading">
+                {gpsUnit.lastUpdate.toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" })}
+              </div>
+            </div>
+          </div>
         </Card>
       )}
 

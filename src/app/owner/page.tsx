@@ -36,6 +36,7 @@ export default async function OwnerPage({
           ? [
               { href: "/owner/report", label: "Ҳисобот" },
               { href: "/owner/drivers", label: "Ҳайдовчилар" },
+              { href: "/owner/gps", label: "GPS" },
               ...grantedLinks.map((l) => ({ href: l.href, label: l.label })),
             ]
           : grantedLinks.map((l) => ({ href: l.href, label: l.label }))

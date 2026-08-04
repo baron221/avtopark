@@ -147,6 +147,7 @@ const HOME_NAV: Partial<Record<Role, { href: string; label: string; icon: string
     { href: "/owner", label: "Фойда панели", icon: "◉" },
     { href: "/owner/report", label: "Ҳисобот", icon: "▨" },
     { href: "/owner/drivers", label: "Ҳайдовчилар", icon: "◈" },
+    { href: "/owner/gps", label: "GPS", icon: "▤" },
   ],
   ACCOUNTANT: [
     { href: "/accountant/report", label: "Ҳисобот", icon: "▨" },
