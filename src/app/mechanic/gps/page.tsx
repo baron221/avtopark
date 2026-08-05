@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -6,10 +5,10 @@ import { hasModuleAccess } from "@/lib/access";
 import { getWialonUnits, matchVehiclesToWialonUnits, type WialonUnit } from "@/lib/wialon";
 import { GpsList } from "@/components/gps/GpsList";
 
-export default async function OwnerGpsPage() {
+export default async function MechanicGpsPage() {
   const session = await auth();
   if (!session) redirect("/login");
-  if (session.user.role !== "OWNER" && !(await hasModuleAccess(session.user.role, "FLEET_DASHBOARD"))) {
+  if (session.user.role !== "MECHANIC" && !(await hasModuleAccess(session.user.role, "VEHICLES"))) {
     redirect("/coming-soon");
   }
 
@@ -30,19 +29,11 @@ export default async function OwnerGpsPage() {
 
   return (
     <div className="max-w-[1180px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
-      <div className="flex justify-between items-center flex-wrap gap-3">
-        <div>
-          <div className="font-heading font-bold text-xl text-heading">GPS кузатув</div>
-          <div className="text-[13px] text-muted-2 font-semibold">
-            {gpsMap.size} / {vehicles.length} машина уланган
-          </div>
+      <div>
+        <div className="font-heading font-bold text-xl text-heading">GPS кузатув</div>
+        <div className="text-[13px] text-muted-2 font-semibold">
+          {gpsMap.size} / {vehicles.length} машина уланган
         </div>
-        <Link
-          href="/owner"
-          className="inline-flex items-center bg-page border border-border text-muted-2 rounded-lg px-3 py-1.5 text-[13px] font-bold hover:border-primary hover:text-primary hover:bg-primary-tint transition-colors"
-        >
-          ← Панел
-        </Link>
       </div>
 
       <GpsList vehicles={vehicles} gpsMap={gpsMap} gpsError={gpsError} />

@@ -159,6 +159,7 @@ const HOME_NAV: Partial<Record<Role, { href: string; label: string; icon: string
   MECHANIC: [
     { href: "/mechanic/fuel", label: "Ёқилғи", icon: "◉" },
     { href: "/mechanic/vehicles", label: "Машиналар", icon: "▤" },
+    { href: "/mechanic/gps", label: "GPS", icon: "◎" },
     { href: "/mechanic/fuel/payments", label: "Тўловлар", icon: "▥" },
     { href: "/mechanic/shifts", label: "Сменалар", icon: "▦" },
   ],
