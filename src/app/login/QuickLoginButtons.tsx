@@ -1,15 +1,15 @@
 import { quickLoginAction } from "./actions";
 
-const TEST_PASSWORD = "parol123";
+const TEST_PASSWORD = "Avtopark2026";
 
 const ACCOUNTS = [
-  { label: "Эгаси", phone: "+998901111101" },
-  { label: "Админ", phone: "+998901111102" },
-  { label: "Бухгалтер", phone: "+998901111103" },
-  { label: "Диспетчер · Фарғона", phone: "+998901111104" },
-  { label: "Диспетчер · Қува", phone: "+998901111107" },
+  { label: "Эгаси", phone: "+998916575757" },
+  { label: "Админ", phone: "+998956622222" },
+  { label: "Бухгалтер", phone: "+998991387090" },
+  { label: "Диспетчер · Фарғона", phone: "+998911242295" },
+  { label: "Диспетчер · Қува", phone: "+998911233717" },
   { label: "Механик", phone: "+998901111105" },
-  { label: "Ҳайдовчи", phone: "+998901111106" },
+  { label: "Ҳайдовчи", phone: "+998900000006" },
 ];
 
 // TEMPORARY: also rendered in production for now, per explicit request, so it
