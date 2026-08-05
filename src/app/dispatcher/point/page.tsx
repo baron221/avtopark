@@ -135,13 +135,6 @@ export default async function DispatcherPointPage({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard variant="primary" label="Бугун йиғилди" value={formatSom(collectedToday)} />
-        <KpiCard label="Қабул қилинган машина" value={`${vehiclesWithMoney.size} / ${vehicles.length}`} />
-        <KpiCard label="Менинг расходим (бугун)" value={`−${formatSom(myExpenseToday)}`} hintColor="danger" />
-        <KpiCard label="Обед" value={myLunchToday ? `−${formatSom(myLunchToday)}` : "—"} />
-      </div>
-
       <Card className="overflow-hidden">
         <div className="hidden lg:grid grid-cols-[0.6fr_1fr_1.2fr_0.9fr_1fr_48px] px-6 py-3 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
           <div>Вақт</div>
@@ -154,7 +147,7 @@ export default async function DispatcherPointPage({
         {entries.map((e) => (
           <div
             key={e.id}
-            className="grid grid-cols-2 lg:grid-cols-[0.6fr_1fr_1.2fr_0.9fr_1fr_48px] gap-1 px-6 py-3 border-t border-row-divider items-center text-sm"
+            className="hidden lg:grid grid-cols-[0.6fr_1fr_1.2fr_0.9fr_1fr_48px] gap-1 px-6 py-3 border-t border-row-divider items-center text-sm"
           >
             <div className="text-muted-2 font-bold">{formatTime(e.time)}</div>
             <div className="font-extrabold text-primary font-heading">{e.plate}</div>
@@ -177,8 +170,44 @@ export default async function DispatcherPointPage({
             </div>
           </div>
         ))}
+        {entries.map((e) => (
+          <div key={e.id} className="flex flex-col gap-1.5 px-5 py-3 border-t border-row-divider text-sm lg:hidden">
+            <div className="flex justify-between items-center gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-2 font-bold text-xs">{formatTime(e.time)}</span>
+                <span className="font-extrabold text-primary font-heading">{e.plate}</span>
+              </div>
+              <div className="font-extrabold text-heading">{formatSom(e.amount)}</div>
+            </div>
+            <div className="flex justify-between items-end gap-2">
+              <div className="min-w-0">
+                <div className="font-semibold text-heading">{e.driver}</div>
+                <span className="text-xs font-extrabold px-2.5 py-1 rounded-full bg-success-tint text-success inline-block mt-1">
+                  {e.note}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Link
+                  href={`/dispatcher/trips/${e.id}/edit?from=point${isDispatcher ? "" : `&point=${point}`}`}
+                  title="Таҳрирлаш"
+                  className="text-muted-2 hover:text-primary text-base leading-none px-1"
+                >
+                  ✎
+                </Link>
+                <DeleteEntryButton action={deleteTripAction} id={e.id} point={deletePoint} />
+              </div>
+            </div>
+          </div>
+        ))}
         {entries.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Бугун ҳали ёзув йўқ</p>}
       </Card>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard variant="primary" label="Бугун йиғилди" value={formatSom(collectedToday)} />
+        <KpiCard label="Қабул қилинган машина" value={`${vehiclesWithMoney.size} / ${vehicles.length}`} />
+        <KpiCard label="Менинг расходим (бугун)" value={`−${formatSom(myExpenseToday)}`} hintColor="danger" />
+        <KpiCard label="Обед" value={myLunchToday ? `−${formatSom(myLunchToday)}` : "—"} />
+      </div>
     </div>
   );
 }
