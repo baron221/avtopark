@@ -19,7 +19,7 @@ export function GpsList({
 }: {
   vehicles: VehicleRow[];
   gpsMap: Map<string, WialonUnit>;
-  gpsError: boolean;
+  gpsError: string | null;
 }) {
   const now = new Date();
 
@@ -27,7 +27,7 @@ export function GpsList({
     <>
       {gpsError && (
         <div className="bg-danger-tint text-danger text-[13px] font-bold px-4 py-3 rounded-xl">
-          GPS серверига уланиб бўлмади. Кейинроқ қайта уриниб кўринг.
+          GPS серверига уланиб бўлмади: {gpsError}
         </div>
       )}
 

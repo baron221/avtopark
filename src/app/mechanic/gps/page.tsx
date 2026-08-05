@@ -19,13 +19,13 @@ export default async function MechanicGpsPage() {
   });
 
   let gpsMap = new Map<string, WialonUnit>();
-  let gpsError = false;
+  let gpsError: string | null = null;
   try {
     const units = await getWialonUnits();
     gpsMap = matchVehiclesToWialonUnits(vehicles, units);
   } catch (err) {
     console.error("Wialon GPS xato:", err);
-    gpsError = true;
+    gpsError = err instanceof Error ? err.message : String(err);
   }
 
   return (
