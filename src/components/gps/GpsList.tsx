@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/Card";
 import type { WialonUnit } from "@/lib/wialon";
+import { GpsMapLoader } from "./GpsMapLoader";
 
 type VehicleRow = { id: string; plate: string; driver: { user: { fullName: string } } | null };
 
@@ -23,6 +24,22 @@ export function GpsList({
 }) {
   const now = new Date();
 
+  const mapPoints = vehicles
+    .map((v) => {
+      const unit = gpsMap.get(v.id);
+      if (!unit) return null;
+      return {
+        id: v.id,
+        plate: v.plate,
+        driverName: v.driver?.user.fullName ?? "—",
+        lat: unit.lat,
+        lon: unit.lon,
+        speedKmh: unit.speedKmh,
+        lastUpdateLabel: formatAgo(unit.lastUpdate, now),
+      };
+    })
+    .filter((p): p is NonNullable<typeof p> => p !== null);
+
   return (
     <>
       {gpsError && (
@@ -30,6 +47,10 @@ export function GpsList({
           GPS серверига уланиб бўлмади: {gpsError}
         </div>
       )}
+
+      <Card className="overflow-hidden">
+        <GpsMapLoader points={mapPoints} />
+      </Card>
 
       <Card className="overflow-hidden">
         <div className="hidden lg:grid grid-cols-[1fr_1.3fr_0.9fr_0.9fr_1fr_0.9fr] px-6 py-3 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
