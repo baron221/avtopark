@@ -23,7 +23,8 @@ export default async function MechanicGpsPage() {
   try {
     const units = await getWialonUnits();
     gpsMap = matchVehiclesToWialonUnits(vehicles, units);
-  } catch {
+  } catch (err) {
+    console.error("Wialon GPS xato:", err);
     gpsError = true;
   }
 

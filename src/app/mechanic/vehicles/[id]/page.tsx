@@ -63,7 +63,8 @@ export default async function VehicleDetailPage({
   try {
     gpsUnit = await getWialonUnitByPlate(vehicle.plate);
     if (gpsUnit) gpsMileageToday = await getWialonMileageToday(gpsUnit.id);
-  } catch {
+  } catch (err) {
+    console.error("Wialon GPS xato:", err);
     gpsUnit = null;
   }
 
