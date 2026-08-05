@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { hasModuleAccess } from "@/lib/access";
-import { getWialonUnits, matchVehiclesToWialonUnits, type WialonUnit } from "@/lib/wialon";
+import { getWialonUnits, matchVehiclesToWialonUnits, getWialonTodayStats, type WialonUnit } from "@/lib/wialon";
 import { GpsList } from "@/components/gps/GpsList";
 import { FuelEfficiencyCard } from "@/components/gps/FuelEfficiencyCard";
 
@@ -21,10 +21,22 @@ export default async function OwnerGpsPage() {
   });
 
   let gpsMap = new Map<string, WialonUnit>();
+  const todayStats = new Map<string, { kmToday: number; maxSpeedKmh: number }>();
   let gpsError: string | null = null;
   try {
     const units = await getWialonUnits();
     gpsMap = matchVehiclesToWialonUnits(vehicles, units);
+    await Promise.all(
+      vehicles.map(async (v) => {
+        const unit = gpsMap.get(v.id);
+        if (!unit) return;
+        try {
+          todayStats.set(v.id, await getWialonTodayStats(unit.id));
+        } catch (err) {
+          console.error(`Wialon bugungi статистика xato (${v.plate}):`, err);
+        }
+      })
+    );
   } catch (err) {
     console.error("Wialon GPS xato:", err);
     gpsError = err instanceof Error ? err.message : String(err);
@@ -47,7 +59,7 @@ export default async function OwnerGpsPage() {
         </Link>
       </div>
 
-      <GpsList vehicles={vehicles} gpsMap={gpsMap} gpsError={gpsError} />
+      <GpsList vehicles={vehicles} gpsMap={gpsMap} todayStats={todayStats} gpsError={gpsError} />
       <FuelEfficiencyCard />
     </div>
   );

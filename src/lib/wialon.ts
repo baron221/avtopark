@@ -155,3 +155,32 @@ export async function getWialonMileageToday(unitId: number): Promise<number> {
   const from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   return getWialonMileageForRange(unitId, from, now);
 }
+
+/** Today's driven distance and peak recorded speed, from a single GPS-track load. */
+export async function getWialonTodayStats(unitId: number): Promise<{ kmToday: number; maxSpeedKmh: number }> {
+  const now = new Date();
+  const from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const data = await callAuthed<{ messages?: { pos?: { y: number; x: number; s: number } }[] }>(
+    "messages/load_interval",
+    {
+      itemId: unitId,
+      timeFrom: Math.floor(from.getTime() / 1000),
+      timeTo: Math.floor(now.getTime() / 1000),
+      flags: 0,
+      flagsMask: 0,
+      loadCount: 20000,
+    }
+  );
+
+  const points = (data.messages ?? [])
+    .map((m) => m.pos)
+    .filter((p): p is { y: number; x: number; s: number } => !!p);
+
+  let kmToday = 0;
+  let maxSpeedKmh = 0;
+  for (let i = 0; i < points.length; i++) {
+    if (points[i].s > maxSpeedKmh) maxSpeedKmh = points[i].s;
+    if (i > 0) kmToday += haversineKm({ lat: points[i - 1].y, lon: points[i - 1].x }, { lat: points[i].y, lon: points[i].x });
+  }
+  return { kmToday, maxSpeedKmh: Math.round(maxSpeedKmh) };
+}
