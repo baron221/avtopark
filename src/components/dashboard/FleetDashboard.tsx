@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { PeriodToggle } from "@/components/ui/PeriodToggle";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { WeeklyBarChart } from "@/components/charts/WeeklyBarChart";
 import type { OwnerDashboardVM, Period } from "@/lib/dashboard";
@@ -17,6 +18,8 @@ export function FleetDashboard({
   userName,
   extraLinks = [],
   embedded = false,
+  date,
+  exportHref,
 }: {
   vm: OwnerDashboardVM;
   period: Period;
@@ -25,8 +28,13 @@ export function FleetDashboard({
   extraLinks?: { href: string; label: string }[];
   /** True when a role layout already renders its own top bar/logout — skips FleetDashboard's own. */
   embedded?: boolean;
+  /** ISO yyyy-mm-dd. When set, shows a date picker and a totals footer under the vehicles table. */
+  date?: string;
+  /** When set, shows an Excel download link pointed at this route (query-string-compatible with period/date). */
+  exportHref?: string;
 }) {
   const initial = userName?.[0]?.toUpperCase() ?? "?";
+  const activeVehicleCount = vm.vehicles.filter((v) => v.tripCount > 0 || v.income > 0).length;
 
   return (
     <div className="max-w-[1180px] mx-auto w-full flex flex-col">
@@ -75,7 +83,7 @@ export function FleetDashboard({
             <div className="text-[13px] text-muted-2 font-semibold">
               {vm.vehicleCount} та машина · {vm.driverCount} ҳайдовчи
             </div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 flex-wrap">
               {extraLinks.map((link) => (
                 <Link
                   key={link.href}
@@ -85,7 +93,16 @@ export function FleetDashboard({
                   {link.label}
                 </Link>
               ))}
-              <PeriodToggle active={period} basePath={basePath} />
+              {date && <DatePicker basePath={basePath} period={period} value={date} />}
+              <PeriodToggle active={period} basePath={basePath} date={date} />
+              {exportHref && (
+                <a
+                  href={exportHref}
+                  className="bg-card border border-border text-body text-xs font-extrabold px-3 py-1.5 rounded-lg hover:border-primary hover:text-primary transition-colors"
+                >
+                  ⬇ Excel
+                </a>
+              )}
             </div>
           </div>
         )}
@@ -200,6 +217,18 @@ export function FleetDashboard({
               </div>
             </div>
           ))}
+          {date && (
+            <div className="grid grid-cols-[1.3fr_1.1fr_0.6fr_0.9fr_0.9fr_0.9fr_0.8fr] px-6 py-3.5 border-t-2 border-primary bg-primary-tint items-center text-sm">
+              <div className="font-extrabold text-heading col-span-2">
+                Жами: {activeVehicleCount} / {vm.vehicles.length} машина қатнади
+              </div>
+              <div></div>
+              <div className="font-extrabold text-heading">{formatSom(vm.totalIncome)}</div>
+              <div className="font-extrabold text-heading">{formatSom(vm.totalExpense)}</div>
+              <div className="font-extrabold text-success">{formatSom(vm.netProfit)}</div>
+              <div></div>
+            </div>
+          )}
         </Card>
 
         {/* Vehicles — mobile cards */}
@@ -237,6 +266,27 @@ export function FleetDashboard({
               </div>
             </Card>
           ))}
+          {date && (
+            <Card className="p-4 flex flex-col gap-2 border-2 border-primary bg-primary-tint">
+              <div className="font-extrabold text-heading text-sm">
+                Жами: {activeVehicleCount} / {vm.vehicles.length} машина қатнади
+              </div>
+              <div className="flex justify-between text-sm">
+                <div>
+                  <div className="text-[11px] text-muted-2 font-bold uppercase">Тушум</div>
+                  <div className="font-extrabold text-heading">{formatSom(vm.totalIncome)}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-muted-2 font-bold uppercase">Харажат</div>
+                  <div className="font-extrabold text-heading">{formatSom(vm.totalExpense)}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-muted-2 font-bold uppercase">Фойда</div>
+                  <div className="font-extrabold text-success">{formatSom(vm.netProfit)}</div>
+                </div>
+              </div>
+            </Card>
+          )}
         </div>
       </div>
     </div>

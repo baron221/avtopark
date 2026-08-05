@@ -77,12 +77,20 @@ export default async function AccountantExpensesPage({
             Диспетчерлар (Фарғона, Қува) киритган кунлик расходлар
           </div>
         </div>
-        <Link
-          href="/accountant/expenses/new"
-          className="bg-danger text-white rounded-[10px] px-[18px] py-2.5 font-extrabold text-[13px]"
-        >
-          + Бошқа расход
-        </Link>
+        <div className="flex gap-2 flex-wrap">
+          <Link
+            href="/accountant/expenses/export/excel"
+            className="bg-card border border-border text-body rounded-[10px] px-4 py-2.5 font-extrabold text-[13px]"
+          >
+            ⬇ Excel
+          </Link>
+          <Link
+            href="/accountant/expenses/new"
+            className="bg-danger text-white rounded-[10px] px-[18px] py-2.5 font-extrabold text-[13px]"
+          >
+            + Бошқа расход
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

@@ -6,14 +6,20 @@ import { ROLE_LABELS } from "@/components/ui/RoleBadge";
 import { uzMonthName } from "@/lib/format";
 import { monthStart } from "@/lib/month";
 
-export async function GET() {
+const MONTH_RE = /^\d{4}-\d{2}$/;
+
+export async function GET(request: Request) {
   const session = await auth();
   if (!session || session.user.role !== "ACCOUNTANT") {
     return NextResponse.json({ error: "Рухсат йўқ" }, { status: 403 });
   }
 
-  const now = new Date();
-  const month = monthStart(now);
+  const { searchParams } = new URL(request.url);
+  const monthParam = searchParams.get("month");
+  const month =
+    monthParam && MONTH_RE.test(monthParam)
+      ? new Date(Date.UTC(Number(monthParam.slice(0, 4)), Number(monthParam.slice(5, 7)) - 1, 1))
+      : monthStart(new Date());
 
   const [users, salaries, advances] = await Promise.all([
     prisma.user.findMany({ where: { role: { not: "OWNER" }, isActive: true }, orderBy: [{ role: "asc" }, { fullName: "asc" }] }),
@@ -29,9 +35,9 @@ export async function GET() {
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Avtopark Foyda Tizimi";
-  workbook.created = now;
+  workbook.created = new Date();
 
-  const sheet = workbook.addWorksheet(`Ведомост ${uzMonthName(now)} ${now.getFullYear()}`);
+  const sheet = workbook.addWorksheet(`Ведомост ${uzMonthName(month)} ${month.getUTCFullYear()}`);
   sheet.columns = [
     { header: "Ходим", key: "name", width: 26 },
     { header: "Рол", key: "role", width: 16 },
@@ -46,18 +52,46 @@ export async function GET() {
   headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
   headerRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4F46E5" } };
 
+  let salaryTotal = 0;
+  let advanceTotal = 0;
+  let finesTotal = 0;
+  let bonusTotal = 0;
+  let netTotal = 0;
+
   for (const u of users) {
     const salary = salaryByUser.get(u.id);
+    const salaryAmount = Number(u.baseSalary ?? BigInt(0));
+    const advanceAmount = advanceByUser.get(u.id) ?? 0;
+    const finesAmount = Number(salary?.finesTotal ?? 0);
+    const bonusAmount = Number(salary?.bonus ?? 0);
+    const netAmount = salary ? Number(salary.netPay) : 0;
+
+    salaryTotal += salaryAmount;
+    advanceTotal += advanceAmount;
+    finesTotal += finesAmount;
+    bonusTotal += bonusAmount;
+    netTotal += netAmount;
+
     sheet.addRow({
       name: u.fullName,
       role: ROLE_LABELS[u.role],
-      salary: Number(u.baseSalary ?? BigInt(0)),
-      advance: advanceByUser.get(u.id) ?? 0,
-      fines: Number(salary?.finesTotal ?? 0),
-      bonus: Number(salary?.bonus ?? 0),
-      net: salary ? Number(salary.netPay) : null,
+      salary: salaryAmount,
+      advance: advanceAmount,
+      fines: finesAmount,
+      bonus: bonusAmount,
+      net: salary ? netAmount : null,
     });
   }
+
+  const totalsRow = sheet.addRow({
+    name: "ЖАМИ",
+    salary: salaryTotal,
+    advance: advanceTotal,
+    fines: finesTotal,
+    bonus: bonusTotal,
+    net: netTotal,
+  });
+  totalsRow.font = { bold: true };
 
   for (const key of ["salary", "advance", "fines", "bonus", "net"]) {
     sheet.getColumn(key).numFmt = "#,##0";
@@ -68,7 +102,7 @@ export async function GET() {
   return new NextResponse(buffer, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="vedomost_${month.getFullYear()}-${month.getMonth() + 1}.xlsx"`,
+      "Content-Disposition": `attachment; filename="vedomost_${month.getUTCFullYear()}-${month.getUTCMonth() + 1}.xlsx"`,
     },
   });
 }

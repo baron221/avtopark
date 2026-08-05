@@ -166,8 +166,8 @@ async function computeTotals(from: Date, to: Date) {
   return { totalIncome, totalExpense };
 }
 
-export async function getOwnerDashboardVM(period: Period): Promise<OwnerDashboardVM> {
-  const now = new Date();
+export async function getOwnerDashboardVM(period: Period, referenceDate: Date = new Date()): Promise<OwnerDashboardVM> {
+  const now = referenceDate;
   const { from, to } = rangeForPeriod(period, now);
   const prev = previousRange(period, { from, to });
 

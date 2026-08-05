@@ -7,17 +7,29 @@ import { KpiCard } from "@/components/ui/KpiCard";
 import { RoleBadge } from "@/components/ui/RoleBadge";
 import { Pagination } from "@/components/ui/Pagination";
 import { MoneyInput } from "@/components/ui/MoneyInput";
+import { MonthPicker } from "@/components/ui/MonthPicker";
 import { DEFAULT_PAGE_SIZE, parsePage, paginationSkip, totalPages } from "@/lib/paginate";
 import { formatSom, formatMillions, uzMonthName } from "@/lib/format";
 import { getOwnerDashboardVM } from "@/lib/dashboard";
 import { hasModuleAccess } from "@/lib/access";
-import { monthStart } from "@/lib/month";
+import { monthStart, monthEnd } from "@/lib/month";
 import { generatePayrollAction, approvePayrollAction, setBonusAction } from "./actions";
+
+const MONTH_RE = /^\d{4}-\d{2}$/;
+
+function parseMonthParam(value: string | undefined): Date {
+  if (value && MONTH_RE.test(value)) {
+    const [y, m] = value.split("-").map(Number);
+    const parsed = new Date(Date.UTC(y, m - 1, 1));
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+  return monthStart(new Date());
+}
 
 export default async function PayrollPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; month?: string }>;
 }) {
   const session = await auth();
   if (!session) redirect("/login");
@@ -25,17 +37,22 @@ export default async function PayrollPage({
     redirect("/coming-soon");
   }
 
-  const { page: pageParam } = await searchParams;
+  const { page: pageParam, month: monthParam } = await searchParams;
   const page = parsePage(pageParam);
 
   const now = new Date();
-  const month = monthStart(now);
+  const month = parseMonthParam(monthParam);
+  const isCurrentMonth = month.getTime() === monthStart(now).getTime();
+  const monthStr = `${month.getUTCFullYear()}-${String(month.getUTCMonth() + 1).padStart(2, "0")}`;
+  // "Month to date" for the current month (can't show days that haven't
+  // happened yet); the full completed month when looking at the past.
+  const vmReferenceDate = isCurrentMonth ? now : monthEnd(month);
 
   const [allUsers, salaries, advances, fleetVM] = await Promise.all([
     prisma.user.findMany({ where: { role: { not: "OWNER" }, isActive: true }, orderBy: [{ role: "asc" }, { fullName: "asc" }] }),
     prisma.salary.findMany({ where: { month } }),
     prisma.advance.findMany({ where: { month } }),
-    getOwnerDashboardVM("MONTH"),
+    getOwnerDashboardVM("MONTH", vmReferenceDate),
   ]);
 
   const skip = paginationSkip(page);
@@ -52,6 +69,7 @@ export default async function PayrollPage({
   const advancesTotal = advances.reduce((s, a) => s + Number(a.amount), 0);
   const finesTotal = salaries.reduce((s, sal) => s + Number(sal.finesTotal), 0);
   const bonusTotal = salaries.reduce((s, sal) => s + Number(sal.bonus), 0);
+  const netPayTotal = salaries.reduce((s, sal) => s + Number(sal.netPay), 0);
   // Advances are a pre-payment of the very same base salary (already inside
   // salaryFund) that gets clawed back at settlement, so it nets out —
   // including it here on top of salaryFund would double-count it. A fine
@@ -67,33 +85,38 @@ export default async function PayrollPage({
       <div className="flex justify-between items-center flex-wrap gap-3">
         <div>
           <div className="font-heading font-bold text-xl text-heading">
-            Ойлик ҳисоб-китоб · {uzMonthName(now)} {now.getFullYear()}
+            Ойлик ҳисоб-китоб · {uzMonthName(month)} {month.getUTCFullYear()}
           </div>
           <div className="text-[13px] text-muted-2 font-semibold">
             Маош + бонус − аванс − жарима = қўлга тегади
           </div>
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <form action={generatePayrollAction}>
-            <button type="submit" className="bg-primary-tint text-primary rounded-[10px] px-4 py-2.5 font-extrabold text-[13px]">
-              Ведомостни яратиш/янгилаш
-            </button>
-          </form>
+        <div className="flex gap-2 flex-wrap items-center">
+          <MonthPicker basePath="/accountant/payroll" value={monthStr} />
+          {isCurrentMonth && (
+            <form action={generatePayrollAction}>
+              <button type="submit" className="bg-primary-tint text-primary rounded-[10px] px-4 py-2.5 font-extrabold text-[13px]">
+                Ведомостни яратиш/янгилаш
+              </button>
+            </form>
+          )}
           <Link
-            href="/accountant/payroll/export"
+            href={`/accountant/payroll/export?month=${monthStr}`}
             className="bg-card border border-border text-body rounded-[10px] px-4 py-2.5 font-extrabold text-[13px]"
           >
             ⬇ Ведомост (Excel)
           </Link>
-          <form action={approvePayrollAction}>
-            <button
-              type="submit"
-              disabled={salaries.length === 0 || allApproved}
-              className="bg-primary text-white rounded-[10px] px-4 py-2.5 font-extrabold text-[13px] disabled:opacity-50"
-            >
-              Тўловни тасдиқлаш
-            </button>
-          </form>
+          {isCurrentMonth && (
+            <form action={approvePayrollAction}>
+              <button
+                type="submit"
+                disabled={salaries.length === 0 || allApproved}
+                className="bg-primary text-white rounded-[10px] px-4 py-2.5 font-extrabold text-[13px] disabled:opacity-50"
+              >
+                Тўловни тасдиқлаш
+              </button>
+            </form>
+          )}
         </div>
       </div>
 
@@ -117,7 +140,7 @@ export default async function PayrollPage({
         {users.map((u) => {
           const salary = salaryByUser.get(u.id);
           const advance = advanceByUser.get(u.id) ?? 0;
-          const editable = !salary || salary.status === "DRAFT";
+          const editable = isCurrentMonth && (!salary || salary.status === "DRAFT");
           return (
             <div
               key={u.id}
@@ -156,7 +179,16 @@ export default async function PayrollPage({
           );
         })}
         {users.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Ходим топилмади</p>}
-        <Pagination page={page} totalPages={pages} basePath="/accountant/payroll" />
+        <div className="grid grid-cols-2 lg:grid-cols-[1.3fr_0.9fr_0.85fr_0.8fr_0.75fr_0.9fr_1fr] gap-y-1.5 gap-x-2 px-6 py-3.5 border-t-2 border-primary bg-primary-tint items-center text-sm">
+          <div className="font-extrabold text-heading col-span-2 lg:col-span-1">Жами ({allUsers.length} ходим)</div>
+          <div></div>
+          <div className="font-extrabold text-heading">{formatSom(salaryFund)}</div>
+          <div className="font-extrabold text-primary">−{formatSom(advancesTotal)}</div>
+          <div className="font-extrabold text-danger">−{formatSom(finesTotal)}</div>
+          <div className="font-extrabold text-success">+{formatSom(bonusTotal)}</div>
+          <div className="font-heading font-extrabold text-heading">{formatSom(netPayTotal)}</div>
+        </div>
+        <Pagination page={page} totalPages={pages} basePath="/accountant/payroll" params={{ month: monthStr }} />
       </Card>
     </div>
   );
