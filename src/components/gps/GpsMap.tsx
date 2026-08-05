@@ -16,15 +16,16 @@ export type GpsMapPoint = {
 };
 
 // Leaflet's default marker icon resolves image paths relative to the bundler
-// output, which breaks under webpack/Turbopack — a plain colored dot avoids
-// that whole class of bug instead of trying to fix asset URLs.
+// output, which breaks under webpack/Turbopack — an emoji glyph avoids that
+// whole class of bug instead of trying to fix asset URLs, while still
+// reading as "this is a minivan" (the fleet is all JAC SunRay) at a glance.
 function markerIcon(moving: boolean) {
   const color = moving ? "#1B9E6B" : "#6B6D82";
   return L.divIcon({
     className: "",
-    html: `<div style="width:16px;height:16px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>`,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
+    html: `<div style="width:26px;height:26px;border-radius:50%;background:white;border:2px solid ${color};box-shadow:0 1px 4px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:14px;line-height:1">🚐</div>`,
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
   });
 }
 
