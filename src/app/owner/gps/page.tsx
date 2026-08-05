@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { hasModuleAccess } from "@/lib/access";
 import { getWialonUnits, matchVehiclesToWialonUnits, type WialonUnit } from "@/lib/wialon";
 import { GpsList } from "@/components/gps/GpsList";
+import { FuelEfficiencyCard } from "@/components/gps/FuelEfficiencyCard";
 
 export default async function OwnerGpsPage() {
   const session = await auth();
@@ -47,6 +48,7 @@ export default async function OwnerGpsPage() {
       </div>
 
       <GpsList vehicles={vehicles} gpsMap={gpsMap} gpsError={gpsError} />
+      <FuelEfficiencyCard />
     </div>
   );
 }

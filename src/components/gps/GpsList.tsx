@@ -4,6 +4,11 @@ import { GpsMapLoader } from "./GpsMapLoader";
 
 type VehicleRow = { id: string; plate: string; driver: { user: { fullName: string } } | null };
 
+// A working vehicle should ping every few seconds while the ignition is on —
+// if we haven't heard from it in this long, the device is very likely
+// offline (powered down, no SIM signal, unplugged) rather than just idling.
+const STALE_HOURS = 3;
+
 function formatAgo(d: Date, now: Date) {
   const mins = Math.round((now.getTime() - d.getTime()) / 60000);
   if (mins < 1) return "ҳозир";
@@ -63,6 +68,7 @@ export function GpsList({
         </div>
         {vehicles.map((v) => {
           const unit = gpsMap.get(v.id);
+          const isStale = unit ? now.getTime() - unit.lastUpdate.getTime() > STALE_HOURS * 3_600_000 : false;
           return (
             <div
               key={v.id}
@@ -75,7 +81,15 @@ export function GpsList({
                   <div className={`font-bold ${unit.speedKmh > 0 ? "text-success" : "text-muted-2"}`}>
                     {unit.speedKmh > 0 ? `${unit.speedKmh} км/соат` : "тўхтаган"}
                   </div>
-                  <div className="text-muted-2 font-semibold text-xs">{formatAgo(unit.lastUpdate, now)}</div>
+                  <div>
+                    {isStale ? (
+                      <span className="bg-danger-tint text-danger text-xs font-extrabold px-2 py-0.5 rounded-full whitespace-nowrap">
+                        ⚠ Сигнал йўқ · {formatAgo(unit.lastUpdate, now)}
+                      </span>
+                    ) : (
+                      <span className="text-muted-2 font-semibold text-xs">{formatAgo(unit.lastUpdate, now)}</span>
+                    )}
+                  </div>
                   <div className="text-xs text-muted-2">
                     {unit.lat.toFixed(4)}, {unit.lon.toFixed(4)}
                   </div>

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/gps/daily-mileage",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}

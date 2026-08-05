@@ -46,7 +46,7 @@ export default async function VehicleDetailPage({
   const { period: periodParam } = await searchParams;
   const period: Period = isPeriod(periodParam) ? periodParam : "MONTH";
 
-  const [vehicle, vm, expenses, drivers, oilChanges, report, assignmentHistory] = await Promise.all([
+  const [vehicle, vm, expenses, drivers, oilChanges, report, assignmentHistory, mileageHistory] = await Promise.all([
     prisma.vehicle.findUnique({ where: { id }, include: { driver: { include: { user: true } } } }),
     getOwnerDashboardVM("MONTH"),
     prisma.expense.findMany({ where: { vehicleId: id }, orderBy: { expenseDate: "desc" }, take: 10 }),
@@ -54,6 +54,7 @@ export default async function VehicleDetailPage({
     prisma.oilChange.findMany({ where: { vehicleId: id }, orderBy: { changedAt: "desc" }, take: 10 }),
     getVehicleReport(id, period),
     getDriverAssignmentHistory(id),
+    prisma.vehicleMileage.findMany({ where: { vehicleId: id }, orderBy: { date: "desc" }, take: 30 }),
   ]);
 
   if (!vehicle) notFound();
@@ -67,6 +68,11 @@ export default async function VehicleDetailPage({
     console.error("Wialon GPS xato:", err);
     gpsUnit = null;
   }
+
+  const last7Days = mileageHistory.slice(0, 7);
+  const weekKm = last7Days.reduce((s, m) => s + m.km, 0);
+  const monthKm = mileageHistory.reduce((s, m) => s + m.km, 0);
+  const maxDayKm = Math.max(1, ...last7Days.map((m) => m.km));
 
   const lastOilChange = oilChanges[0] ?? null;
   let oilStatus: { overdue: boolean; kmRemaining: number; daysRemaining: number } | null = null;
@@ -145,7 +151,7 @@ export default async function VehicleDetailPage({
               Харитада кўриш ↗
             </a>
           </div>
-          <div className="grid grid-cols-3 px-6 pb-4 gap-3 text-sm">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 px-6 pb-4 gap-3 text-sm">
             <div>
               <div className="text-xs text-muted-2 font-bold">Тезлик</div>
               <div className={`font-extrabold ${gpsUnit.speedKmh > 0 ? "text-success" : "text-muted-2"}`}>
@@ -164,7 +170,30 @@ export default async function VehicleDetailPage({
                 {gpsUnit.lastUpdate.toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" })}
               </div>
             </div>
+            <div>
+              <div className="text-xs text-muted-2 font-bold">Бу ҳафта</div>
+              <div className="font-extrabold text-heading">{weekKm.toFixed(0)} км</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-2 font-bold">Бу ой</div>
+              <div className="font-extrabold text-heading">{monthKm.toFixed(0)} км</div>
+            </div>
           </div>
+          {last7Days.length > 0 && (
+            <div className="px-6 pb-5 flex items-end gap-2 h-16">
+              {[...last7Days].reverse().map((m) => (
+                <div key={m.id} className="flex-1 flex flex-col items-center gap-1" title={`${m.km.toFixed(0)} км`}>
+                  <div
+                    className="w-full bg-primary rounded-t"
+                    style={{ height: `${Math.max(4, (m.km / maxDayKm) * 40)}px` }}
+                  />
+                  <div className="text-[10px] text-muted-2 font-bold">
+                    {m.date.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
       )}
 

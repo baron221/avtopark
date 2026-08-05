@@ -128,16 +128,12 @@ function haversineKm(a: { lat: number; lon: number }, b: { lat: number; lon: num
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-/** Sums today's GPS track into a driven-distance estimate for one unit. */
-export async function getWialonMileageToday(unitId: number): Promise<number> {
-  const now = new Date();
-  const from = Math.floor(new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() / 1000);
-  const to = Math.floor(now.getTime() / 1000);
-
+/** Sums a unit's GPS track between two instants into a driven-distance estimate. */
+export async function getWialonMileageForRange(unitId: number, from: Date, to: Date): Promise<number> {
   const data = await callAuthed<{ messages?: { pos?: { y: number; x: number } }[] }>("messages/load_interval", {
     itemId: unitId,
-    timeFrom: from,
-    timeTo: to,
+    timeFrom: Math.floor(from.getTime() / 1000),
+    timeTo: Math.floor(to.getTime() / 1000),
     flags: 0,
     flagsMask: 0,
     loadCount: 20000,
@@ -151,4 +147,11 @@ export async function getWialonMileageToday(unitId: number): Promise<number> {
   let km = 0;
   for (let i = 1; i < points.length; i++) km += haversineKm(points[i - 1], points[i]);
   return km;
+}
+
+/** Sums today's GPS track (midnight so far) into a driven-distance estimate. */
+export async function getWialonMileageToday(unitId: number): Promise<number> {
+  const now = new Date();
+  const from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return getWialonMileageForRange(unitId, from, now);
 }

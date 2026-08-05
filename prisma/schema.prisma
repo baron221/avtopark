@@ -192,6 +192,7 @@ model Vehicle {
   fuelLogs        FuelLog[]
   oilChanges      OilChange[]
   assignmentLogs  DriverAssignmentLog[]
+  mileages        VehicleMileage[]
 
   @@index([point])
   @@index([status])
@@ -218,6 +219,23 @@ model OilChange {
 
   @@index([vehicleId, changedAt])
   @@map("oil_changes")
+}
+
+// One row per vehicle per calendar day, written once daily by a Vercel Cron
+// job (see /api/gps/daily-mileage) replaying that day's GPS track — kept as
+// a durable snapshot because Wialon's own message history isn't something
+// we can cheaply re-query for a month-long trend on every page view.
+model VehicleMileage {
+  id        String   @id @default(uuid())
+  vehicleId String   @map("vehicle_id")
+  date      DateTime
+  km        Float
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+
+  @@unique([vehicleId, date])
+  @@index([vehicleId, date])
+  @@map("vehicle_mileages")
 }
 
 model Driver {
