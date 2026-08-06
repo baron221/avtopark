@@ -4,10 +4,10 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { KpiCard } from "@/components/ui/KpiCard";
-import { formatSom, formatTime } from "@/lib/format";
+import { formatSom } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
 import { IncomeForm } from "../journal/IncomeForm";
-import { DeleteEntryButton } from "../journal/DeleteEntryButton";
+import { DriverTripsTable, type DriverGroup } from "./DriverTripsTable";
 import { deleteTripAction } from "../actions";
 import type { Point } from "@prisma/client";
 
@@ -66,17 +66,39 @@ export default async function DispatcherPointPage({
   const myExpenseToday = Number(myExpenseAgg._sum.amount ?? BigInt(0));
   const myLunchToday = myLunch ? Number(myLunch.amount) : 0;
 
-  const entries = tripsToday
-    .map((t) => ({
+  const deletePoint = isDispatcher ? undefined : point;
+
+  // One row per driver who worked today, each expandable to their individual
+  // trips — a flat per-trip list got unreadably long once a driver had made
+  // several runs in a day.
+  const groupsByDriver = new Map<string, DriverGroup>();
+  for (const t of tripsToday) {
+    const detail = {
       id: t.id,
       time: t.createdAt,
-      plate: t.vehicle.plate,
-      driver: t.driver.user.fullName,
+      label: t.kind === "ORDER" ? "Алоҳида заказ" : t.tripNumber ? `${t.tripNumber}-рейс` : "Рейс",
       amount: Number(t.revenue),
-      note: t.kind === "ORDER" ? "Алоҳида заказ" : t.tripNumber ? `${t.tripNumber}-рейс тушуми` : "Рейс тушуми",
-    }))
-    .sort((a, b) => a.time.getTime() - b.time.getTime());
-  const deletePoint = isDispatcher ? undefined : point;
+      editHref: `/dispatcher/trips/${t.id}/edit?from=point${isDispatcher ? "" : `&point=${point}`}`,
+    };
+    const existing = groupsByDriver.get(t.driverId);
+    if (existing) {
+      existing.trips.push(detail);
+      existing.totalAmount += detail.amount;
+      existing.plate = t.vehicle.plate;
+    } else {
+      groupsByDriver.set(t.driverId, {
+        driverId: t.driverId,
+        driverName: t.driver.user.fullName,
+        plate: t.vehicle.plate,
+        totalAmount: detail.amount,
+        trips: [detail],
+      });
+    }
+  }
+  // Most recently active driver on top.
+  const driverGroups = Array.from(groupsByDriver.values()).sort(
+    (a, b) => b.trips[b.trips.length - 1].time.getTime() - a.trips[a.trips.length - 1].time.getTime()
+  );
 
   const vehicleOptions = vehicles
     .filter((v) => v.driver)
@@ -133,70 +155,7 @@ export default async function DispatcherPointPage({
       </div>
 
       <Card className="overflow-hidden">
-        <div className="hidden lg:grid grid-cols-[0.6fr_1fr_1.2fr_0.9fr_1fr_48px] px-6 py-3 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
-          <div>Вақт</div>
-          <div>Машина</div>
-          <div>Ҳайдовчи</div>
-          <div>Сумма</div>
-          <div>Изоҳ</div>
-          <div></div>
-        </div>
-        {entries.map((e) => (
-          <div
-            key={e.id}
-            className="hidden lg:grid grid-cols-[0.6fr_1fr_1.2fr_0.9fr_1fr_48px] gap-1 px-6 py-3 border-t border-row-divider items-center text-sm"
-          >
-            <div className="text-muted-2 font-bold">{formatTime(e.time)}</div>
-            <div className="font-extrabold text-primary font-heading">{e.plate}</div>
-            <div className="font-semibold text-heading">{e.driver}</div>
-            <div className="font-extrabold text-heading">{formatSom(e.amount)}</div>
-            <div>
-              <span className="text-xs font-extrabold px-2.5 py-1 rounded-full bg-success-tint text-success">
-                {e.note}
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Link
-                href={`/dispatcher/trips/${e.id}/edit?from=point${isDispatcher ? "" : `&point=${point}`}`}
-                title="Таҳрирлаш"
-                className="text-muted-2 hover:text-primary text-base leading-none px-1"
-              >
-                ✎
-              </Link>
-              <DeleteEntryButton action={deleteTripAction} id={e.id} point={deletePoint} />
-            </div>
-          </div>
-        ))}
-        {entries.map((e) => (
-          <div key={e.id} className="flex flex-col gap-1.5 px-5 py-3 border-t border-row-divider text-sm lg:hidden">
-            <div className="flex justify-between items-center gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-muted-2 font-bold text-xs">{formatTime(e.time)}</span>
-                <span className="font-extrabold text-primary font-heading">{e.plate}</span>
-              </div>
-              <div className="font-extrabold text-heading">{formatSom(e.amount)}</div>
-            </div>
-            <div className="flex justify-between items-end gap-2">
-              <div className="min-w-0">
-                <div className="font-semibold text-heading">{e.driver}</div>
-                <span className="text-xs font-extrabold px-2.5 py-1 rounded-full bg-success-tint text-success inline-block mt-1">
-                  {e.note}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <Link
-                  href={`/dispatcher/trips/${e.id}/edit?from=point${isDispatcher ? "" : `&point=${point}`}`}
-                  title="Таҳрирлаш"
-                  className="text-muted-2 hover:text-primary text-base leading-none px-1"
-                >
-                  ✎
-                </Link>
-                <DeleteEntryButton action={deleteTripAction} id={e.id} point={deletePoint} />
-              </div>
-            </div>
-          </div>
-        ))}
-        {entries.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Бугун ҳали ёзув йўқ</p>}
+        <DriverTripsTable groups={driverGroups} deleteAction={deleteTripAction} deletePoint={deletePoint} />
       </Card>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
