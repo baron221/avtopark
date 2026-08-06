@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { hasModuleAccess } from "@/lib/access";
-import { getWialonUnits, matchVehiclesToWialonUnits, getWialonTodayStats, type WialonUnit } from "@/lib/wialon";
+import { getWialonUnits, matchVehiclesToWialonUnits, getWialonTodayStatsForUnits, type WialonUnit } from "@/lib/wialon";
 import { GpsList } from "@/components/gps/GpsList";
 import { FuelEfficiencyCard } from "@/components/gps/FuelEfficiencyCard";
 
@@ -21,21 +21,13 @@ export default async function OwnerGpsPage() {
   });
 
   let gpsMap = new Map<string, WialonUnit>();
-  const todayStats = new Map<string, { kmToday: number; maxSpeedKmh: number }>();
+  let todayStats = new Map<string, { kmToday: number; maxSpeedKmh: number }>();
   let gpsError: string | null = null;
   try {
     const units = await getWialonUnits();
     gpsMap = matchVehiclesToWialonUnits(vehicles, units);
-    await Promise.all(
-      vehicles.map(async (v) => {
-        const unit = gpsMap.get(v.id);
-        if (!unit) return;
-        try {
-          todayStats.set(v.id, await getWialonTodayStats(unit.id));
-        } catch (err) {
-          console.error(`Wialon bugungi статистика xato (${v.plate}):`, err);
-        }
-      })
+    todayStats = await getWialonTodayStatsForUnits(
+      vehicles.filter((v) => gpsMap.has(v.id)).map((v) => ({ vehicleId: v.id, unitId: gpsMap.get(v.id)!.id }))
     );
   } catch (err) {
     console.error("Wialon GPS xato:", err);

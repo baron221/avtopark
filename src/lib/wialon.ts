@@ -40,9 +40,16 @@ async function callAuthed<T = unknown>(svc: string, params: unknown): Promise<T>
   const sid = cachedSid ?? (await login());
   const data = await call<T & { error?: number }>(svc, params, sid);
   if (data?.error) {
-    // Session likely expired — retry once with a fresh login.
+    // Session likely expired — retry once with a fresh login. If the retry
+    // still errors (e.g. the self-hosted server's error 1003, thrown back
+    // when too many messages/load_interval calls land concurrently), throw
+    // instead of returning the errored payload — callers coerce a missing
+    // `messages`/`items` field into an empty array, which would otherwise
+    // silently read as "no GPS activity" rather than "the fetch failed".
     const freshSid = await login();
-    return call<T>(svc, params, freshSid);
+    const retried = await call<T & { error?: number }>(svc, params, freshSid);
+    if (retried?.error) throw new Error(`Wialon xato (${svc}): ${JSON.stringify(retried)}`);
+    return retried;
   }
   return data;
 }
@@ -183,4 +190,31 @@ export async function getWialonTodayStats(unitId: number): Promise<{ kmToday: nu
     if (i > 0) kmToday += haversineKm({ lat: points[i - 1].y, lon: points[i - 1].x }, { lat: points[i].y, lon: points[i].x });
   }
   return { kmToday, maxSpeedKmh: Math.round(maxSpeedKmh) };
+}
+
+// The self-hosted Wialon instance starts rejecting messages/load_interval
+// calls with error 1003 once ~5 land at the same time — verified by testing
+// concurrency levels directly against it. 3 stayed reliably under that limit,
+// so a whole fleet's worth of per-vehicle stats is fetched in small batches
+// rather than all at once.
+const TODAY_STATS_CONCURRENCY = 3;
+
+/** Today's stats for many units at once, batched to stay under the server's concurrency limit. */
+export async function getWialonTodayStatsForUnits(
+  units: { vehicleId: string; unitId: number }[]
+): Promise<Map<string, { kmToday: number; maxSpeedKmh: number }>> {
+  const result = new Map<string, { kmToday: number; maxSpeedKmh: number }>();
+  for (let i = 0; i < units.length; i += TODAY_STATS_CONCURRENCY) {
+    const batch = units.slice(i, i + TODAY_STATS_CONCURRENCY);
+    await Promise.all(
+      batch.map(async ({ vehicleId, unitId }) => {
+        try {
+          result.set(vehicleId, await getWialonTodayStats(unitId));
+        } catch (err) {
+          console.error(`Wialon bugungi статистика xato (unit ${unitId}):`, err);
+        }
+      })
+    );
+  }
+  return result;
 }
