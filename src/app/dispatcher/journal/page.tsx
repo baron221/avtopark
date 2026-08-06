@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
-import { formatSom } from "@/lib/format";
+import { formatSom, formatTime } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
 import { ExpenseForm } from "./ExpenseForm";
 import { DeleteEntryButton } from "./DeleteEntryButton";
@@ -19,9 +19,6 @@ function endOfDay(d: Date) {
   const x = new Date(d);
   x.setHours(23, 59, 59, 999);
   return x;
-}
-function formatTime(d: Date) {
-  return d.toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" });
 }
 
 const EXPENSE_CATEGORY_LABELS: Record<string, string> = {

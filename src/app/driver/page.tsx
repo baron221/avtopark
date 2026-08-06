@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { KpiCard } from "@/components/ui/KpiCard";
-import { formatSom } from "@/lib/format";
+import { formatSom, formatTime } from "@/lib/format";
 import { monthStart as getMonthStart } from "@/lib/month";
 
 function startOfDay(d: Date) {
@@ -15,9 +15,6 @@ function endOfDay(d: Date) {
   const x = new Date(d);
   x.setHours(23, 59, 59, 999);
   return x;
-}
-function formatTime(d: Date) {
-  return d.toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" });
 }
 
 export default async function DriverPage() {

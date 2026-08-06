@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { hasAnyModuleAccess, type ModuleKey } from "@/lib/access";
 import { logDeletion } from "@/lib/deletionLog";
 import { sendSms } from "@/lib/sms";
+import { formatTime } from "@/lib/format";
 import type { Point, StaffExpenseCategory, StaffExpensePoint, TripKind } from "@prisma/client";
 
 const EXPENSE_CATEGORY_LABELS: Record<string, string> = {
@@ -19,10 +20,6 @@ const POINT_LABELS: Record<Point, string> = {
   FARGONA: "Фарғона",
   QUVA: "Қува",
 };
-
-function formatTime(d: Date) {
-  return d.toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" });
-}
 
 function startOfDay(d: Date) {
   const x = new Date(d);

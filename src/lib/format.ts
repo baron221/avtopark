@@ -1,3 +1,13 @@
+// The app is used exclusively in Farg'ona/Quva (Asia/Tashkent), but the
+// server itself runs in UTC (Vercel) — without pinning the timezone here,
+// toLocaleTimeString silently renders the UTC hour instead, 5 hours behind
+// what dispatchers/drivers actually see on the clock.
+const TASHKENT_TZ = "Asia/Tashkent";
+
+export function formatTime(date: Date): string {
+  return date.toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit", timeZone: TASHKENT_TZ });
+}
+
 export function formatSom(amount: number | bigint): string {
   const n = typeof amount === "bigint" ? Number(amount) : Math.round(amount);
   const negative = n < 0;
