@@ -1,10 +1,15 @@
+import Link from "next/link";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
+import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
 import { formatSom } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
+import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 import { FuelLogForm } from "./FuelLogForm";
+import { AddStationForm } from "./AddStationForm";
+import { deleteFuelLogAction } from "./actions";
 
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
   PAID: { bg: "#E4F5EC", color: "#1B9E6B", label: "Тўланди" },
@@ -30,7 +35,11 @@ export default async function MechanicFuelPage() {
       orderBy: { filledAt: "desc" },
       take: 15,
     }),
-    prisma.vehicle.findMany({ where: { status: "ACTIVE" }, include: { driver: { include: { user: true } } }, orderBy: { plate: "asc" } }),
+    prisma.vehicle.findMany({
+      where: { status: { in: DISPATCHABLE_STATUSES } },
+      include: { driver: { include: { user: true } } },
+      orderBy: { plate: "asc" },
+    }),
   ]);
 
   const grandTotal = payments.reduce((s, p) => s + Number(p.amount), 0);
@@ -100,27 +109,86 @@ export default async function MechanicFuelPage() {
           <div className="px-6 py-3.5 font-heading font-bold text-[15px] text-heading">
             Қуйиш журнали (машина бўйича)
           </div>
+
+          {/* Desktop */}
           {fuelLogs.map((f) => (
             <div
               key={f.id}
-              className="grid grid-cols-2 lg:grid-cols-[1fr_0.9fr_0.8fr_1.1fr_1fr_0.7fr] gap-1 px-6 py-3 border-t border-row-divider items-center text-sm"
+              className="hidden lg:grid grid-cols-[1fr_0.9fr_0.8fr_1.1fr_1fr_0.9fr_60px] gap-1 px-6 py-3 border-t border-row-divider items-center text-sm"
             >
               <div className="text-muted-2 font-bold">
                 {f.filledAt.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" })}
               </div>
               <div className="font-extrabold text-primary font-heading">{f.vehicle.plate}</div>
-              <div className="text-body font-semibold hidden lg:block">{f.driver.user.fullName}</div>
-              <div className="text-body font-semibold hidden lg:block">{f.station.name}</div>
+              <div className="text-body font-semibold">{f.driver.user.fullName}</div>
+              <div className="text-body font-semibold">{f.station.name}</div>
               <div className="font-bold text-heading">
                 {Number(f.volume)} {f.station.fuelType === "BENZIN" ? "L" : "m³"}
               </div>
               <div className="font-extrabold text-heading text-right">{formatSom(Number(f.amount))}</div>
+              <div className="flex items-center justify-end gap-1.5">
+                <Link
+                  href={`/mechanic/fuel/${f.id}/edit`}
+                  title="Таҳрирлаш"
+                  className="text-muted-2 hover:text-primary text-base leading-none px-1"
+                >
+                  ✎
+                </Link>
+                <ConfirmDeleteButton
+                  action={deleteFuelLogAction}
+                  id={f.id}
+                  confirmText="Бу қуйиш ёзувини ўчиришни тасдиқлайсизми?"
+                  className="text-muted-2 hover:text-danger font-extrabold text-base leading-none px-1.5 py-1"
+                />
+              </div>
             </div>
           ))}
+
+          {/* Mobile */}
+          {fuelLogs.map((f) => (
+            <div key={f.id} className="flex flex-col gap-1.5 px-5 py-3 border-t border-row-divider text-sm lg:hidden">
+              <div className="flex justify-between items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-2 font-bold text-xs">
+                    {f.filledAt.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" })}
+                  </span>
+                  <span className="font-extrabold text-primary font-heading">{f.vehicle.plate}</span>
+                </div>
+                <div className="font-extrabold text-heading">{formatSom(Number(f.amount))}</div>
+              </div>
+              <div className="flex justify-between items-end gap-2">
+                <div className="min-w-0">
+                  <div className="font-semibold text-heading">{f.driver.user.fullName}</div>
+                  <div className="text-muted-2 text-xs font-semibold mt-0.5">
+                    {f.station.name} · {Number(f.volume)} {f.station.fuelType === "BENZIN" ? "L" : "m³"}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Link
+                    href={`/mechanic/fuel/${f.id}/edit`}
+                    title="Таҳрирлаш"
+                    className="text-muted-2 hover:text-primary text-base leading-none px-1"
+                  >
+                    ✎
+                  </Link>
+                  <ConfirmDeleteButton
+                    action={deleteFuelLogAction}
+                    id={f.id}
+                    confirmText="Бу қуйиш ёзувини ўчиришни тасдиқлайсизми?"
+                    className="text-muted-2 hover:text-danger font-extrabold text-base leading-none px-1.5 py-1"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+
           {fuelLogs.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Ҳали қуйиш ёзуви йўқ</p>}
         </Card>
 
-        <FuelLogForm vehicles={vehicleOptions} stations={stationOptions} />
+        <div className="flex flex-col gap-4">
+          <FuelLogForm vehicles={vehicleOptions} stations={stationOptions} />
+          <AddStationForm />
+        </div>
       </div>
     </div>
   );

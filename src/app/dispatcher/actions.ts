@@ -8,6 +8,7 @@ import { hasAnyModuleAccess, type ModuleKey } from "@/lib/access";
 import { logDeletion } from "@/lib/deletionLog";
 import { sendSms } from "@/lib/sms";
 import { formatTime } from "@/lib/format";
+import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 import type { Point, StaffExpenseCategory, StaffExpensePoint, TripKind } from "@prisma/client";
 
 const EXPENSE_CATEGORY_LABELS: Record<string, string> = {
@@ -70,7 +71,7 @@ export async function addTripAction(formData: FormData) {
     where: { id: vehicleId },
     include: { driver: { include: { user: true } } },
   });
-  if (!vehicle || vehicle.status !== "ACTIVE" || !vehicle.driver) return;
+  if (!vehicle || !DISPATCHABLE_STATUSES.includes(vehicle.status) || !vehicle.driver) return;
 
   const route = await prisma.route.findFirst({ where: { isActive: true } });
   if (!route) return;

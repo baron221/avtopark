@@ -1,9 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hasModuleAccess } from "@/lib/access";
+import { logDeletion } from "@/lib/deletionLog";
+import type { FuelType, PayPeriod } from "@prisma/client";
 
 async function requireMechanic() {
   const session = await auth();
@@ -29,20 +32,11 @@ export async function addFuelLogAction(formData: FormData) {
 
   // Also record a matching Expense (category FUEL) so this cost is counted
   // in profit/expense reports — FuelLog alone was invisible to those, since
-  // getOwnerDashboardVM only aggregates the Expense table, not FuelLog.
-  await prisma.$transaction([
-    prisma.fuelLog.create({
-      data: {
-        stationId,
-        vehicleId,
-        driverId: driver.id,
-        volume,
-        amount: BigInt(Math.round(amount)),
-        filledAt,
-        enteredBy: userId,
-      },
-    }),
-    prisma.expense.create({
+  // getOwnerDashboardVM only aggregates the Expense table, not FuelLog. The
+  // Expense is created first so its id can be stored on the FuelLog, letting
+  // edit/delete keep both rows in sync later.
+  await prisma.$transaction(async (tx) => {
+    const expense = await tx.expense.create({
       data: {
         vehicleId,
         driverId: driver.id,
@@ -52,10 +46,109 @@ export async function addFuelLogAction(formData: FormData) {
         note: "Ёқилғи",
         enteredBy: userId,
       },
-    }),
-  ]);
+    });
+    await tx.fuelLog.create({
+      data: {
+        stationId,
+        vehicleId,
+        driverId: driver.id,
+        expenseId: expense.id,
+        volume,
+        amount: BigInt(Math.round(amount)),
+        filledAt,
+        enteredBy: userId,
+      },
+    });
+  });
 
   revalidatePath("/mechanic/fuel");
   revalidatePath("/mechanic/vehicles");
   revalidatePath(`/mechanic/vehicles/${vehicleId}`);
+}
+
+export type UpdateFuelLogState = { error: string };
+
+export async function updateFuelLogAction(
+  _prevState: UpdateFuelLogState,
+  formData: FormData
+): Promise<UpdateFuelLogState> {
+  await requireMechanic();
+
+  const id = String(formData.get("id") ?? "");
+  const vehicleId = String(formData.get("vehicleId") ?? "");
+  const stationId = String(formData.get("stationId") ?? "");
+  const volume = Number(formData.get("volume") ?? 0);
+  const amount = Number(formData.get("amount") ?? 0);
+  if (!id || !vehicleId || !stationId || !(volume > 0) || !(amount > 0)) {
+    return { error: "Барча майдонларни тўғри тўлдиринг" };
+  }
+
+  const fuelLog = await prisma.fuelLog.findUnique({ where: { id } });
+  if (!fuelLog) return { error: "Ёзув топилмади" };
+
+  const driver = await prisma.driver.findUnique({ where: { vehicleId } });
+  if (!driver) return { error: "Бу машинага ҳайдовчи бириктирилмаган" };
+
+  await prisma.$transaction(async (tx) => {
+    await tx.fuelLog.update({
+      where: { id },
+      data: { vehicleId, stationId, driverId: driver.id, volume, amount: BigInt(Math.round(amount)) },
+    });
+    // Older rows (created before FuelLog.expenseId existed) have no linked
+    // expense to keep in sync — best-effort, leaves the FuelLog itself
+    // correctable either way.
+    if (fuelLog.expenseId) {
+      await tx.expense.update({
+        where: { id: fuelLog.expenseId },
+        data: { vehicleId, driverId: driver.id, amount: BigInt(Math.round(amount)) },
+      });
+    }
+  });
+
+  revalidatePath("/mechanic/fuel");
+  revalidatePath("/mechanic/vehicles");
+  revalidatePath(`/mechanic/vehicles/${vehicleId}`);
+  if (fuelLog.vehicleId !== vehicleId) revalidatePath(`/mechanic/vehicles/${fuelLog.vehicleId}`);
+  redirect("/mechanic/fuel");
+}
+
+export async function deleteFuelLogAction(formData: FormData) {
+  const userId = await requireMechanic();
+
+  const id = String(formData.get("id") ?? "");
+  const fuelLog = await prisma.fuelLog.findUnique({ where: { id }, include: { vehicle: true, station: true } });
+  if (!fuelLog) return;
+
+  await logDeletion(
+    "FuelLog",
+    fuelLog.id,
+    `${fuelLog.vehicle.plate} · ${fuelLog.station.name} · ${Number(fuelLog.volume)} · ${fuelLog.amount.toString()} сўм`,
+    userId
+  );
+
+  await prisma.$transaction(async (tx) => {
+    await tx.fuelLog.delete({ where: { id } });
+    if (fuelLog.expenseId) await tx.expense.delete({ where: { id: fuelLog.expenseId } });
+  });
+
+  revalidatePath("/mechanic/fuel");
+  revalidatePath("/mechanic/vehicles");
+  revalidatePath(`/mechanic/vehicles/${fuelLog.vehicleId}`);
+}
+
+export async function addFuelStationAction(formData: FormData) {
+  await requireMechanic();
+
+  const name = String(formData.get("name") ?? "").trim();
+  const fuelType = formData.get("fuelType") as FuelType;
+  const contractNo = String(formData.get("contractNo") ?? "").trim();
+  const unitPrice = Math.round(Number(formData.get("unitPrice") ?? 0));
+  const payPeriod = formData.get("payPeriod") as PayPeriod;
+  if (!name || !fuelType || !contractNo || !(unitPrice > 0) || !payPeriod) return;
+
+  await prisma.fuelStation.create({
+    data: { name, fuelType, contractNo, unitPrice: BigInt(unitPrice), payPeriod, isActive: true },
+  });
+
+  revalidatePath("/mechanic/fuel");
 }

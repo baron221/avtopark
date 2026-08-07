@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { hasModuleAccess } from "@/lib/access";
+import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 import { getWialonUnits, matchVehiclesToWialonUnits, getWialonTodayStatsForUnits, type WialonUnit } from "@/lib/wialon";
 import { GpsList } from "@/components/gps/GpsList";
 import { FuelEfficiencyCard } from "@/components/gps/FuelEfficiencyCard";
@@ -15,7 +16,7 @@ export default async function OwnerGpsPage() {
   }
 
   const vehicles = await prisma.vehicle.findMany({
-    where: { status: "ACTIVE" },
+    where: { status: { in: DISPATCHABLE_STATUSES } },
     include: { driver: { include: { user: true } } },
     orderBy: { plate: "asc" },
   });

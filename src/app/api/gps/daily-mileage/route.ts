@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getWialonUnits, getWialonMileageForRange, matchVehiclesToWialonUnits } from "@/lib/wialon";
+import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 
 // Triggered once daily by Vercel Cron (see vercel.json) shortly after UTC
 // midnight, so "yesterday" here means the UTC calendar day that just ended —
@@ -17,7 +18,10 @@ export async function GET(request: Request) {
   const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   const yesterdayStart = new Date(todayStart.getTime() - 86_400_000);
 
-  const vehicles = await prisma.vehicle.findMany({ where: { status: "ACTIVE" }, select: { id: true, plate: true } });
+  const vehicles = await prisma.vehicle.findMany({
+    where: { status: { in: DISPATCHABLE_STATUSES } },
+    select: { id: true, plate: true },
+  });
   const units = await getWialonUnits();
   const gpsMap = matchVehiclesToWialonUnits(vehicles, units);
 

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { monthStart, monthEnd } from "@/lib/month";
+import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 
 export type FuelEfficiencyRow = {
   vehicleId: string;
@@ -32,7 +33,7 @@ export async function getFuelEfficiencyRows(): Promise<FuelEfficiencyRow[]> {
 
   const [vehicles, fuelLogs, mileages] = await Promise.all([
     prisma.vehicle.findMany({
-      where: { status: "ACTIVE" },
+      where: { status: { in: DISPATCHABLE_STATUSES } },
       include: { driver: { include: { user: true } } },
     }),
     prisma.fuelLog.findMany({

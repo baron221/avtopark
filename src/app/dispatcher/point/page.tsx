@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { formatSom } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
+import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 import { IncomeForm } from "../journal/IncomeForm";
 import { DriverTripsTable, type DriverGroup } from "./DriverTripsTable";
 import { deleteTripAction } from "../actions";
@@ -44,7 +45,7 @@ export default async function DispatcherPointPage({
     // Farg'ona <-> Quva), so every point's dispatcher picks from the whole
     // active fleet rather than a per-point subset.
     prisma.vehicle.findMany({
-      where: { status: "ACTIVE" },
+      where: { status: { in: DISPATCHABLE_STATUSES } },
       include: { driver: { include: { user: true } } },
       orderBy: { plate: "asc" },
     }),

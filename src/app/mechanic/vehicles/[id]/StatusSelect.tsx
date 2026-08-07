@@ -6,9 +6,10 @@ import { updateVehicleStatusAction } from "./actions";
 
 const OPTIONS = [
   { value: "ACTIVE", label: "Линияда" },
+  { value: "NOT_ON_LINE", label: "Линияда эмас" },
+  { value: "ON_ORDER", label: "Заказда" },
   { value: "REPAIR", label: "Таъмирда" },
   { value: "RENTED", label: "Ижарада" },
-  { value: "SOLD", label: "Сотилган" },
 ];
 
 export function StatusSelect({ vehicleId, status }: { vehicleId: string; status: string }) {

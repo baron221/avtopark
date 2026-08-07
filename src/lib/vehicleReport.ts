@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { rangeForPeriod, daysInMonth, type Period } from "@/lib/dashboard";
 import { monthStart as getMonthStart } from "@/lib/month";
+import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 
 export const PERIOD_LABELS: Record<Period, string> = { DAY: "Кунлик", WEEK: "Ҳафталик", MONTH: "Ойлик" };
 
@@ -48,7 +49,7 @@ export async function getVehicleReport(vehicleId: string, period: Period): Promi
         include: { station: { select: { fuelType: true } } },
       }),
       prisma.expense.findMany({ where: { vehicleId, expenseDate: { gte: from, lte: to } }, select: { category: true, amount: true } }),
-      prisma.vehicle.count({ where: { status: "ACTIVE" } }),
+      prisma.vehicle.count({ where: { status: { in: DISPATCHABLE_STATUSES } } }),
       vehicle.driver
         ? prisma.salary.findUnique({ where: { userId_month: { userId: vehicle.driver.userId, month: monthStart } } })
         : Promise.resolve(null),

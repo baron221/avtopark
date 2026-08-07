@@ -12,8 +12,10 @@ import { hasModuleAccess } from "@/lib/access";
 const FILTERS = [
   { key: "ALL", label: "Барчаси" },
   { key: "ACTIVE", label: "Линияда" },
-  { key: "RENTED", label: "Ижарада" },
+  { key: "NOT_ON_LINE", label: "Линияда эмас" },
+  { key: "ON_ORDER", label: "Заказда" },
   { key: "REPAIR", label: "Таъмирда" },
+  { key: "RENTED", label: "Ижарада" },
 ] as const;
 
 export default async function MechanicVehiclesPage({
@@ -37,8 +39,10 @@ export default async function MechanicVehiclesPage({
   const counts = {
     ALL: vm.vehicles.length,
     ACTIVE: vm.vehicles.filter((v) => v.status === "ACTIVE").length,
-    RENTED: vm.vehicles.filter((v) => v.status === "RENTED").length,
+    NOT_ON_LINE: vm.vehicles.filter((v) => v.status === "NOT_ON_LINE").length,
+    ON_ORDER: vm.vehicles.filter((v) => v.status === "ON_ORDER").length,
     REPAIR: vm.vehicles.filter((v) => v.status === "REPAIR").length,
+    RENTED: vm.vehicles.filter((v) => v.status === "RENTED").length,
   };
 
   return (
