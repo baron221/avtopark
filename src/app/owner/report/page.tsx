@@ -4,8 +4,10 @@ import { redirect } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { StatusPill } from "@/components/ui/StatusPill";
-import { getOwnerDashboardVM, getMonthlyTrend } from "@/lib/dashboard";
-import { formatMillions, formatSom, uzMonthName } from "@/lib/format";
+import { PeriodToggle } from "@/components/ui/PeriodToggle";
+import { DatePicker } from "@/components/ui/DatePicker";
+import { getOwnerDashboardVM, getMonthlyTrend, type Period } from "@/lib/dashboard";
+import { formatMillions, formatSom } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
 
 const INCOME_LABELS: Record<string, string> = {
@@ -14,14 +16,43 @@ const INCOME_LABELS: Record<string, string> = {
   PLAN: "Кунлик план",
 };
 
-export default async function OwnerReportPage() {
+function isPeriod(value: string | undefined): value is Period {
+  return value === "DAY" || value === "WEEK" || value === "MONTH";
+}
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function parseDateParam(value: string | undefined): { date: Date; dateStr: string } {
+  if (value && DATE_RE.test(value)) {
+    const parsed = new Date(`${value}T00:00:00Z`);
+    if (!Number.isNaN(parsed.getTime())) return { date: parsed, dateStr: value };
+  }
+  const today = new Date();
+  return { date: today, dateStr: today.toISOString().slice(0, 10) };
+}
+
+function periodLabel(period: Period, date: Date): string {
+  if (period === "DAY") return date.toLocaleDateString("uz-UZ", { day: "numeric", month: "long" });
+  if (period === "WEEK") return "Сўнгги 7 кун";
+  return date.toLocaleDateString("uz-UZ", { month: "long", year: "numeric" });
+}
+
+export default async function OwnerReportPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string; date?: string }>;
+}) {
   const session = await auth();
   if (!session) redirect("/login");
   if (session.user.role !== "OWNER" && !(await hasModuleAccess(session.user.role, "FLEET_DASHBOARD"))) {
     redirect("/coming-soon");
   }
 
-  const [vm, trend] = await Promise.all([getOwnerDashboardVM("MONTH"), getMonthlyTrend(6)]);
+  const { period: periodParam, date: dateParam } = await searchParams;
+  const period: Period = isPeriod(periodParam) ? periodParam : "MONTH";
+  const { date, dateStr } = parseDateParam(dateParam);
+
+  const [vm, trend] = await Promise.all([getOwnerDashboardVM(period, date), getMonthlyTrend(6)]);
 
   const incomeByCategory: Record<string, number> = { TRIPS: 0, RENTAL: 0, PLAN: 0 };
   for (const v of vm.vehicles) incomeByCategory[v.incomeSource] += v.income;
@@ -43,29 +74,29 @@ export default async function OwnerReportPage() {
     <div className="max-w-[1180px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
       <div className="flex justify-between items-center flex-wrap gap-3">
         <div>
-          <div className="font-heading font-bold text-xl text-heading">
-            Ойлик ҳисобот · {uzMonthName(new Date())} {new Date().getFullYear()}
-          </div>
+          <div className="font-heading font-bold text-xl text-heading">Ҳисобот · {periodLabel(period, date)}</div>
           <div className="text-[13px] text-muted-2 font-semibold">
             {vm.vehicleCount} машина · {vm.driverCount} ҳайдовчи · {totalTrips} рейс
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap items-center">
+          <DatePicker basePath="/owner/report" period={period} value={dateStr} />
+          <PeriodToggle active={period} basePath="/owner/report" date={dateStr} />
           <Link
-            href="/owner/report/export/excel"
+            href={`/owner/report/export/excel?period=${period}&date=${dateStr}`}
             className="bg-card border border-border text-body rounded-[10px] px-4 py-2.5 font-extrabold text-[13px]"
           >
             ⬇ Excel
           </Link>
           <Link
-            href="/owner/report/export/pdf"
+            href={`/owner/report/export/pdf?period=${period}&date=${dateStr}`}
             className="bg-primary text-white rounded-[10px] px-4 py-2.5 font-extrabold text-[13px]"
           >
             ⬇ PDF
           </Link>
           <Link
             href="/owner"
-            className="inline-flex items-center self-center ml-2 bg-page border border-border text-muted-2 rounded-lg px-3 py-1.5 text-[13px] font-bold hover:border-primary hover:text-primary hover:bg-primary-tint transition-colors"
+            className="inline-flex items-center self-center bg-page border border-border text-muted-2 rounded-lg px-3 py-1.5 text-[13px] font-bold hover:border-primary hover:text-primary hover:bg-primary-tint transition-colors"
           >
             ← Панел
           </Link>
@@ -80,7 +111,7 @@ export default async function OwnerReportPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="p-5">
+        <Card className="p-5" id="income-sources">
           <div className="font-heading font-bold text-[15px] text-heading mb-3">Даромад манбалари</div>
           {incomeSplit.map((i) => (
             <div key={i.name} className="flex justify-between py-2.5 border-t border-row-divider first:border-t-0 text-sm">
@@ -93,7 +124,7 @@ export default async function OwnerReportPage() {
           {incomeSplit.length === 0 && <p className="text-[13px] text-muted-2">Бу даврда даромад йўқ</p>}
         </Card>
 
-        <Card className="p-5">
+        <Card className="p-5" id="expense-categories">
           <div className="font-heading font-bold text-[15px] text-heading mb-3">Харажат тоифалари</div>
           {vm.expenseBreakdown.map((e) => (
             <div key={e.category} className="flex justify-between py-2.5 border-t border-row-divider first:border-t-0 text-sm">

@@ -123,14 +123,14 @@ export function FleetDashboard({
             value={formatMillions(vm.totalIncome)}
             hint="рейс + план + ижара"
             hintColor="success"
-            href="/owner/report"
+            href="/owner/report#income-sources"
           />
           <KpiCard
             label="Жами харажат"
             value={formatMillions(vm.totalExpense)}
             hint="давр бўйича"
             hintColor="danger"
-            href="/owner/report"
+            href="/owner/report#expense-categories"
           />
           <KpiCard
             label="Бугун план топширди"
