@@ -3,7 +3,7 @@ import { quickLoginAction } from "./actions";
 const TEST_PASSWORD = "Avtopark2026";
 
 const ACCOUNTS = [
-  { label: "Эгаси", phone: "+998916575757" },
+  { label: "Эгаси", phone: "+998956575757" },
   { label: "Админ", phone: "+998956622222" },
   { label: "Бухгалтер", phone: "+998991387090" },
   { label: "Диспетчер · Фарғона", phone: "+998911242295" },
