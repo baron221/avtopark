@@ -13,7 +13,7 @@ import { formatSom, formatMillions, uzMonthName } from "@/lib/format";
 import { getOwnerDashboardVM } from "@/lib/dashboard";
 import { hasModuleAccess } from "@/lib/access";
 import { monthStart, monthEnd } from "@/lib/month";
-import { generatePayrollAction, approvePayrollAction, setBonusAction } from "./actions";
+import { generatePayrollAction, approvePayrollAction, setBonusAction, revertSalaryToDraftAction } from "./actions";
 
 const MONTH_RE = /^\d{4}-\d{2}$/;
 
@@ -172,8 +172,20 @@ export default async function PayrollPage({
                   <span className="font-bold text-success">+{formatSom(Number(salary?.bonus ?? 0))}</span>
                 )}
               </div>
-              <div className="font-heading font-extrabold text-heading">
+              <div className="font-heading font-extrabold text-heading flex items-center gap-1.5">
                 {salary ? formatSom(Number(salary.netPay)) : "—"}
+                {salary && salary.status === "APPROVED" && isCurrentMonth && (
+                  <form action={revertSalaryToDraftAction}>
+                    <input type="hidden" name="salaryId" value={salary.id} />
+                    <button
+                      type="submit"
+                      title="Қораламага қайтариш (янги жарима/аванс қўшилган бўлса)"
+                      className="text-muted-2 hover:text-primary text-xs font-bold"
+                    >
+                      ↩
+                    </button>
+                  </form>
+                )}
               </div>
             </div>
           );

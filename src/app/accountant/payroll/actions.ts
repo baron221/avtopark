@@ -68,6 +68,28 @@ export async function approvePayrollAction() {
   revalidatePath("/accountant/payroll");
 }
 
+// An approved Salary is deliberately frozen — generatePayrollAction skips it,
+// so a fine/advance added afterward (e.g. a fine dated after approval, or an
+// approval that happened before the fine was even entered) would otherwise
+// never make it in. Reverting unlocks it so regenerating picks the change up.
+// Only for the current month — reopening a closed past month is a real
+// payroll-integrity risk (money may already be out the door).
+export async function revertSalaryToDraftAction(formData: FormData) {
+  await requireAccountant();
+
+  const salaryId = String(formData.get("salaryId") ?? "");
+  const salary = await prisma.salary.findUnique({ where: { id: salaryId } });
+  if (!salary || salary.status !== "APPROVED") return;
+  if (salary.month.getTime() !== monthStart(new Date()).getTime()) return;
+
+  await prisma.salary.update({
+    where: { id: salaryId },
+    data: { status: "DRAFT", approvedBy: null },
+  });
+
+  revalidatePath("/accountant/payroll");
+}
+
 export async function setBonusAction(formData: FormData) {
   await requireAccountant();
 
