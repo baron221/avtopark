@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { FleetDashboard } from "@/components/dashboard/FleetDashboard";
 import { getOwnerDashboardVM, type Period } from "@/lib/dashboard";
-import { getGrantedNavLinks, getGuestNavLinks, hasModuleAccess } from "@/lib/access";
+import { hasModuleAccess } from "@/lib/access";
 
 function isPeriod(value: string | undefined): value is Period {
   return value === "DAY" || value === "WEEK" || value === "MONTH";
@@ -20,27 +20,9 @@ export default async function OwnerPage({
 
   const { period: periodParam } = await searchParams;
   const period: Period = isPeriod(periodParam) ? periodParam : "MONTH";
-  const [vm, grantedLinks] = await Promise.all([
-    getOwnerDashboardVM(period),
-    isOwner ? getGrantedNavLinks(session.user.role, ["FLEET_DASHBOARD"]) : getGuestNavLinks(session.user.role),
-  ]);
+  const vm = await getOwnerDashboardVM(period);
 
   return (
-    <FleetDashboard
-      vm={vm}
-      period={period}
-      basePath="/owner"
-      userName={session.user.name ?? "Эгаси"}
-      extraLinks={
-        isOwner
-          ? [
-              { href: "/owner/report", label: "Ҳисобот" },
-              { href: "/owner/drivers", label: "Ҳайдовчилар" },
-              { href: "/owner/gps", label: "GPS" },
-              ...grantedLinks.map((l) => ({ href: l.href, label: l.label })),
-            ]
-          : grantedLinks.map((l) => ({ href: l.href, label: l.label }))
-      }
-    />
+    <FleetDashboard vm={vm} period={period} basePath="/owner" userName={session.user.name ?? "Эгаси"} embedded />
   );
 }
