@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, Manrope } from "next/font/google";
 import { ServiceWorkerRegister } from "./ServiceWorkerRegister";
+import { InstallPrompt } from "./InstallPrompt";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -43,6 +44,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-page text-heading">
         <ServiceWorkerRegister />
+        <InstallPrompt />
         {children}
       </body>
     </html>
