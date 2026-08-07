@@ -10,6 +10,7 @@ import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 import { FuelLogForm } from "./FuelLogForm";
 import { AddStationForm } from "./AddStationForm";
 import { deleteFuelLogAction } from "./actions";
+import { deleteStationPaymentAction } from "./payments/actions";
 
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
   PAID: { bg: "#E4F5EC", color: "#1B9E6B", label: "Тўланди" },
@@ -59,7 +60,8 @@ export default async function MechanicFuelPage() {
       </div>
 
       <Card className="overflow-hidden">
-        <div className="hidden lg:grid grid-cols-[1.2fr_0.8fr_0.7fr_0.8fr_0.9fr_0.9fr_1fr] px-6 py-3 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
+        {/* Desktop */}
+        <div className="hidden lg:grid grid-cols-[1.1fr_0.75fr_0.65fr_0.75fr_0.85fr_0.8fr_0.95fr_60px] px-6 py-3 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
           <div>Заправка</div>
           <div>Шартнома</div>
           <div>Давр</div>
@@ -67,6 +69,7 @@ export default async function MechanicFuelPage() {
           <div>Сумма (сўм)</div>
           <div>Қолди</div>
           <div>Тўлов ҳолати</div>
+          <div></div>
         </div>
         {payments.map((p) => {
           const style = STATUS_STYLE[p.status];
@@ -74,9 +77,9 @@ export default async function MechanicFuelPage() {
           return (
             <div
               key={p.id}
-              className="grid grid-cols-2 lg:grid-cols-[1.2fr_0.8fr_0.7fr_0.8fr_0.9fr_0.9fr_1fr] gap-y-1 gap-x-2 px-6 py-3.5 border-t border-row-divider items-center text-sm"
+              className="hidden lg:grid grid-cols-[1.1fr_0.75fr_0.65fr_0.75fr_0.85fr_0.8fr_0.95fr_60px] gap-x-2 px-6 py-3.5 border-t border-row-divider items-center text-sm"
             >
-              <div className="font-extrabold text-heading col-span-2 lg:col-span-1">{p.station.name}</div>
+              <div className="font-extrabold text-heading">{p.station.name}</div>
               <div className="text-primary font-extrabold">{p.station.contractNo}</div>
               <div className="text-muted-2 font-bold">{formatPeriod(p.periodStart, p.periodEnd)}</div>
               <div className="font-bold text-heading">
@@ -92,9 +95,77 @@ export default async function MechanicFuelPage() {
                   {style.label}
                 </span>
               </div>
+              <div className="flex items-center justify-end gap-1.5">
+                <Link
+                  href={`/mechanic/fuel/payments/${p.id}/edit`}
+                  title="Таҳрирлаш"
+                  className="text-muted-2 hover:text-primary text-base leading-none px-1"
+                >
+                  ✎
+                </Link>
+                <ConfirmDeleteButton
+                  action={deleteStationPaymentAction}
+                  id={p.id}
+                  confirmText="Бу тўлов ёзувини ўчиришни тасдиқлайсизми?"
+                  className="text-muted-2 hover:text-danger font-extrabold text-base leading-none px-1.5 py-1"
+                />
+              </div>
             </div>
           );
         })}
+
+        {/* Mobile */}
+        {payments.map((p) => {
+          const style = STATUS_STYLE[p.status];
+          const remaining = Math.max(0, Number(p.amount) - Number(p.paidAmount));
+          return (
+            <div key={p.id} className="flex flex-col gap-1.5 px-5 py-3.5 border-t border-row-divider text-sm lg:hidden">
+              <div className="flex justify-between items-start gap-2">
+                <div>
+                  <div className="font-extrabold text-heading">{p.station.name}</div>
+                  <div className="text-xs text-muted-2 font-semibold mt-0.5">
+                    {p.station.contractNo} · {formatPeriod(p.periodStart, p.periodEnd)}
+                  </div>
+                </div>
+                <span
+                  className="text-xs font-extrabold px-2.5 py-1 rounded-full whitespace-nowrap"
+                  style={{ background: style.bg, color: style.color }}
+                >
+                  {style.label}
+                </span>
+              </div>
+              <div className="flex justify-between items-end gap-2">
+                <div className="flex gap-3 text-xs font-bold flex-wrap">
+                  <span className="text-muted-2">
+                    Сумма: <span className="text-heading font-extrabold">{formatSom(Number(p.amount))}</span>
+                  </span>
+                  <span className="text-muted-2">
+                    Қолди:{" "}
+                    <span className={`font-extrabold ${remaining > 0 ? "text-danger" : "text-success"}`}>
+                      {formatSom(remaining)}
+                    </span>
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Link
+                    href={`/mechanic/fuel/payments/${p.id}/edit`}
+                    title="Таҳрирлаш"
+                    className="text-muted-2 hover:text-primary text-base leading-none px-1"
+                  >
+                    ✎
+                  </Link>
+                  <ConfirmDeleteButton
+                    action={deleteStationPaymentAction}
+                    id={p.id}
+                    confirmText="Бу тўлов ёзувини ўчиришни тасдиқлайсизми?"
+                    className="text-muted-2 hover:text-danger font-extrabold text-base leading-none px-1.5 py-1"
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
         {payments.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Ҳали тўлов ёзуви йўқ</p>}
         <div className="flex justify-between px-6 py-3.5 border-t border-row-divider bg-page">
           <span className="font-extrabold text-sm text-heading">Жами / Қолди</span>

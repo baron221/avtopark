@@ -1,11 +1,13 @@
+import Link from "next/link";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { MoneyInput } from "@/components/ui/MoneyInput";
+import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
 import { formatSom } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
-import { addStationPaymentInstallmentAction, addStationPaymentAction } from "./actions";
+import { addStationPaymentInstallmentAction, addStationPaymentAction, deleteStationPaymentAction } from "./actions";
 
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
   PAID: { bg: "#E4F5EC", color: "#1B9E6B", label: "Тўланди" },
@@ -45,12 +47,27 @@ export default async function StationPaymentsPage() {
                       {Number(p.totalVolume)} {p.station.fuelType === "BENZIN" ? "L" : "m³"}
                     </div>
                   </div>
-                  <span
-                    className="text-xs font-extrabold px-3 py-1 rounded-full whitespace-nowrap"
-                    style={{ background: STATUS_STYLE[p.status].bg, color: STATUS_STYLE[p.status].color }}
-                  >
-                    {STATUS_STYLE[p.status].label}
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span
+                      className="text-xs font-extrabold px-3 py-1 rounded-full whitespace-nowrap"
+                      style={{ background: STATUS_STYLE[p.status].bg, color: STATUS_STYLE[p.status].color }}
+                    >
+                      {STATUS_STYLE[p.status].label}
+                    </span>
+                    <Link
+                      href={`/mechanic/fuel/payments/${p.id}/edit`}
+                      title="Таҳрирлаш"
+                      className="text-muted-2 hover:text-primary text-base leading-none px-1"
+                    >
+                      ✎
+                    </Link>
+                    <ConfirmDeleteButton
+                      action={deleteStationPaymentAction}
+                      id={p.id}
+                      confirmText="Бу тўлов ёзувини ўчиришни тасдиқлайсизми?"
+                      className="text-muted-2 hover:text-danger font-extrabold text-base leading-none px-1.5 py-1"
+                    />
+                  </div>
                 </div>
 
                 <div className="flex gap-4 text-xs font-bold flex-wrap">
