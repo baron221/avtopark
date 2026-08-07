@@ -2,13 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-export const OWNER_NAV = [
-  { href: "/owner", label: "Фойда панели", icon: "◉" },
-  { href: "/owner/report", label: "Ҳисобот", icon: "▨" },
-  { href: "/owner/drivers", label: "Ҳайдовчилар", icon: "◈" },
-  { href: "/owner/gps", label: "GPS", icon: "▤" },
-];
+import { OWNER_NAV } from "./ownerNavItems";
 
 type NavItem = { href: string; label: string; icon: string };
 

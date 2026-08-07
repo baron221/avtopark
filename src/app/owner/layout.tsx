@@ -2,7 +2,8 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/app/actions";
 import { hasModuleAccess, getGrantedNavLinks, getGuestNavLinks } from "@/lib/access";
-import { OwnerNavDesktop, OwnerNavMobile, OWNER_NAV } from "./OwnerNav";
+import { OwnerNavDesktop, OwnerNavMobile } from "./OwnerNav";
+import { OWNER_NAV } from "./ownerNavItems";
 
 export default async function OwnerLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
