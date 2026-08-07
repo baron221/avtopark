@@ -10,6 +10,7 @@ import { getOwnerDashboardVM, type Period } from "@/lib/dashboard";
 import { getVehicleReport } from "@/lib/vehicleReport";
 import { getDriverAssignmentHistory } from "@/lib/driverAssignment";
 import { getWialonUnitByPlate, getWialonMileageToday, type WialonUnit } from "@/lib/wialon";
+import { estimateCurrentOdometerKm } from "@/lib/oilChange";
 import { hasModuleAccess } from "@/lib/access";
 import { StatusSelect } from "./StatusSelect";
 import { ExpenseForm } from "./ExpenseForm";
@@ -75,12 +76,23 @@ export default async function VehicleDetailPage({
   const maxDayKm = Math.max(1, ...last7Days.map((m) => m.km));
 
   const lastOilChange = oilChanges[0] ?? null;
+  // The last real reading we know of — from the last oil change if there's
+  // been one, otherwise the vehicle's own odometerKm (dated from purchase,
+  // a rough base but VehicleMileage only has rows from when GPS tracking
+  // started anyway, so summing "since" it is safe either way).
+  const oilBase = lastOilChange
+    ? { km: lastOilChange.odometerKm, date: lastOilChange.changedAt }
+    : vehicle.odometerKm != null
+      ? { km: vehicle.odometerKm, date: vehicle.purchaseDate }
+      : null;
+  const estimatedOdometerKm = oilBase ? await estimateCurrentOdometerKm(vehicle.id, oilBase.km, oilBase.date) : null;
+
   let oilStatus: { overdue: boolean; kmRemaining: number; daysRemaining: number } | null = null;
   if (lastOilChange) {
     const nextDueKm = lastOilChange.odometerKm + lastOilChange.intervalKm;
     const nextDueDate = new Date(lastOilChange.changedAt);
     nextDueDate.setMonth(nextDueDate.getMonth() + lastOilChange.intervalMonths);
-    const currentKm = vehicle.odometerKm ?? lastOilChange.odometerKm;
+    const currentKm = estimatedOdometerKm ?? vehicle.odometerKm ?? lastOilChange.odometerKm;
     const kmRemaining = nextDueKm - currentKm;
     const daysRemaining = Math.ceil((nextDueDate.getTime() - new Date().getTime()) / 86_400_000);
     oilStatus = { overdue: kmRemaining <= 0 || daysRemaining <= 0, kmRemaining, daysRemaining };
@@ -233,7 +245,14 @@ export default async function VehicleDetailPage({
 
       <Card className="overflow-hidden">
         <div className="flex justify-between items-center px-6 py-3.5 flex-wrap gap-2">
-          <div className="font-heading font-bold text-base text-heading">Мой алмаштириш</div>
+          <div>
+            <div className="font-heading font-bold text-base text-heading">Мой алмаштириш</div>
+            {estimatedOdometerKm != null && (
+              <div className="text-[11px] text-muted-2 font-semibold mt-0.5">
+                GPS орқали тахминан: {estimatedOdometerKm.toLocaleString("uz-UZ")} км
+              </div>
+            )}
+          </div>
           {oilStatus && (
             <span
               className={`text-xs font-extrabold px-2.5 py-1 rounded-full ${
@@ -247,7 +266,7 @@ export default async function VehicleDetailPage({
           )}
         </div>
         <div className="px-6 pb-4">
-          <OilChangeForm vehicleId={vehicle.id} lastOdometerKm={vehicle.odometerKm} />
+          <OilChangeForm vehicleId={vehicle.id} lastOdometerKm={vehicle.odometerKm} estimatedOdometerKm={estimatedOdometerKm} />
         </div>
         {oilChanges.map((o) => (
           <div
