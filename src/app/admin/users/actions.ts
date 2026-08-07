@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hasModuleAccess } from "@/lib/access";
+import { normalizePhone } from "@/lib/phone";
 import { ROLE_LABELS } from "@/components/ui/RoleBadge";
 import type { Point, Role, SalaryType } from "@prisma/client";
 
@@ -23,7 +24,7 @@ export async function createUserAction(_prevState: CreateUserState, formData: Fo
   await requireAdmin();
 
   const fullName = String(formData.get("fullName") ?? "").trim();
-  const phone = String(formData.get("phone") ?? "").trim();
+  const phone = normalizePhone(String(formData.get("phone") ?? "").trim());
   const password = String(formData.get("password") ?? "");
   const role = formData.get("role") as Role;
   const point = (formData.get("point") as Point | null) || null;
@@ -82,7 +83,7 @@ export async function updateUserAction(
 
   const userId = String(formData.get("userId") ?? "");
   const fullName = String(formData.get("fullName") ?? "").trim();
-  const phone = String(formData.get("phone") ?? "").trim();
+  const phone = normalizePhone(String(formData.get("phone") ?? "").trim());
   const point = (formData.get("point") as Point | null) || null;
   const rawBaseSalary = formData.get("baseSalary");
   const baseSalary =

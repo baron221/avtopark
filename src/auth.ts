@@ -2,6 +2,7 @@ import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { normalizePhone } from "@/lib/phone";
 import type { Point, Role } from "@prisma/client";
 
 export const MAX_LOGIN_ATTEMPTS = 5;
@@ -22,9 +23,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: {},
       },
       async authorize(credentials) {
-        const phone = credentials?.phone as string | undefined;
+        const rawPhone = credentials?.phone as string | undefined;
         const password = credentials?.password as string | undefined;
-        if (!phone || !password) return null;
+        if (!rawPhone || !password) return null;
+        const phone = normalizePhone(rawPhone);
 
         const user = await prisma.user.findUnique({ where: { phone } });
         if (!user || !user.isActive) return null;

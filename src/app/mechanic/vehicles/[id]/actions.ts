@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { currentMonthDate, syncDriverVehicleAssignment } from "@/lib/driverAssignment";
 import { hasModuleAccess } from "@/lib/access";
+import { normalizePhone } from "@/lib/phone";
 import type { ExpenseCategory, Point, SalaryType, VehicleStatus, VehicleType } from "@prisma/client";
 
 async function requireMechanic() {
@@ -134,7 +135,7 @@ export async function createDriverAction(
 
   const vehicleId = String(formData.get("vehicleId") ?? "");
   const fullName = String(formData.get("fullName") ?? "").trim();
-  const phone = String(formData.get("phone") ?? "").trim();
+  const phone = normalizePhone(String(formData.get("phone") ?? "").trim());
   const password = String(formData.get("password") ?? "");
   const licenseNo = String(formData.get("licenseNo") ?? "").trim();
   const salaryType = (formData.get("salaryType") as SalaryType) || "FIXED";
