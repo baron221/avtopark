@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hasModuleAccess } from "@/lib/access";
-import { monthStart, monthEnd } from "@/lib/month";
-import { uzMonthName } from "@/lib/format";
+import { rangeForPeriod, type Period } from "@/lib/dashboard";
+import type { StaffExpensePoint } from "@prisma/client";
 
 const POINT_LABELS: Record<string, string> = {
   FARGONA: "Фарғона",
@@ -20,27 +20,47 @@ const CATEGORY_LABELS: Record<string, string> = {
   BOSHQA: "Бошқа",
 };
 
-export async function GET() {
+function isPeriod(value: string | null): value is Period {
+  return value === "DAY" || value === "WEEK" || value === "MONTH";
+}
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function isStaffExpensePoint(value: string | null): value is StaffExpensePoint {
+  return value === "FARGONA" || value === "QUVA";
+}
+
+export async function GET(request: Request) {
   const session = await auth();
   if (!session || (session.user.role !== "ACCOUNTANT" && !(await hasModuleAccess(session.user.role, "PAYROLL")))) {
     return NextResponse.json({ error: "Рухсат йўқ" }, { status: 403 });
   }
 
-  const now = new Date();
-  const from = monthStart(now);
-  const to = monthEnd(now);
+  const { searchParams } = new URL(request.url);
+  const periodParam = searchParams.get("period");
+  const dateParam = searchParams.get("date");
+  const pointParam = searchParams.get("point");
+
+  const period: Period = isPeriod(periodParam) ? periodParam : "MONTH";
+  const date = dateParam && DATE_RE.test(dateParam) ? new Date(`${dateParam}T00:00:00Z`) : new Date();
+  const point = isStaffExpensePoint(pointParam) ? pointParam : undefined;
+  const { from, to } = rangeForPeriod(period, date);
 
   const [expenses, users] = await Promise.all([
-    prisma.staffExpense.findMany({ where: { expenseDate: { gte: from, lte: to } }, orderBy: { expenseDate: "asc" } }),
+    prisma.staffExpense.findMany({
+      where: { expenseDate: { gte: from, lte: to }, ...(point ? { point } : {}) },
+      orderBy: { expenseDate: "asc" },
+    }),
     prisma.user.findMany({ select: { id: true, fullName: true } }),
   ]);
   const nameById = new Map(users.map((u) => [u.id, u.fullName]));
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Avtopark Foyda Tizimi";
-  workbook.created = now;
+  workbook.created = new Date();
 
-  const sheet = workbook.addWorksheet(`Расходлар ${uzMonthName(now)} ${now.getFullYear()}`);
+  const rangeLabel = `${from.toISOString().slice(0, 10)}_${to.toISOString().slice(0, 10)}`;
+  const sheet = workbook.addWorksheet(`Расходлар ${rangeLabel}`);
   sheet.columns = [
     { header: "Сана", key: "date", width: 12 },
     { header: "Ходим", key: "name", width: 24 },
@@ -71,7 +91,7 @@ export async function GET() {
   return new NextResponse(buffer, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="rasxodlar_${now.getFullYear()}-${now.getMonth() + 1}.xlsx"`,
+      "Content-Disposition": `attachment; filename="rasxodlar_${rangeLabel}.xlsx"`,
     },
   });
 }

@@ -4,12 +4,15 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { Pagination } from "@/components/ui/Pagination";
+import { PeriodToggle } from "@/components/ui/PeriodToggle";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { DEFAULT_PAGE_SIZE, parsePage, paginationSkip, totalPages } from "@/lib/paginate";
-import { formatSom, uzMonthName } from "@/lib/format";
+import { formatSom } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
-import { monthStart, monthEnd } from "@/lib/month";
+import { rangeForPeriod, type Period } from "@/lib/dashboard";
 import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
 import { deleteExpenseAction } from "./actions";
+import type { StaffExpensePoint } from "@prisma/client";
 
 const POINT_LABELS: Record<string, string> = {
   FARGONA: "Фарғона",
@@ -25,10 +28,42 @@ const CATEGORY_LABELS: Record<string, string> = {
   BOSHQA: "Бошқа",
 };
 
+const POINT_FILTERS: { value?: StaffExpensePoint; label: string }[] = [
+  { value: undefined, label: "Барчаси" },
+  { value: "FARGONA", label: "Фарғона" },
+  { value: "QUVA", label: "Қува" },
+];
+
+function isPeriod(value: string | undefined): value is Period {
+  return value === "DAY" || value === "WEEK" || value === "MONTH";
+}
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function parseDateParam(value: string | undefined): { date: Date; dateStr: string } {
+  if (value && DATE_RE.test(value)) {
+    const parsed = new Date(`${value}T00:00:00Z`);
+    if (!Number.isNaN(parsed.getTime())) return { date: parsed, dateStr: value };
+  }
+  const today = new Date();
+  return { date: today, dateStr: today.toISOString().slice(0, 10) };
+}
+
+function isStaffExpensePoint(value: string | undefined): value is StaffExpensePoint {
+  return value === "FARGONA" || value === "QUVA";
+}
+
+function rangeLabel(period: Period, from: Date, to: Date): string {
+  const fmt = (d: Date) => d.toLocaleDateString("uz-UZ", { day: "numeric", month: "long" });
+  if (period === "DAY") return fmt(from);
+  if (period === "WEEK") return `${fmt(from)} – ${fmt(to)}`;
+  return from.toLocaleDateString("uz-UZ", { month: "long", year: "numeric" });
+}
+
 export default async function AccountantExpensesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; period?: string; date?: string; point?: string }>;
 }) {
   const session = await auth();
   if (!session) redirect("/login");
@@ -36,21 +71,21 @@ export default async function AccountantExpensesPage({
     redirect("/coming-soon");
   }
 
-  const { page: pageParam } = await searchParams;
+  const { page: pageParam, period: periodParam, date: dateParam, point: pointParam } = await searchParams;
   const page = parsePage(pageParam);
-
-  const now = new Date();
-  const from = monthStart(now);
-  const to = monthEnd(now);
+  const period: Period = isPeriod(periodParam) ? periodParam : "MONTH";
+  const { date, dateStr } = parseDateParam(dateParam);
+  const point = isStaffExpensePoint(pointParam) ? pointParam : undefined;
+  const { from, to } = rangeForPeriod(period, date);
 
   const [expenses, totalCount, byPoint, enteredByUsers] = await Promise.all([
     prisma.staffExpense.findMany({
-      where: { expenseDate: { gte: from, lte: to } },
+      where: { expenseDate: { gte: from, lte: to }, ...(point ? { point } : {}) },
       orderBy: { expenseDate: "desc" },
       skip: paginationSkip(page),
       take: DEFAULT_PAGE_SIZE,
     }),
-    prisma.staffExpense.count({ where: { expenseDate: { gte: from, lte: to } } }),
+    prisma.staffExpense.count({ where: { expenseDate: { gte: from, lte: to }, ...(point ? { point } : {}) } }),
     prisma.staffExpense.groupBy({
       by: ["point"],
       where: { expenseDate: { gte: from, lte: to } },
@@ -60,26 +95,28 @@ export default async function AccountantExpensesPage({
   ]);
 
   const nameById = new Map(enteredByUsers.map((u) => [u.id, u.fullName]));
-  const pointTotal: Record<string, number> = { FARGONA: 0, QUVA: 0, YOLDA: 0 };
+  const pointTotal: Record<string, number> = { FARGONA: 0, QUVA: 0, YOLDA: 0, ISHXONA: 0 };
   for (const row of byPoint) pointTotal[row.point] = Number(row._sum.amount ?? BigInt(0));
   const grandTotal = Object.values(pointTotal).reduce((s, v) => s + v, 0);
 
   const pages = totalPages(totalCount);
+  const extraParams = point ? { point } : undefined;
+  const pageParams = { period, date: dateStr, ...(point ? { point } : {}) };
 
   return (
     <div className="max-w-[1000px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
       <div className="flex justify-between items-center flex-wrap gap-3">
         <div>
-          <div className="font-heading font-bold text-xl text-heading">
-            Расходлар · {uzMonthName(now)} {now.getFullYear()}
-          </div>
+          <div className="font-heading font-bold text-xl text-heading">Расходлар · {rangeLabel(period, from, to)}</div>
           <div className="text-[13px] text-muted-2 font-semibold">
             Диспетчерлар (Фарғона, Қува) киритган кунлик расходлар
           </div>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
+          <DatePicker basePath="/accountant/expenses" period={period} value={dateStr} extraParams={extraParams} />
+          <PeriodToggle active={period} basePath="/accountant/expenses" date={dateStr} extraParams={extraParams} />
           <Link
-            href="/accountant/expenses/export/excel"
+            href={`/accountant/expenses/export/excel?period=${period}&date=${dateStr}${point ? `&point=${point}` : ""}`}
             className="bg-card border border-border text-body rounded-[10px] px-4 py-2.5 font-extrabold text-[13px]"
           >
             ⬇ Excel
@@ -91,6 +128,21 @@ export default async function AccountantExpensesPage({
             + Бошқа расход
           </Link>
         </div>
+      </div>
+
+      <div className="flex gap-2 flex-wrap">
+        {POINT_FILTERS.map((f) => (
+          <Link
+            key={f.label}
+            href={`/accountant/expenses?period=${period}&date=${dateStr}${f.value ? `&point=${f.value}` : ""}`}
+            scroll={false}
+            className={`rounded-full px-4 py-1.5 text-[13px] font-extrabold ${
+              point === f.value ? "bg-primary text-white" : "bg-card border border-border text-muted"
+            }`}
+          >
+            {f.label}
+          </Link>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -144,8 +196,8 @@ export default async function AccountantExpensesPage({
             </div>
           </div>
         ))}
-        {expenses.length === 0 && <p className="text-[13px] text-muted-2 px-5 py-4">Бу ой ҳали расход йўқ</p>}
-        <Pagination page={page} totalPages={pages} basePath="/accountant/expenses" />
+        {expenses.length === 0 && <p className="text-[13px] text-muted-2 px-5 py-4">Бу даврда расход йўқ</p>}
+        <Pagination page={page} totalPages={pages} basePath="/accountant/expenses" params={pageParams} />
       </Card>
     </div>
   );
