@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { computeNetPay } from "@/lib/payroll";
 import { hasModuleAccess } from "@/lib/access";
 import { monthStart, monthEnd } from "@/lib/month";
+import { getDriverAssignedDays } from "@/lib/driverAssignment";
+import { daysInMonth } from "@/lib/dashboard";
 
 async function requireAccountant() {
   const session = await auth();
@@ -22,6 +24,7 @@ export async function generatePayrollAction() {
   const month = monthStart(now);
   const from = month;
   const to = monthEnd(now);
+  const totalDays = daysInMonth(month.getUTCFullYear(), month.getUTCMonth());
 
   const users = await prisma.user.findMany({ where: { role: { not: "OWNER" }, isActive: true } });
 
@@ -29,7 +32,7 @@ export async function generatePayrollAction() {
     const existing = await prisma.salary.findUnique({ where: { userId_month: { userId: user.id, month } } });
     if (existing && existing.status !== "DRAFT") continue;
 
-    const [finesAgg, advancesAgg] = await Promise.all([
+    const [finesAgg, advancesAgg, driver] = await Promise.all([
       prisma.fine.aggregate({
         _sum: { amount: true },
         where: { userId: user.id, deducted: true, fineDate: { gte: from, lte: to } },
@@ -38,9 +41,28 @@ export async function generatePayrollAction() {
         _sum: { amount: true },
         where: { userId: user.id, month },
       }),
+      user.role === "DRIVER" ? prisma.driver.findUnique({ where: { userId: user.id } }) : Promise.resolve(null),
     ]);
 
-    const baseSalary = user.baseSalary ?? BigInt(0);
+    // A driver's pay is prorated by how many days this month they actually
+    // had a vehicle assigned — a mid-month handoff (sick leave, swap to a
+    // spare driver) would otherwise pay both drivers a full month for the
+    // same days. Non-driver roles (dispatcher, mechanic, ...) have no such
+    // per-day assignment concept, so their base salary stays flat.
+    let baseSalary = user.baseSalary ?? BigInt(0);
+    if (driver) {
+      const daysWorked = await getDriverAssignedDays(driver.id, from, to);
+      // DriverAssignmentLog only exists for assignments made through the
+      // app's own reassign flow — a driver assigned some other way (e.g.
+      // seeded directly) has no log at all, not "0 days worked". Only treat
+      // 0 as real when they're not even currently assigned to a vehicle;
+      // otherwise fall back to the flat rate rather than zeroing their pay
+      // over a missing record.
+      if (daysWorked > 0 || !driver.vehicleId) {
+        baseSalary = BigInt(Math.round((Number(baseSalary) * daysWorked) / totalDays));
+      }
+    }
+
     const bonus = existing?.bonus ?? BigInt(0);
     const finesTotal = finesAgg._sum.amount ?? BigInt(0);
     const advancesTotal = advancesAgg._sum.amount ?? BigInt(0);

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { overlapDays } from "@/lib/dashboard";
 
 // Always represented as a UTC midnight timestamp so two processes running in
 // different timezones (e.g. a local dev machine vs. Vercel's UTC serverless
@@ -76,6 +77,21 @@ export async function applyShiftAssignment(vehicleId: string, month: Date, drive
       update: { driverId },
     });
   }
+}
+
+/**
+ * How many days within [from, to] this driver had an open vehicle
+ * assignment — used to prorate payroll so a mid-month swap (sick leave
+ * handed off to a spare driver) doesn't pay both drivers a full month for
+ * the same days. A driver never assigned at all in the range gets 0.
+ */
+export async function getDriverAssignedDays(driverId: string, from: Date, to: Date): Promise<number> {
+  const logs = await prisma.driverAssignmentLog.findMany({
+    where: { driverId, startedAt: { lte: to }, OR: [{ endedAt: null }, { endedAt: { gte: from } }] },
+  });
+  const totalRangeDays = Math.floor((to.getTime() - from.getTime()) / 86_400_000) + 1;
+  const days = logs.reduce((sum, log) => sum + overlapDays(from, to, log.startedAt, log.endedAt), 0);
+  return Math.min(days, totalRangeDays);
 }
 
 export type DriverAssignmentPeriod = { driverName: string; startedAt: Date; endedAt: Date | null };

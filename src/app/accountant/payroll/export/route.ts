@@ -60,7 +60,9 @@ export async function GET(request: Request) {
 
   for (const u of users) {
     const salary = salaryByUser.get(u.id);
-    const salaryAmount = Number(u.baseSalary ?? BigInt(0));
+    // Prefer the stored (possibly prorated for a mid-month driver swap —
+    // see generatePayrollAction) figure over the flat rate once generated.
+    const salaryAmount = Number(salary?.baseSalary ?? u.baseSalary ?? BigInt(0));
     const advanceAmount = advanceByUser.get(u.id) ?? 0;
     const finesAmount = Number(salary?.finesTotal ?? 0);
     const bonusAmount = Number(salary?.bonus ?? 0);

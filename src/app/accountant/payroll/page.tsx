@@ -10,9 +10,10 @@ import { MoneyInput } from "@/components/ui/MoneyInput";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { DEFAULT_PAGE_SIZE, parsePage, paginationSkip, totalPages } from "@/lib/paginate";
 import { formatSom, formatMillions, uzMonthName } from "@/lib/format";
-import { getOwnerDashboardVM } from "@/lib/dashboard";
+import { getOwnerDashboardVM, daysInMonth } from "@/lib/dashboard";
 import { hasModuleAccess } from "@/lib/access";
 import { monthStart, monthEnd } from "@/lib/month";
+import { getDriverAssignedDays } from "@/lib/driverAssignment";
 import { generatePayrollAction, approvePayrollAction, setBonusAction, revertSalaryToDraftAction } from "./actions";
 
 const MONTH_RE = /^\d{4}-\d{2}$/;
@@ -65,7 +66,31 @@ export default async function PayrollPage({
     advanceByUser.set(a.userId, (advanceByUser.get(a.userId) ?? 0) + Number(a.amount));
   }
 
-  const salaryFund = allUsers.reduce((s, u) => s + Number(u.baseSalary ?? BigInt(0)), 0);
+  // A generated Salary row's baseSalary may be prorated (see
+  // generatePayrollAction) — show that actual figure once it exists rather
+  // than the flat rate, which would otherwise silently disagree with netPay.
+  const salaryFund = allUsers.reduce((s, u) => {
+    const salary = salaryByUser.get(u.id);
+    return s + Number(salary?.baseSalary ?? u.baseSalary ?? BigInt(0));
+  }, 0);
+
+  const totalDaysInMonth = daysInMonth(month.getUTCFullYear(), month.getUTCMonth());
+  const driverUserIds = users.filter((u) => u.role === "DRIVER").map((u) => u.id);
+  const driverRecords = driverUserIds.length
+    ? await prisma.driver.findMany({ where: { userId: { in: driverUserIds } } })
+    : [];
+  // Only shown when it actually explains the Маош figure — a driver with no
+  // assignment-log history at all (e.g. seeded directly, never reassigned
+  // through the app) still gets the flat rate rather than 0 (see
+  // generatePayrollAction), so the hint would otherwise misleadingly imply
+  // they were prorated to zero.
+  const daysWorkedByUserId = new Map<string, number>();
+  await Promise.all(
+    driverRecords.map(async (d) => {
+      const days = await getDriverAssignedDays(d.id, month, monthEnd(month));
+      if (days > 0 || !d.vehicleId) daysWorkedByUserId.set(d.userId, days);
+    })
+  );
   const advancesTotal = advances.reduce((s, a) => s + Number(a.amount), 0);
   const finesTotal = salaries.reduce((s, sal) => s + Number(sal.finesTotal), 0);
   const bonusTotal = salaries.reduce((s, sal) => s + Number(sal.bonus), 0);
@@ -150,7 +175,14 @@ export default async function PayrollPage({
               <div>
                 <RoleBadge role={u.role} point={u.point} />
               </div>
-              <div className="font-bold text-heading">{formatSom(Number(u.baseSalary ?? BigInt(0)))}</div>
+              <div className="font-bold text-heading">
+                {formatSom(Number(salary?.baseSalary ?? u.baseSalary ?? BigInt(0)))}
+                {u.role === "DRIVER" && daysWorkedByUserId.has(u.id) && (
+                  <span className="block text-[10px] text-muted-2 font-semibold">
+                    {daysWorkedByUserId.get(u.id)}/{totalDaysInMonth} кун
+                  </span>
+                )}
+              </div>
               <div className="font-extrabold text-primary">{advance > 0 ? `−${formatSom(advance)}` : "0"}</div>
               <div className="font-extrabold text-danger">
                 {salary && Number(salary.finesTotal) > 0 ? `−${formatSom(Number(salary.finesTotal))}` : "0"}
