@@ -20,20 +20,21 @@ export default async function DispatcherShiftsPage({
   if (!session) redirect("/login");
   if (session.user.role !== "DISPATCHER" || !session.user.point) redirect("/coming-soon");
 
-  const point = session.user.point;
   const { month: monthParam } = await searchParams;
   const monthStr = monthParam || currentMonthStr();
   const month = new Date(`${monthStr}-01T00:00:00Z`);
 
+  // The fleet is shared between both points (the same vehicles shuttle
+  // Farg'ona <-> Quva), so shift assignment isn't point-scoped — every
+  // dispatcher sees and manages the same shared vehicles/drivers, same as
+  // the Mechanic/Admin shift screens.
   const [vehicles, drivers, shifts] = await Promise.all([
-    prisma.vehicle.findMany({ where: { point }, orderBy: { plate: "asc" } }),
-    // Own point's drivers, plus any spare driver with no permanent vehicle yet.
+    prisma.vehicle.findMany({ orderBy: { plate: "asc" } }),
     prisma.driver.findMany({
-      where: { OR: [{ vehicle: { point } }, { vehicleId: null }] },
       include: { user: true, vehicle: true },
       orderBy: { user: { fullName: "asc" } },
     }),
-    prisma.shift.findMany({ where: { month, vehicle: { point } } }),
+    prisma.shift.findMany({ where: { month } }),
   ]);
 
   const shiftByVehicle = new Map(shifts.map((s) => [s.vehicleId, s.driverId]));
@@ -44,7 +45,7 @@ export default async function DispatcherShiftsPage({
         <div>
           <div className="font-heading font-bold text-xl text-heading">Сменалар · {monthStr}</div>
           <div className="text-[13px] text-muted-2 font-semibold">
-            Кунлик тўлиқ смена, ой учун битта ҳайдовчи — фақат ўз пунктингиз машиналари
+            Кунлик тўлиқ смена, ой учун битта ҳайдовчи — умумий парк (Фарғона ва Қува)
           </div>
         </div>
         <form className="flex gap-2 items-center">
