@@ -64,8 +64,8 @@ export function PayrollRow({
         <div className="font-extrabold text-primary">{advance > 0 ? `−${formatSom(advance)}` : "0"}</div>
         <div className="font-extrabold text-danger">{fines > 0 ? `−${formatSom(fines)}` : "0"}</div>
         <div className="font-bold text-success">+{formatSom(bonus)}</div>
-        <div className="font-heading font-extrabold text-heading flex items-center gap-2">
-          {netPayKnown ? formatSom(netPay) : "—"}
+        <div className="font-heading font-extrabold text-heading col-span-2 lg:col-span-1 flex items-center justify-between gap-2">
+          <span className="whitespace-nowrap">{netPayKnown ? formatSom(netPay) : "—"}</span>
           {isCurrentMonth && (
             <button
               type="button"
@@ -73,7 +73,7 @@ export function PayrollRow({
                 e.stopPropagation();
                 setExpanded((v) => !v);
               }}
-              className="text-primary text-xs font-extrabold hover:underline"
+              className="bg-primary-tint text-primary rounded-md px-2.5 py-1 text-xs font-extrabold whitespace-nowrap hover:bg-primary hover:text-white transition-colors"
             >
               Таҳрирлаш
             </button>

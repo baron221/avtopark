@@ -1,8 +1,7 @@
 import ExcelJS from "exceljs";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getOwnerDashboardVM, getMonthlyTrend } from "@/lib/dashboard";
-import { uzMonthName } from "@/lib/format";
+import { getOwnerDashboardVM, getMonthlyTrend, type Period } from "@/lib/dashboard";
 import { hasModuleAccess } from "@/lib/access";
 
 const INCOME_LABELS: Record<string, string> = {
@@ -11,17 +10,30 @@ const INCOME_LABELS: Record<string, string> = {
   PLAN: "Кунлик план",
 };
 
-export async function GET() {
+function isPeriod(value: string | null): value is Period {
+  return value === "DAY" || value === "WEEK" || value === "MONTH";
+}
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+export async function GET(request: Request) {
   const session = await auth();
   if (!session || (session.user.role !== "OWNER" && !(await hasModuleAccess(session.user.role, "FLEET_DASHBOARD")))) {
     return NextResponse.json({ error: "Рухсат йўқ" }, { status: 403 });
   }
 
+  const { searchParams } = new URL(request.url);
+  const period: Period = isPeriod(searchParams.get("period")) ? (searchParams.get("period") as Period) : "MONTH";
+  const dateParam = searchParams.get("date");
+  const dateStr = dateParam && DATE_RE.test(dateParam) ? dateParam : new Date().toISOString().slice(0, 10);
+  const referenceDate = new Date(`${dateStr}T00:00:00Z`);
+
   const now = new Date();
-  const [vm, trend] = await Promise.all([getOwnerDashboardVM("MONTH"), getMonthlyTrend(6)]);
+  const [vm, trend] = await Promise.all([getOwnerDashboardVM(period, referenceDate), getMonthlyTrend(6)]);
 
   const incomeByCategory: Record<string, number> = { TRIPS: 0, RENTAL: 0, PLAN: 0 };
   for (const v of vm.vehicles) incomeByCategory[v.incomeSource] += v.income;
+  const vehiclesByIncome = [...vm.vehicles].sort((a, b) => b.income - a.income);
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Avtopark Foyda Tizimi";
@@ -90,12 +102,52 @@ export async function GET() {
     trendSheet.getColumn(key).numFmt = "#,##0";
   }
 
+  const vehiclesSheet = workbook.addWorksheet("Машиналар");
+  vehiclesSheet.columns = [
+    { header: "Машина", key: "plate", width: 14 },
+    { header: "Модель", key: "model", width: 18 },
+    { header: "Ҳайдовчи", key: "driver", width: 24 },
+    { header: "Рейслар", key: "trips", width: 10 },
+    { header: "Заказ", key: "orders", width: 10 },
+    { header: "Тушум", key: "income", width: 16 },
+    { header: "Харажат", key: "expense", width: 16 },
+    { header: "Фойда", key: "profit", width: 16 },
+    { header: "Ҳолат", key: "status", width: 14 },
+  ];
+  vehiclesSheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+  vehiclesSheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4F46E5" } };
+  for (const v of vehiclesByIncome) {
+    vehiclesSheet.addRow({
+      plate: v.plate,
+      model: v.model,
+      driver: v.driverName,
+      trips: v.tripCount,
+      orders: v.orderCount,
+      income: v.income,
+      expense: v.expense,
+      profit: v.profit,
+      status: v.status,
+    });
+  }
+  const vehicleTotalsRow = vehiclesSheet.addRow({
+    plate: "ЖАМИ",
+    trips: vehiclesByIncome.reduce((s, v) => s + v.tripCount, 0),
+    orders: vehiclesByIncome.reduce((s, v) => s + v.orderCount, 0),
+    income: vm.totalIncome,
+    expense: vm.totalExpense,
+    profit: vm.netProfit,
+  });
+  vehicleTotalsRow.font = { bold: true };
+  for (const key of ["income", "expense", "profit"]) {
+    vehiclesSheet.getColumn(key).numFmt = "#,##0";
+  }
+
   const buffer = await workbook.xlsx.writeBuffer();
 
   return new NextResponse(buffer, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="hisobot_${uzMonthName(now)}_${now.getFullYear()}.xlsx"`,
+      "Content-Disposition": `attachment; filename="hisobot_${dateStr}.xlsx"`,
     },
   });
 }
