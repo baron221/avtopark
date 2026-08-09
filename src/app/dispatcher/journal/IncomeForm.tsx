@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { MoneyInput } from "@/components/ui/MoneyInput";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
 import { addTripAction } from "../actions";
 import type { Point } from "@prisma/client";
 
@@ -70,17 +71,17 @@ export function IncomeForm({
           </button>
         </div>
 
-        <select
+        <SearchableSelect
+          key={`vehicle-${resetKey}`}
           name="vehicleId"
-          required
+          placeholder="Машина рақами (масалан: 296)"
+          options={vehicles.map((v) => ({
+            id: v.id,
+            label: `${v.plate} · ${v.driverName}`,
+            searchText: `${v.plate} ${v.driverName}`,
+          }))}
           className="bg-page border-2 border-border rounded-xl px-3.5 py-2.5 font-bold text-sm text-heading outline-none focus:border-success"
-        >
-          {vehicles.map((v) => (
-            <option key={v.id} value={v.id}>
-              {v.plate} · {v.driverName}
-            </option>
-          ))}
-        </select>
+        />
 
         {kind === "TRIP" ? (
           <>
