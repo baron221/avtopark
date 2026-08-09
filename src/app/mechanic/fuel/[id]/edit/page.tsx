@@ -45,6 +45,7 @@ export default async function EditFuelLogPage({ params }: { params: Promise<{ id
           stationId={fuelLog.stationId}
           volume={Number(fuelLog.volume)}
           amount={Number(fuelLog.amount)}
+          filledAt={fuelLog.filledAt.toISOString().slice(0, 10)}
           vehicles={vehicleOptions}
           stations={stationOptions}
         />

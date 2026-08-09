@@ -41,6 +41,17 @@ export function FuelLogForm({ vehicles, stations }: { vehicles: VehicleOption[];
             </option>
           ))}
         </select>
+        <div>
+          <div className="text-xs font-extrabold text-muted-2 mb-1">Қуйилган сана</div>
+          <input
+            name="filledAt"
+            type="date"
+            required
+            defaultValue={new Date().toISOString().slice(0, 10)}
+            max={new Date().toISOString().slice(0, 10)}
+            className="w-full bg-page border-2 border-border rounded-xl px-3.5 py-2.5 font-bold text-sm text-heading outline-none focus:border-primary"
+          />
+        </div>
         <input
           name="volume"
           type="number"

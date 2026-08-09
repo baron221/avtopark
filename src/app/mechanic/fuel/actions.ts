@@ -28,7 +28,11 @@ export async function addFuelLogAction(formData: FormData) {
   const driver = await prisma.driver.findUnique({ where: { vehicleId } });
   if (!driver) return;
 
-  const filledAt = new Date();
+  // Defaults to today, but the mechanic can pick a past date to backfill an
+  // earlier fill-up that was never entered at the time.
+  const filledAtStr = String(formData.get("filledAt") ?? "");
+  const parsedFilledAt = filledAtStr ? new Date(`${filledAtStr}T12:00:00Z`) : null;
+  const filledAt = parsedFilledAt && !Number.isNaN(parsedFilledAt.getTime()) ? parsedFilledAt : new Date();
 
   // Also record a matching Expense (category FUEL) so this cost is counted
   // in profit/expense reports — FuelLog alone was invisible to those, since
@@ -79,7 +83,17 @@ export async function updateFuelLogAction(
   const stationId = String(formData.get("stationId") ?? "");
   const volume = Number(formData.get("volume") ?? 0);
   const amount = Number(formData.get("amount") ?? 0);
-  if (!id || !vehicleId || !stationId || !(volume > 0) || !(amount > 0)) {
+  const filledAtStr = String(formData.get("filledAt") ?? "");
+  const parsedFilledAt = filledAtStr ? new Date(`${filledAtStr}T12:00:00Z`) : null;
+  if (
+    !id ||
+    !vehicleId ||
+    !stationId ||
+    !(volume > 0) ||
+    !(amount > 0) ||
+    !parsedFilledAt ||
+    Number.isNaN(parsedFilledAt.getTime())
+  ) {
     return { error: "Барча майдонларни тўғри тўлдиринг" };
   }
 
@@ -92,7 +106,14 @@ export async function updateFuelLogAction(
   await prisma.$transaction(async (tx) => {
     await tx.fuelLog.update({
       where: { id },
-      data: { vehicleId, stationId, driverId: driver.id, volume, amount: BigInt(Math.round(amount)) },
+      data: {
+        vehicleId,
+        stationId,
+        driverId: driver.id,
+        volume,
+        amount: BigInt(Math.round(amount)),
+        filledAt: parsedFilledAt,
+      },
     });
     // Older rows (created before FuelLog.expenseId existed) have no linked
     // expense to keep in sync — best-effort, leaves the FuelLog itself
@@ -100,7 +121,7 @@ export async function updateFuelLogAction(
     if (fuelLog.expenseId) {
       await tx.expense.update({
         where: { id: fuelLog.expenseId },
-        data: { vehicleId, driverId: driver.id, amount: BigInt(Math.round(amount)) },
+        data: { vehicleId, driverId: driver.id, amount: BigInt(Math.round(amount)), expenseDate: parsedFilledAt },
       });
     }
   });

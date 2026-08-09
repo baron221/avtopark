@@ -19,6 +19,7 @@ export function EditFuelLogForm({
   stationId,
   volume,
   amount,
+  filledAt,
   vehicles,
   stations,
 }: {
@@ -27,6 +28,8 @@ export function EditFuelLogForm({
   stationId: string;
   volume: number;
   amount: number;
+  /** ISO yyyy-mm-dd */
+  filledAt: string;
   vehicles: VehicleOption[];
   stations: StationOption[];
 }) {
@@ -55,6 +58,17 @@ export function EditFuelLogForm({
             </option>
           ))}
         </select>
+      </div>
+      <div>
+        <div className={labelClass}>Қуйилган сана</div>
+        <input
+          name="filledAt"
+          type="date"
+          required
+          defaultValue={filledAt}
+          max={new Date().toISOString().slice(0, 10)}
+          className={inputClass}
+        />
       </div>
       <div>
         <div className={labelClass}>Ҳажм (м³ ёки Л)</div>
