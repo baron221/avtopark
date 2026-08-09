@@ -145,6 +145,8 @@ model User {
   advancesEntered  Advance[]        @relation("AdvanceEnteredBy")
   oilChangesEntered OilChange[]     @relation("OilChangeEnteredBy")
   deletionsPerformed DeletionLog[]  @relation("DeletionLogDeletedBy")
+  cashHandoversAsDispatcher CashHandover[] @relation("CashHandoverDispatcher")
+  cashHandoversAsAccountant CashHandover[] @relation("CashHandoverAccountant")
 
   @@index([role])
   @@index([point])
@@ -572,6 +574,32 @@ model Advance {
   @@index([userId, month])
   @@index([month])
   @@map("advances")
+}
+
+// A dispatcher hands over one day's cash-in-hand to the accountant once a
+// day, in person — this just tracks the two-sided confirmation of that
+// handoff (dispatcher says "I gave it", accountant says "I received it"),
+// it doesn't move any money itself. amount is a snapshot of that point's
+// total income at the moment the dispatcher confirms, not a live figure —
+// it represents cash actually counted and handed over, so it must not
+// silently drift if a trip is entered afterward.
+model CashHandover {
+  id                    String    @id @default(uuid())
+  point                 Point
+  handoverDate          DateTime  @map("handover_date")
+  amount                BigInt
+  dispatcherConfirmedBy String    @map("dispatcher_confirmed_by")
+  dispatcherConfirmedAt DateTime  @map("dispatcher_confirmed_at")
+  accountantConfirmedBy String?   @map("accountant_confirmed_by")
+  accountantConfirmedAt DateTime? @map("accountant_confirmed_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+
+  dispatcherConfirmedByUser User  @relation("CashHandoverDispatcher", fields: [dispatcherConfirmedBy], references: [id])
+  accountantConfirmedByUser User? @relation("CashHandoverAccountant", fields: [accountantConfirmedBy], references: [id])
+
+  @@unique([point, handoverDate])
+  @@index([handoverDate])
+  @@map("cash_handovers")
 }
 
 // Admin-grantable extra VIEW-only access for a role to a module that role

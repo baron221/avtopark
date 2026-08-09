@@ -9,7 +9,7 @@ import { hasModuleAccess } from "@/lib/access";
 import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 import { IncomeForm } from "../journal/IncomeForm";
 import { DriverTripsTable, type DriverGroup } from "./DriverTripsTable";
-import { deleteTripAction } from "../actions";
+import { deleteTripAction, confirmCashHandoverAction } from "../actions";
 import type { Point } from "@prisma/client";
 
 function startOfDay(d: Date) {
@@ -40,7 +40,7 @@ export default async function DispatcherPointPage({
   const from = startOfDay(today);
   const to = endOfDay(today);
 
-  const [vehicles, tripsToday, myExpenseAgg, myLunch, baseFareRoute] = await Promise.all([
+  const [vehicles, tripsToday, myExpenseAgg, myLunch, baseFareRoute, todaysHandover] = await Promise.all([
     // The fleet is shared between both points (the same vehicles shuttle
     // Farg'ona <-> Quva), so every point's dispatcher picks from the whole
     // active fleet rather than a per-point subset.
@@ -60,6 +60,7 @@ export default async function DispatcherPointPage({
     }),
     prisma.lunch.findUnique({ where: { userId_lunchDate: { userId: session.user.id, lunchDate: from } } }),
     prisma.route.findFirst({ where: { isActive: true } }),
+    prisma.cashHandover.findUnique({ where: { point_handoverDate: { point, handoverDate: from } } }),
   ]);
 
   const collectedToday = tripsToday.reduce((s, t) => s + Number(t.revenue), 0);
@@ -165,6 +166,38 @@ export default async function DispatcherPointPage({
         <KpiCard label="Менинг расходим (бугун)" value={`−${formatSom(myExpenseToday)}`} hintColor="danger" />
         <KpiCard label="Обед" value={myLunchToday ? `−${formatSom(myLunchToday)}` : "—"} />
       </div>
+
+      <Card className="p-5 flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <div className="font-heading font-bold text-[15px] text-heading">Кунлик пул топшириш</div>
+          <div className="text-[13px] text-muted-2 font-semibold">
+            {todaysHandover
+              ? `Топширилган сумма: ${formatSom(Number(todaysHandover.amount))}`
+              : `Бугун йиғилган: ${formatSom(collectedToday)}`}
+          </div>
+        </div>
+        {!todaysHandover && collectedToday > 0 && (
+          <form action={confirmCashHandoverAction}>
+            {!isDispatcher && <input type="hidden" name="point" value={point} />}
+            <button
+              type="submit"
+              className="bg-success text-white rounded-[10px] px-5 py-2.5 font-extrabold text-[13px]"
+            >
+              Топширдим ✓
+            </button>
+          </form>
+        )}
+        {todaysHandover && !todaysHandover.accountantConfirmedAt && (
+          <span className="bg-primary-tint text-primary text-xs font-extrabold px-3 py-1.5 rounded-full">
+            Буxгалтер тасдиғини кутмоқда
+          </span>
+        )}
+        {todaysHandover?.accountantConfirmedAt && (
+          <span className="bg-success/10 text-success text-xs font-extrabold px-3 py-1.5 rounded-full">
+            ✓ Буxгалтер қабул қилди
+          </span>
+        )}
+      </Card>
     </div>
   );
 }

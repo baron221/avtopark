@@ -119,6 +119,37 @@ export async function addTripAction(formData: FormData) {
   revalidatePath("/dispatcher/point");
 }
 
+// The dispatcher hands over today's cash-in-hand to the accountant once a
+// day, in person — this just records that confirmation. amount is a
+// snapshot of today's collected total at the moment of confirming (real
+// cash actually counted and handed over), not a live figure that could
+// drift if a trip gets entered afterward. Idempotent: a second confirm the
+// same day is a silent no-op rather than creating a duplicate handover.
+export async function confirmCashHandoverAction(formData: FormData) {
+  const { userId, point } = await requireDispatcherOrGranted(formData, ["TRIP_ENTRY", "COLLECT_PAYMENT"]);
+
+  const today = startOfDay(new Date());
+  const existing = await prisma.cashHandover.findUnique({
+    where: { point_handoverDate: { point, handoverDate: today } },
+  });
+  if (existing) return;
+
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const trips = await prisma.trip.findMany({
+    where: { tripDate: { gte: today, lt: tomorrow }, point },
+    select: { revenue: true },
+  });
+  const amount = trips.reduce((s, t) => s + t.revenue, BigInt(0));
+
+  await prisma.cashHandover.create({
+    data: { point, handoverDate: today, amount, dispatcherConfirmedBy: userId, dispatcherConfirmedAt: new Date() },
+  });
+
+  revalidatePath("/dispatcher/point");
+  revalidatePath("/accountant/report");
+}
+
 export type UpdateTripState = { error: string };
 
 export async function updateTripAction(
