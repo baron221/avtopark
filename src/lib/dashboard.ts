@@ -19,6 +19,7 @@ export type VehicleProfitRow = {
   profit: number;
   status: string;
   tripCount: number;
+  orderCount: number;
 };
 
 export type OwnerDashboardVM = {
@@ -208,7 +209,7 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
     prisma.driver.findMany({ include: { user: true } }),
     prisma.trip.findMany({
       where: { tripDate: { gte: from, lte: to } },
-      select: { vehicleId: true, revenue: true },
+      select: { vehicleId: true, revenue: true, kind: true },
     }),
     prisma.dailyPlan.findMany({
       where: { planDate: { gte: from, lte: to } },
@@ -225,10 +226,14 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
   ]);
 
   const driverByVehicleId = new Map(driversFlat.filter((d) => d.vehicleId).map((d) => [d.vehicleId as string, d]));
-  const tripStatsByVehicle = new Map<string, { count: number; income: number }>();
+  // Kept separate (not just a combined trip+order count) so the fleet table
+  // can show how much of a vehicle's activity is its regular route vs a
+  // one-off private charter.
+  const tripStatsByVehicle = new Map<string, { count: number; orderCount: number; income: number }>();
   for (const t of tripsFlat) {
-    const entry = tripStatsByVehicle.get(t.vehicleId) ?? { count: 0, income: 0 };
-    entry.count += 1;
+    const entry = tripStatsByVehicle.get(t.vehicleId) ?? { count: 0, orderCount: 0, income: 0 };
+    if (t.kind === "ORDER") entry.orderCount += 1;
+    else entry.count += 1;
     entry.income += Number(t.revenue);
     tripStatsByVehicle.set(t.vehicleId, entry);
   }
@@ -287,7 +292,7 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
     .sort((a, b) => b.amount - a.amount);
 
   const vehicleRows: VehicleProfitRow[] = vehiclesFlat.map((v) => {
-    const tripStats = tripStatsByVehicle.get(v.id) ?? { count: 0, income: 0 };
+    const tripStats = tripStatsByVehicle.get(v.id) ?? { count: 0, orderCount: 0, income: 0 };
     const planIncome = planIncomeByVehicle.get(v.id) ?? 0;
     const vehicleRentals = rentalsByVehicle.get(v.id) ?? [];
     const rentalIncome = vehicleRentals.reduce((s, r) => {
@@ -320,6 +325,7 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
       profit: income - expense,
       status: v.status,
       tripCount: tripStats.count,
+      orderCount: tripStats.orderCount,
     };
   });
 

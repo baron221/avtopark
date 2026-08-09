@@ -189,10 +189,11 @@ export function FleetDashboard({
             <div className="font-heading font-bold text-base text-heading">Машиналар бўйича фойда</div>
             <div className="text-[13px] font-bold text-primary">Барчаси ({vm.vehicles.length}) →</div>
           </div>
-          <div className="grid grid-cols-[1.3fr_1.1fr_0.6fr_0.9fr_0.9fr_0.9fr_0.8fr] px-6 py-2.5 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
+          <div className="grid grid-cols-[1.3fr_1.1fr_0.6fr_0.6fr_0.9fr_0.9fr_0.9fr_0.8fr] px-6 py-2.5 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
             <div>Машина</div>
             <div>Ҳайдовчи</div>
             <div>Рейслар</div>
+            <div>Заказ</div>
             <div>Тушум</div>
             <div>Харажат</div>
             <div>Фойда</div>
@@ -201,7 +202,7 @@ export function FleetDashboard({
           {vm.vehicles.map((v) => (
             <div
               key={v.vehicleId}
-              className="grid grid-cols-[1.3fr_1.1fr_0.6fr_0.9fr_0.9fr_0.9fr_0.8fr] px-6 py-3.5 border-t border-row-divider items-center text-sm"
+              className="grid grid-cols-[1.3fr_1.1fr_0.6fr_0.6fr_0.9fr_0.9fr_0.9fr_0.8fr] px-6 py-3.5 border-t border-row-divider items-center text-sm"
             >
               <div className="flex items-center gap-2.5">
                 <div className="bg-primary-tint rounded-md px-2 py-0.5 font-extrabold text-xs text-primary font-heading">
@@ -211,6 +212,7 @@ export function FleetDashboard({
               </div>
               <div className="text-body font-semibold">{v.driverName}</div>
               <div className="text-muted-2 font-bold">{v.tripCount}</div>
+              <div className="text-muted-2 font-bold">{v.orderCount}</div>
               <div className="font-bold text-heading">{formatSom(v.income)}</div>
               <div className="text-muted-2 font-semibold">{formatSom(v.expense)}</div>
               <div className="font-extrabold text-success">{formatSom(v.profit)}</div>
@@ -220,10 +222,11 @@ export function FleetDashboard({
             </div>
           ))}
           {date && (
-            <div className="grid grid-cols-[1.3fr_1.1fr_0.6fr_0.9fr_0.9fr_0.9fr_0.8fr] px-6 py-3.5 border-t-2 border-primary bg-primary-tint items-center text-sm">
+            <div className="grid grid-cols-[1.3fr_1.1fr_0.6fr_0.6fr_0.9fr_0.9fr_0.9fr_0.8fr] px-6 py-3.5 border-t-2 border-primary bg-primary-tint items-center text-sm">
               <div className="font-extrabold text-heading col-span-2">
                 Жами: {activeVehicleCount} / {vm.vehicles.length} машина қатнади
               </div>
+              <div></div>
               <div></div>
               <div className="font-extrabold text-heading">{formatSom(vm.totalIncome)}</div>
               <div className="font-extrabold text-heading">{formatSom(vm.totalExpense)}</div>
@@ -248,10 +251,14 @@ export function FleetDashboard({
                 <StatusPill status={v.status} />
               </div>
               <div className="text-xs text-muted-2 font-semibold">{v.driverName}</div>
-              <div className="flex justify-between text-sm pt-1 border-t border-row-divider">
+              <div className="flex justify-between text-sm pt-1 border-t border-row-divider flex-wrap gap-y-2">
                 <div>
                   <div className="text-[11px] text-muted-2 font-bold uppercase">Рейслар</div>
                   <div className="font-bold text-heading">{v.tripCount}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-muted-2 font-bold uppercase">Заказ</div>
+                  <div className="font-bold text-heading">{v.orderCount}</div>
                 </div>
                 <div>
                   <div className="text-[11px] text-muted-2 font-bold uppercase">Тушум</div>
