@@ -5,12 +5,15 @@ import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { PeriodToggle } from "@/components/ui/PeriodToggle";
+import { MonthPicker } from "@/components/ui/MonthPicker";
 import { formatSom } from "@/lib/format";
 import { getOwnerDashboardVM, type Period } from "@/lib/dashboard";
 import { getVehicleReport } from "@/lib/vehicleReport";
 import { getDriverAssignmentHistory } from "@/lib/driverAssignment";
 import { getWialonUnitByPlate, getWialonMileageToday, type WialonUnit } from "@/lib/wialon";
+import { getVehicleMonthlyFuelReport } from "@/lib/monthlyFuelReport";
 import { estimateCurrentOdometerKm } from "@/lib/oilChange";
+import { monthStart as toMonthStart, monthEnd as toMonthEnd } from "@/lib/month";
 import { hasModuleAccess } from "@/lib/access";
 import { StatusSelect } from "./StatusSelect";
 import { ExpenseForm } from "./ExpenseForm";
@@ -18,9 +21,28 @@ import { DriverSelect } from "./DriverSelect";
 import { AddDriverForm } from "./AddDriverForm";
 import { OilChangeForm } from "./OilChangeForm";
 
+// Viewing a past month with no cached VehicleMileage data falls back to one
+// live Wialon range query, observed to take ~10-14s against the self-hosted
+// server — comfortably over the platform's default serverless timeout.
+export const maxDuration = 30;
+
 function isPeriod(value: string | undefined): value is Period {
   return value === "DAY" || value === "WEEK" || value === "MONTH";
 }
+
+const FUEL_MONTH_RE = /^\d{4}-\d{2}$/;
+
+function parseFuelMonthParam(value: string | undefined): Date {
+  if (value && FUEL_MONTH_RE.test(value)) {
+    const [y, m] = value.split("-").map(Number);
+    const parsed = new Date(Date.UTC(y, m - 1, 1));
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+  return toMonthStart(new Date());
+}
+
+const FUEL_LABELS: Record<string, string> = { METAN: "Газ", BENZIN: "Бензин", DIZEL: "Дизель" };
+const FUEL_UNIT: Record<string, string> = { METAN: "м³", BENZIN: "л", DIZEL: "л" };
 
 const CATEGORY_LABELS: Record<string, string> = {
   FUEL: "Ёқилғи",
@@ -37,15 +59,17 @@ export default async function VehicleDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ period?: string; fuelMonth?: string }>;
 }) {
   const session = await auth();
   if (!session) redirect("/login");
   if (session.user.role !== "MECHANIC" && !(await hasModuleAccess(session.user.role, "VEHICLES"))) redirect("/coming-soon");
 
   const { id } = await params;
-  const { period: periodParam } = await searchParams;
+  const { period: periodParam, fuelMonth: fuelMonthParam } = await searchParams;
   const period: Period = isPeriod(periodParam) ? periodParam : "MONTH";
+  const fuelMonth = parseFuelMonthParam(fuelMonthParam);
+  const fuelMonthStr = `${fuelMonth.getUTCFullYear()}-${String(fuelMonth.getUTCMonth() + 1).padStart(2, "0")}`;
 
   const [vehicle, vm, expenses, drivers, oilChanges, report, assignmentHistory, mileageHistory] = await Promise.all([
     prisma.vehicle.findUnique({ where: { id }, include: { driver: { include: { user: true } } } }),
@@ -68,6 +92,20 @@ export default async function VehicleDetailPage({
   } catch (err) {
     console.error("Wialon GPS xato:", err);
     gpsUnit = null;
+  }
+
+  let monthlyFuelReport: Awaited<ReturnType<typeof getVehicleMonthlyFuelReport>> | null = null;
+  if (gpsUnit) {
+    try {
+      monthlyFuelReport = await getVehicleMonthlyFuelReport(
+        vehicle.id,
+        gpsUnit.id,
+        fuelMonth,
+        toMonthEnd(fuelMonth)
+      );
+    } catch (err) {
+      console.error("Ойлик ёқилғи ҳисоботи хато:", err);
+    }
   }
 
   const last7Days = mileageHistory.slice(0, 7);
@@ -209,6 +247,64 @@ export default async function VehicleDetailPage({
         </Card>
       )}
 
+      {gpsUnit && (
+        <Card className="overflow-hidden">
+          <div className="flex justify-between items-center px-6 py-3.5 flex-wrap gap-2">
+            <div>
+              <div className="font-heading font-bold text-base text-heading">Ойлик ёқилғи ва масофа</div>
+              <div className="text-xs text-muted-2 font-semibold mt-0.5">
+                Шу ойда қуйилган ёқилғи (турлар бўйича) ва GPS орқали босиб ўтилган масофа
+              </div>
+            </div>
+            <MonthPicker
+              basePath={`/mechanic/vehicles/${vehicle.id}`}
+              value={fuelMonthStr}
+              paramName="fuelMonth"
+              extraParams={{ period }}
+            />
+          </div>
+          {monthlyFuelReport && (
+            <>
+              <div className="px-6 pb-3 flex items-center gap-2 flex-wrap text-sm">
+                <span className="text-muted-2 font-semibold">Масофа:</span>
+                <span className="font-extrabold text-heading">
+                  {monthlyFuelReport.km > 0 ? `${monthlyFuelReport.km.toFixed(0)} км` : "—"}
+                </span>
+                {monthlyFuelReport.kmIsLive && (
+                  <span className="bg-primary-tint text-primary text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+                    GPS тарихидан ҳисобланди
+                  </span>
+                )}
+              </div>
+              {monthlyFuelReport.byType.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 px-6 pb-5">
+                  {monthlyFuelReport.byType.map((t) => (
+                    <div key={t.fuelType} className="bg-page rounded-xl p-3.5 flex flex-col gap-1">
+                      <div className="text-xs font-extrabold text-muted-2 uppercase">
+                        {FUEL_LABELS[t.fuelType] ?? t.fuelType}
+                      </div>
+                      <div className="font-heading font-extrabold text-lg text-heading">
+                        {t.volume.toFixed(1)} {FUEL_UNIT[t.fuelType] ?? ""}
+                      </div>
+                      <div className="text-xs text-muted-2 font-semibold">
+                        {t.ratePer100 !== null
+                          ? `100 км га ${t.ratePer100.toFixed(1)} ${FUEL_UNIT[t.fuelType] ?? ""}`
+                          : "масофа маълум эмас"}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[13px] text-muted-2 px-6 pb-5">Бу ойда ёқилғи қуйиш ёзуви йўқ</p>
+              )}
+            </>
+          )}
+          {!monthlyFuelReport && (
+            <p className="text-[13px] text-muted-2 px-6 pb-5">GPS маълумотини олиб бўлмади</p>
+          )}
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard label={`Тушум · ${vm.periodLabel}`} value={formatSom(row?.income ?? 0)} />
         <KpiCard label={`Харажат · ${vm.periodLabel}`} value={formatSom(row?.expense ?? 0)} hintColor="danger" />
@@ -298,7 +394,11 @@ export default async function VehicleDetailPage({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <PeriodToggle active={period} basePath={`/mechanic/vehicles/${vehicle.id}`} />
+              <PeriodToggle
+                active={period}
+                basePath={`/mechanic/vehicles/${vehicle.id}`}
+                extraParams={{ fuelMonth: fuelMonthStr }}
+              />
               <a
                 href={`/print/vehicle/${vehicle.id}?period=${period}`}
                 target="_blank"

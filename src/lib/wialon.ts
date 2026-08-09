@@ -135,15 +135,26 @@ function haversineKm(a: { lat: number; lon: number }, b: { lat: number; lon: num
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-/** Sums a unit's GPS track between two instants into a driven-distance estimate. */
-export async function getWialonMileageForRange(unitId: number, from: Date, to: Date): Promise<number> {
+/**
+ * Sums a unit's GPS track between two instants into a driven-distance
+ * estimate. loadCount defaults to comfortably cover a single day (~1500-3000
+ * messages observed); a caller summing a much longer range (e.g. a full
+ * month, ~90k-110k messages observed) must raise it or risk silent
+ * truncation.
+ */
+export async function getWialonMileageForRange(
+  unitId: number,
+  from: Date,
+  to: Date,
+  loadCount = 20000
+): Promise<number> {
   const data = await callAuthed<{ messages?: { pos?: { y: number; x: number } }[] }>("messages/load_interval", {
     itemId: unitId,
     timeFrom: Math.floor(from.getTime() / 1000),
     timeTo: Math.floor(to.getTime() / 1000),
     flags: 0,
     flagsMask: 0,
-    loadCount: 20000,
+    loadCount,
   });
 
   const points = (data.messages ?? [])
