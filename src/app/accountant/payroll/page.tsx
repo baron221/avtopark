@@ -14,6 +14,7 @@ import { getOwnerDashboardVM } from "@/lib/dashboard";
 import { hasModuleAccess } from "@/lib/access";
 import { monthStart, monthEnd } from "@/lib/month";
 import { computeDriverMonthlyPay } from "@/lib/driverPay";
+import { computeNetPay } from "@/lib/payroll";
 import { generatePayrollAction, approvePayrollAction, setBonusAction, revertSalaryToDraftAction } from "./actions";
 
 const MONTH_RE = /^\d{4}-\d{2}$/;
@@ -81,16 +82,37 @@ export default async function PayrollPage({
     })
   );
 
-  const salaryFund = allUsers.reduce((s, u) => {
+  // A driver's base salary keeps accruing trip-by-trip all month, so — while
+  // the month is still ongoing — it's always shown live rather than frozen
+  // at whatever "Тасдиқлаш" happened to lock in; only advance/fine/bonus
+  // (accountant-entered, not auto-computed) stay frozen once approved.
+  // netPay follows the same rule since it's derived from baseSalary.
+  function effectivePay(u: (typeof allUsers)[number]) {
     const salary = salaryByUser.get(u.id);
+    const advance = advanceByUser.get(u.id) ?? 0;
+    const isDriverLive = u.role === "DRIVER" && isCurrentMonth;
+    if (isDriverLive) {
+      const baseSalary = driverPayByUserId.get(u.id)?.total ?? BigInt(0);
+      const netPay = computeNetPay({
+        baseSalary,
+        bonus: salary?.bonus ?? BigInt(0),
+        advancesTotal: BigInt(advance),
+        finesTotal: salary?.finesTotal ?? BigInt(0),
+      });
+      return { baseSalary, netPay, netPayKnown: true };
+    }
     const fallback = driverPayByUserId.get(u.id)?.total ?? u.baseSalary ?? BigInt(0);
-    return s + Number(salary?.baseSalary ?? fallback);
-  }, 0);
+    const baseSalary = salary?.baseSalary ?? fallback;
+    return { baseSalary, netPay: salary?.netPay ?? BigInt(0), netPayKnown: !!salary };
+  }
 
+  const payByUserId = new Map(allUsers.map((u) => [u.id, effectivePay(u)]));
+
+  const salaryFund = allUsers.reduce((s, u) => s + Number(payByUserId.get(u.id)!.baseSalary), 0);
   const advancesTotal = advances.reduce((s, a) => s + Number(a.amount), 0);
   const finesTotal = salaries.reduce((s, sal) => s + Number(sal.finesTotal), 0);
   const bonusTotal = salaries.reduce((s, sal) => s + Number(sal.bonus), 0);
-  const netPayTotal = salaries.reduce((s, sal) => s + Number(sal.netPay), 0);
+  const netPayTotal = allUsers.reduce((s, u) => s + Number(payByUserId.get(u.id)!.netPay), 0);
   // Advances are a pre-payment of the very same base salary (already inside
   // salaryFund) that gets clawed back at settlement, so it nets out —
   // including it here on top of salaryFund would double-count it. A fine
@@ -161,6 +183,7 @@ export default async function PayrollPage({
         {users.map((u) => {
           const salary = salaryByUser.get(u.id);
           const advance = advanceByUser.get(u.id) ?? 0;
+          const pay = payByUserId.get(u.id)!;
           const editable = isCurrentMonth && (!salary || salary.status === "DRAFT");
           return (
             <div
@@ -172,9 +195,7 @@ export default async function PayrollPage({
                 <RoleBadge role={u.role} point={u.point} />
               </div>
               <div className="font-bold text-heading">
-                {formatSom(
-                  Number(salary?.baseSalary ?? driverPayByUserId.get(u.id)?.total ?? u.baseSalary ?? BigInt(0))
-                )}
+                {formatSom(Number(pay.baseSalary))}
                 {u.role === "DRIVER" && (
                   <span className="block text-[10px] text-muted-2 font-semibold">
                     {driverPayByUserId.get(u.id)?.dayCount ?? 0} кун ишлаган
@@ -203,7 +224,7 @@ export default async function PayrollPage({
                 )}
               </div>
               <div className="font-heading font-extrabold text-heading flex items-center gap-1.5">
-                {salary ? formatSom(Number(salary.netPay)) : "—"}
+                {pay.netPayKnown ? formatSom(Number(pay.netPay)) : "—"}
                 {salary && salary.status === "APPROVED" && isCurrentMonth && (
                   <form action={revertSalaryToDraftAction}>
                     <input type="hidden" name="salaryId" value={salary.id} />

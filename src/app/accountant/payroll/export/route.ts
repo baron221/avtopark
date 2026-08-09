@@ -6,6 +6,7 @@ import { ROLE_LABELS } from "@/components/ui/RoleBadge";
 import { uzMonthName } from "@/lib/format";
 import { monthStart, monthEnd } from "@/lib/month";
 import { computeDriverMonthlyPay } from "@/lib/driverPay";
+import { computeNetPay } from "@/lib/payroll";
 
 const MONTH_RE = /^\d{4}-\d{2}$/;
 
@@ -21,6 +22,7 @@ export async function GET(request: Request) {
     monthParam && MONTH_RE.test(monthParam)
       ? new Date(Date.UTC(Number(monthParam.slice(0, 4)), Number(monthParam.slice(5, 7)) - 1, 1))
       : monthStart(new Date());
+  const isCurrentMonth = month.getTime() === monthStart(new Date()).getTime();
 
   const [users, salaries, advances] = await Promise.all([
     prisma.user.findMany({ where: { role: { not: "OWNER" }, isActive: true }, orderBy: [{ role: "asc" }, { fullName: "asc" }] }),
@@ -74,14 +76,29 @@ export async function GET(request: Request) {
 
   for (const u of users) {
     const salary = salaryByUser.get(u.id);
-    // Prefer the stored (generated) figure once it exists; for a driver
-    // without one yet, fall back to the live daily-tariff computation
-    // rather than the now-vestigial flat rate.
-    const salaryAmount = Number(salary?.baseSalary ?? driverPayByUserId.get(u.id) ?? u.baseSalary ?? BigInt(0));
     const advanceAmount = advanceByUser.get(u.id) ?? 0;
+    // A driver's base salary keeps accruing trip-by-trip all month, so while
+    // the month is still ongoing it's always the live daily-tariff total —
+    // never the stale figure frozen at whatever it was when "Тасдиқлаш" was
+    // clicked. Past months keep the stored (settled) snapshot as-is.
+    const isDriverLive = u.role === "DRIVER" && isCurrentMonth;
+    const salaryAmount = isDriverLive
+      ? Number(driverPayByUserId.get(u.id) ?? 0)
+      : Number(salary?.baseSalary ?? driverPayByUserId.get(u.id) ?? u.baseSalary ?? BigInt(0));
     const finesAmount = Number(salary?.finesTotal ?? 0);
     const bonusAmount = Number(salary?.bonus ?? 0);
-    const netAmount = salary ? Number(salary.netPay) : 0;
+    const netAmount = isDriverLive
+      ? Number(
+          computeNetPay({
+            baseSalary: salaryAmount,
+            bonus: salary?.bonus ?? BigInt(0),
+            advancesTotal: advanceAmount,
+            finesTotal: salary?.finesTotal ?? BigInt(0),
+          })
+        )
+      : salary
+        ? Number(salary.netPay)
+        : 0;
 
     salaryTotal += salaryAmount;
     advanceTotal += advanceAmount;
@@ -96,7 +113,7 @@ export async function GET(request: Request) {
       advance: advanceAmount,
       fines: finesAmount,
       bonus: bonusAmount,
-      net: salary ? netAmount : null,
+      net: salary || isDriverLive ? netAmount : null,
     });
   }
 

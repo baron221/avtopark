@@ -28,7 +28,27 @@ export async function generatePayrollAction() {
 
   for (const user of users) {
     const existing = await prisma.salary.findUnique({ where: { userId_month: { userId: user.id, month } } });
-    if (existing && existing.status !== "DRAFT") continue;
+
+    if (existing && existing.status !== "DRAFT") {
+      // Approval only freezes the accountant-entered figures (advance/fine/
+      // bonus) — a driver's base salary keeps accruing trip-by-trip all
+      // month, so it's refreshed here too rather than staying stuck at
+      // whatever it was the moment "Тасдиқлаш" happened to be clicked.
+      if (user.role === "DRIVER") {
+        const driver = await prisma.driver.findUnique({ where: { userId: user.id } });
+        if (driver) {
+          const baseSalary = (await computeDriverMonthlyPay(driver.id, from, to)).total;
+          const netPay = computeNetPay({
+            baseSalary,
+            bonus: existing.bonus,
+            advancesTotal: existing.advancesTotal,
+            finesTotal: existing.finesTotal,
+          });
+          await prisma.salary.update({ where: { id: existing.id }, data: { baseSalary, netPay } });
+        }
+      }
+      continue;
+    }
 
     const [finesAgg, advancesAgg, driver] = await Promise.all([
       prisma.fine.aggregate({
