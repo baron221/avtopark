@@ -4,7 +4,8 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { ROLE_LABELS } from "@/components/ui/RoleBadge";
 import { uzMonthName } from "@/lib/format";
-import { monthStart } from "@/lib/month";
+import { monthStart, monthEnd } from "@/lib/month";
+import { computeDriverMonthlyPay } from "@/lib/driverPay";
 
 const MONTH_RE = /^\d{4}-\d{2}$/;
 
@@ -33,6 +34,19 @@ export async function GET(request: Request) {
     advanceByUser.set(a.userId, (advanceByUser.get(a.userId) ?? 0) + Number(a.amount));
   }
 
+  // A driver's base salary is computed from daily trip revenue (see
+  // driverPay.ts) — computed live so the export is accurate even before
+  // "Ведомостни яратиш" has been run this month.
+  const driverRecords = await prisma.driver.findMany({
+    where: { userId: { in: users.filter((u) => u.role === "DRIVER").map((u) => u.id) } },
+  });
+  const driverPayByUserId = new Map<string, bigint>();
+  await Promise.all(
+    driverRecords.map(async (d) => {
+      driverPayByUserId.set(d.userId, (await computeDriverMonthlyPay(d.id, month, monthEnd(month))).total);
+    })
+  );
+
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Avtopark Foyda Tizimi";
   workbook.created = new Date();
@@ -60,9 +74,10 @@ export async function GET(request: Request) {
 
   for (const u of users) {
     const salary = salaryByUser.get(u.id);
-    // Prefer the stored (possibly prorated for a mid-month driver swap —
-    // see generatePayrollAction) figure over the flat rate once generated.
-    const salaryAmount = Number(salary?.baseSalary ?? u.baseSalary ?? BigInt(0));
+    // Prefer the stored (generated) figure once it exists; for a driver
+    // without one yet, fall back to the live daily-tariff computation
+    // rather than the now-vestigial flat rate.
+    const salaryAmount = Number(salary?.baseSalary ?? driverPayByUserId.get(u.id) ?? u.baseSalary ?? BigInt(0));
     const advanceAmount = advanceByUser.get(u.id) ?? 0;
     const finesAmount = Number(salary?.finesTotal ?? 0);
     const bonusAmount = Number(salary?.bonus ?? 0);

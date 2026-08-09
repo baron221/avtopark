@@ -10,10 +10,10 @@ import { MoneyInput } from "@/components/ui/MoneyInput";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { DEFAULT_PAGE_SIZE, parsePage, paginationSkip, totalPages } from "@/lib/paginate";
 import { formatSom, formatMillions, uzMonthName } from "@/lib/format";
-import { getOwnerDashboardVM, daysInMonth } from "@/lib/dashboard";
+import { getOwnerDashboardVM } from "@/lib/dashboard";
 import { hasModuleAccess } from "@/lib/access";
 import { monthStart, monthEnd } from "@/lib/month";
-import { getDriverAssignedDays } from "@/lib/driverAssignment";
+import { computeDriverMonthlyPay } from "@/lib/driverPay";
 import { generatePayrollAction, approvePayrollAction, setBonusAction, revertSalaryToDraftAction } from "./actions";
 
 const MONTH_RE = /^\d{4}-\d{2}$/;
@@ -66,31 +66,27 @@ export default async function PayrollPage({
     advanceByUser.set(a.userId, (advanceByUser.get(a.userId) ?? 0) + Number(a.amount));
   }
 
-  // A generated Salary row's baseSalary may be prorated (see
-  // generatePayrollAction) — show that actual figure once it exists rather
-  // than the flat rate, which would otherwise silently disagree with netPay.
-  const salaryFund = allUsers.reduce((s, u) => {
-    const salary = salaryByUser.get(u.id);
-    return s + Number(salary?.baseSalary ?? u.baseSalary ?? BigInt(0));
-  }, 0);
-
-  const totalDaysInMonth = daysInMonth(month.getUTCFullYear(), month.getUTCMonth());
-  const driverUserIds = users.filter((u) => u.role === "DRIVER").map((u) => u.id);
-  const driverRecords = driverUserIds.length
-    ? await prisma.driver.findMany({ where: { userId: { in: driverUserIds } } })
-    : [];
-  // Only shown when it actually explains the Маош figure — a driver with no
-  // assignment-log history at all (e.g. seeded directly, never reassigned
-  // through the app) still gets the flat rate rather than 0 (see
-  // generatePayrollAction), so the hint would otherwise misleadingly imply
-  // they were prorated to zero.
-  const daysWorkedByUserId = new Map<string, number>();
+  // A driver's base salary is computed from their daily trip revenue (see
+  // driverPay.ts), not the flat admin-set rate — computed live here (over
+  // every driver, not just this page's slice, since salaryFund below sums
+  // the whole list) so it's accurate even before "Ведомостни яратиш" has
+  // been run this month.
+  const driverRecords = await prisma.driver.findMany({
+    where: { userId: { in: allUsers.filter((u) => u.role === "DRIVER").map((u) => u.id) } },
+  });
+  const driverPayByUserId = new Map<string, { total: bigint; dayCount: number }>();
   await Promise.all(
     driverRecords.map(async (d) => {
-      const days = await getDriverAssignedDays(d.id, month, monthEnd(month));
-      if (days > 0 || !d.vehicleId) daysWorkedByUserId.set(d.userId, days);
+      driverPayByUserId.set(d.userId, await computeDriverMonthlyPay(d.id, month, monthEnd(month)));
     })
   );
+
+  const salaryFund = allUsers.reduce((s, u) => {
+    const salary = salaryByUser.get(u.id);
+    const fallback = driverPayByUserId.get(u.id)?.total ?? u.baseSalary ?? BigInt(0);
+    return s + Number(salary?.baseSalary ?? fallback);
+  }, 0);
+
   const advancesTotal = advances.reduce((s, a) => s + Number(a.amount), 0);
   const finesTotal = salaries.reduce((s, sal) => s + Number(sal.finesTotal), 0);
   const bonusTotal = salaries.reduce((s, sal) => s + Number(sal.bonus), 0);
@@ -176,10 +172,12 @@ export default async function PayrollPage({
                 <RoleBadge role={u.role} point={u.point} />
               </div>
               <div className="font-bold text-heading">
-                {formatSom(Number(salary?.baseSalary ?? u.baseSalary ?? BigInt(0)))}
-                {u.role === "DRIVER" && daysWorkedByUserId.has(u.id) && (
+                {formatSom(
+                  Number(salary?.baseSalary ?? driverPayByUserId.get(u.id)?.total ?? u.baseSalary ?? BigInt(0))
+                )}
+                {u.role === "DRIVER" && (
                   <span className="block text-[10px] text-muted-2 font-semibold">
-                    {daysWorkedByUserId.get(u.id)}/{totalDaysInMonth} кун
+                    {driverPayByUserId.get(u.id)?.dayCount ?? 0} кун ишлаган
                   </span>
                 )}
               </div>
