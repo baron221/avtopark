@@ -18,6 +18,16 @@ export type PointBreakdownRow = {
   expenseByCategory: { category: string; amount: number }[];
 };
 
+export type OrderRow = {
+  id: string;
+  time: Date;
+  point: "FARGONA" | "QUVA";
+  plate: string;
+  driverName: string;
+  amount: number;
+  note: string | null;
+};
+
 export type VehicleProfitRow = {
   vehicleId: string;
   plate: string;
@@ -47,6 +57,7 @@ export type OwnerDashboardVM = {
   expenseBreakdown: ExpenseBreakdownItem[];
   vehicles: VehicleProfitRow[];
   pointBreakdown: PointBreakdownRow[];
+  orders: OrderRow[];
 };
 
 function startOfDay(d: Date) {
@@ -222,7 +233,7 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
     prisma.driver.findMany({ include: { user: true } }),
     prisma.trip.findMany({
       where: { tripDate: { gte: from, lte: to } },
-      select: { vehicleId: true, revenue: true, kind: true, point: true },
+      select: { id: true, vehicleId: true, revenue: true, kind: true, point: true, note: true, createdAt: true },
     }),
     prisma.dailyPlan.findMany({
       where: { planDate: { gte: from, lte: to } },
@@ -246,6 +257,7 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
   ]);
 
   const driverByVehicleId = new Map(driversFlat.filter((d) => d.vehicleId).map((d) => [d.vehicleId as string, d]));
+  const vehicleById = new Map(vehiclesFlat.map((v) => [v.id, v]));
   // Kept separate (not just a combined trip+order count) so the fleet table
   // can show how much of a vehicle's activity is its regular route vs a
   // one-off private charter.
@@ -387,6 +399,19 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
     };
   });
 
+  const orderRows: OrderRow[] = tripsFlat
+    .filter((t) => t.kind === "ORDER")
+    .map((t) => ({
+      id: t.id,
+      time: t.createdAt,
+      point: t.point,
+      plate: vehicleById.get(t.vehicleId)?.plate ?? "—",
+      driverName: driverByVehicleId.get(t.vehicleId)?.user.fullName ?? "—",
+      amount: Number(t.revenue),
+      note: t.note,
+    }))
+    .sort((a, b) => b.time.getTime() - a.time.getTime());
+
   return {
     period,
     periodLabel: uzMonthName(now),
@@ -401,6 +426,7 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
     expenseBreakdown,
     vehicles: vehicleRows,
     pointBreakdown,
+    orders: orderRows,
   };
 }
 

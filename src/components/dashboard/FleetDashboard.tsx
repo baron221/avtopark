@@ -6,7 +6,7 @@ import { DatePicker } from "@/components/ui/DatePicker";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { WeeklyBarChart } from "@/components/charts/WeeklyBarChart";
 import type { OwnerDashboardVM, Period } from "@/lib/dashboard";
-import { formatMillions, formatSom } from "@/lib/format";
+import { formatMillions, formatSom, formatTime } from "@/lib/format";
 import { logoutAction } from "@/app/actions";
 
 const CATEGORY_COLORS = ["#4F46E5", "#FFB84D", "#1B9E6B", "#D9534F", "#C9CBE3", "#8A8CA0", "#6B6D82"];
@@ -238,6 +238,71 @@ export function FleetDashboard({
               );
             })}
           </div>
+        )}
+
+        {/* Orders list */}
+        {vm.orders.length > 0 && (
+          <Card className="overflow-hidden">
+            <div className="px-6 py-[18px] font-heading font-bold text-base text-heading">
+              Заказлар · {vm.periodLabel}
+            </div>
+
+            {/* Desktop */}
+            <div className="hidden lg:grid grid-cols-[0.9fr_0.7fr_0.9fr_1.1fr_0.9fr_1.6fr] px-6 py-2.5 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
+              <div>Вақт</div>
+              <div>Пункт</div>
+              <div>Машина</div>
+              <div>Ҳайдовчи</div>
+              <div>Сумма</div>
+              <div>Изоҳ</div>
+            </div>
+            {vm.orders.map((o) => (
+              <div
+                key={o.id}
+                className="hidden lg:grid grid-cols-[0.9fr_0.7fr_0.9fr_1.1fr_0.9fr_1.6fr] gap-x-2 px-6 py-3 border-t border-row-divider items-center text-sm"
+              >
+                <div className="text-muted-2 font-bold">
+                  {o.time.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" })} · {formatTime(o.time)}
+                </div>
+                <div>
+                  <span className="bg-primary-tint text-primary text-xs font-extrabold px-2.5 py-1 rounded-full">
+                    {POINT_LABELS[o.point]}
+                  </span>
+                </div>
+                <div className="font-extrabold text-primary font-heading">{o.plate}</div>
+                <div className="text-body font-semibold">{o.driverName}</div>
+                <div className="font-extrabold text-heading">{formatSom(o.amount)}</div>
+                <div className="text-muted-2 font-semibold break-words">{o.note ?? "—"}</div>
+              </div>
+            ))}
+
+            {/* Mobile */}
+            <div className="lg:hidden">
+              {vm.orders.map((o) => (
+                <div key={o.id} className="flex flex-col gap-1.5 px-5 py-3 border-t border-row-divider text-sm">
+                  <div className="flex justify-between items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-2 font-bold text-xs">
+                        {o.time.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" })} ·{" "}
+                        {formatTime(o.time)}
+                      </span>
+                      <span className="bg-primary-tint text-primary text-xs font-extrabold px-2 py-0.5 rounded-full">
+                        {POINT_LABELS[o.point]}
+                      </span>
+                    </div>
+                    <span className="font-extrabold text-heading">{formatSom(o.amount)}</span>
+                  </div>
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="min-w-0">
+                      <div className="font-extrabold text-primary font-heading text-xs">{o.plate}</div>
+                      <div className="text-body font-semibold text-xs">{o.driverName}</div>
+                    </div>
+                    {o.note && <div className="text-muted-2 text-xs font-semibold text-right">{o.note}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
         )}
 
         {/* Vehicles — desktop table */}
