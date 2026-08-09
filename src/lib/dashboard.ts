@@ -7,6 +7,17 @@ export type Period = "DAY" | "WEEK" | "MONTH";
 
 export type ExpenseBreakdownItem = { category: string; amount: number; pct: number };
 
+export type PointBreakdownRow = {
+  point: "FARGONA" | "QUVA";
+  tripCount: number;
+  tripIncome: number;
+  orderCount: number;
+  orderIncome: number;
+  expenseCount: number;
+  expenseTotal: number;
+  expenseByCategory: { category: string; amount: number }[];
+};
+
 export type VehicleProfitRow = {
   vehicleId: string;
   plate: string;
@@ -35,6 +46,7 @@ export type OwnerDashboardVM = {
   chart: { label: string; income: number; expense: number }[];
   expenseBreakdown: ExpenseBreakdownItem[];
   vehicles: VehicleProfitRow[];
+  pointBreakdown: PointBreakdownRow[];
 };
 
 function startOfDay(d: Date) {
@@ -190,6 +202,7 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
     rentalsFlat,
     expensesFlat,
     dailyChart,
+    staffExpensesFlat,
   ] = await Promise.all([
     computeTotals(from, to),
     computeTotals(prev.from, prev.to),
@@ -209,7 +222,7 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
     prisma.driver.findMany({ include: { user: true } }),
     prisma.trip.findMany({
       where: { tripDate: { gte: from, lte: to } },
-      select: { vehicleId: true, revenue: true, kind: true },
+      select: { vehicleId: true, revenue: true, kind: true, point: true },
     }),
     prisma.dailyPlan.findMany({
       where: { planDate: { gte: from, lte: to } },
@@ -223,6 +236,13 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
       select: { vehicleId: true, amount: true },
     }),
     computeDailyChart(chartFrom, chartTo, 7),
+    // Point-scoped daily expenses (Стоянка/Обед/...) entered by dispatchers —
+    // separate from Expense above, which is per-vehicle and not tied to a
+    // point since the fleet is shared between both.
+    prisma.staffExpense.findMany({
+      where: { expenseDate: { gte: from, lte: to }, point: { in: ["FARGONA", "QUVA"] } },
+      select: { point: true, category: true, amount: true },
+    }),
   ]);
 
   const driverByVehicleId = new Map(driversFlat.filter((d) => d.vehicleId).map((d) => [d.vehicleId as string, d]));
@@ -335,6 +355,38 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
     expense: d.expense,
   }));
 
+  const staffExpenseCategoryLabels: Record<string, string> = {
+    STOYANKA: "Стоянка",
+    OZIQ_OVQAT: "Озиқ-овқат",
+    OBED: "Обед",
+    BOSHQA: "Бошқа",
+  };
+  const pointBreakdown: PointBreakdownRow[] = (["FARGONA", "QUVA"] as const).map((point) => {
+    const pointTrips = tripsFlat.filter((t) => t.point === point);
+    const trips = pointTrips.filter((t) => t.kind === "TRIP");
+    const orders = pointTrips.filter((t) => t.kind === "ORDER");
+    const pointExpenses = staffExpensesFlat.filter((e) => e.point === point);
+
+    const byCategory = new Map<string, number>();
+    for (const e of pointExpenses) {
+      const label = staffExpenseCategoryLabels[e.category] ?? e.category;
+      byCategory.set(label, (byCategory.get(label) ?? 0) + Number(e.amount));
+    }
+
+    return {
+      point,
+      tripCount: trips.length,
+      tripIncome: trips.reduce((s, t) => s + Number(t.revenue), 0),
+      orderCount: orders.length,
+      orderIncome: orders.reduce((s, t) => s + Number(t.revenue), 0),
+      expenseCount: pointExpenses.length,
+      expenseTotal: pointExpenses.reduce((s, e) => s + Number(e.amount), 0),
+      expenseByCategory: Array.from(byCategory.entries())
+        .map(([category, amount]) => ({ category, amount }))
+        .sort((a, b) => b.amount - a.amount),
+    };
+  });
+
   return {
     period,
     periodLabel: uzMonthName(now),
@@ -348,6 +400,7 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
     chart: chartWithTotals,
     expenseBreakdown,
     vehicles: vehicleRows,
+    pointBreakdown,
   };
 }
 

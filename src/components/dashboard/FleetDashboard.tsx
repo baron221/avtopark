@@ -10,6 +10,7 @@ import { formatMillions, formatSom } from "@/lib/format";
 import { logoutAction } from "@/app/actions";
 
 const CATEGORY_COLORS = ["#4F46E5", "#FFB84D", "#1B9E6B", "#D9534F", "#C9CBE3", "#8A8CA0", "#6B6D82"];
+const POINT_LABELS: Record<string, string> = { FARGONA: "Фарғона", QUVA: "Қува" };
 
 export function FleetDashboard({
   vm,
@@ -182,6 +183,62 @@ export function FleetDashboard({
             )}
           </Card>
         </div>
+
+        {/* Point breakdown */}
+        {vm.pointBreakdown.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {vm.pointBreakdown.map((p) => {
+              const totalIncome = p.tripIncome + p.orderIncome;
+              return (
+                <Card key={p.point} className="p-6 flex flex-col gap-3.5">
+                  <div className="font-heading font-bold text-base text-heading">
+                    {POINT_LABELS[p.point]} пункти · {vm.periodLabel}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-page rounded-xl p-3.5">
+                      <div className="text-[11px] text-muted-2 font-bold uppercase">Рейс тушуми</div>
+                      <div className="font-heading font-extrabold text-lg text-success">
+                        {formatSom(p.tripIncome)}
+                      </div>
+                      <div className="text-xs text-muted-2 font-semibold">{p.tripCount} та рейс</div>
+                    </div>
+                    <div className="bg-page rounded-xl p-3.5">
+                      <div className="text-[11px] text-muted-2 font-bold uppercase">Заказ тушуми</div>
+                      <div className="font-heading font-extrabold text-lg text-success">
+                        {formatSom(p.orderIncome)}
+                      </div>
+                      <div className="text-xs text-muted-2 font-semibold">{p.orderCount} та заказ</div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center text-[13px] font-extrabold pt-1">
+                    <span className="text-heading">Жами тушум</span>
+                    <span className="text-success">{formatSom(totalIncome)}</span>
+                  </div>
+
+                  <div className="pt-3 border-t border-row-divider flex flex-col gap-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[13px] font-extrabold text-heading">
+                        Чиқим · {p.expenseCount} та ёзув
+                      </span>
+                      <span className="text-[13px] font-extrabold text-danger">−{formatSom(p.expenseTotal)}</span>
+                    </div>
+                    {p.expenseByCategory.map((c) => (
+                      <div key={c.category} className="flex justify-between items-center pl-2">
+                        <span className="text-xs font-semibold text-body">{c.category}</span>
+                        <span className="text-xs font-bold text-muted-2">{formatSom(c.amount)}</span>
+                      </div>
+                    ))}
+                    {p.expenseByCategory.length === 0 && (
+                      <p className="text-xs text-muted-2">Бу даврда харажат ёзилмаган</p>
+                    )}
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
 
         {/* Vehicles — desktop table */}
         <Card className="overflow-hidden hidden lg:block">
