@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { ROLE_LABELS } from "@/components/ui/RoleBadge";
 import { uzMonthName } from "@/lib/format";
 import { monthStart, monthEnd } from "@/lib/month";
-import { computeDriverMonthlyPay } from "@/lib/driverPay";
+import { getDailyPayBreakdown, type DailyPayRow } from "@/lib/driverPay";
 import { computeNetPay } from "@/lib/payroll";
 
 const MONTH_RE = /^\d{4}-\d{2}$/;
@@ -23,13 +23,17 @@ export async function GET(request: Request) {
       ? new Date(Date.UTC(Number(monthParam.slice(0, 4)), Number(monthParam.slice(5, 7)) - 1, 1))
       : monthStart(new Date());
   const isCurrentMonth = month.getTime() === monthStart(new Date()).getTime();
+  const from = month;
+  const to = monthEnd(month);
 
-  const [users, salaries, advances] = await Promise.all([
+  const [users, salaries, advances, fines] = await Promise.all([
     prisma.user.findMany({ where: { role: { not: "OWNER" }, isActive: true }, orderBy: [{ role: "asc" }, { fullName: "asc" }] }),
     prisma.salary.findMany({ where: { month } }),
-    prisma.advance.findMany({ where: { month } }),
+    prisma.advance.findMany({ where: { month }, orderBy: { givenDate: "asc" } }),
+    prisma.fine.findMany({ where: { fineDate: { gte: from, lte: to } }, orderBy: { fineDate: "asc" } }),
   ]);
 
+  const usersById = new Map(users.map((u) => [u.id, u]));
   const salaryByUser = new Map(salaries.map((s) => [s.userId, s]));
   const advanceByUser = new Map<string, number>();
   for (const a of advances) {
@@ -38,15 +42,19 @@ export async function GET(request: Request) {
 
   // A driver's base salary is computed from daily trip revenue (see
   // driverPay.ts) — computed live so the export is accurate even before
-  // "Ведомостни яратиш" has been run this month.
+  // "Ведомостни яратиш" has been run this month; the per-day breakdown also
+  // feeds the "Кунлик тафсилот" sheet below.
   const driverRecords = await prisma.driver.findMany({
     where: { userId: { in: users.filter((u) => u.role === "DRIVER").map((u) => u.id) } },
   });
-  const driverPayByUserId = new Map<string, bigint>();
+  const dailyPayByUserId = new Map<string, DailyPayRow[]>();
   await Promise.all(
     driverRecords.map(async (d) => {
-      driverPayByUserId.set(d.userId, (await computeDriverMonthlyPay(d.id, month, monthEnd(month))).total);
+      dailyPayByUserId.set(d.userId, await getDailyPayBreakdown(d.id, from, to));
     })
+  );
+  const driverPayByUserId = new Map<string, bigint>(
+    [...dailyPayByUserId].map(([userId, rows]) => [userId, BigInt(rows.reduce((s, r) => s + r.pay, 0))])
   );
 
   const workbook = new ExcelJS.Workbook();
@@ -130,6 +138,66 @@ export async function GET(request: Request) {
   for (const key of ["salary", "advance", "fines", "bonus", "net"]) {
     sheet.getColumn(key).numFmt = "#,##0";
   }
+
+  const dailySheet = workbook.addWorksheet("Кунлик тафсилот");
+  dailySheet.columns = [
+    { header: "Ходим", key: "name", width: 26 },
+    { header: "Сана", key: "date", width: 14 },
+    { header: "Кунлик тушум", key: "revenue", width: 16 },
+    { header: "Ажратилган пул", key: "pay", width: 16 },
+  ];
+  dailySheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+  dailySheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4F46E5" } };
+  for (const u of users) {
+    for (const r of dailyPayByUserId.get(u.id) ?? []) {
+      dailySheet.addRow({ name: u.fullName, date: r.date, revenue: r.revenue, pay: r.pay });
+    }
+  }
+  for (const key of ["revenue", "pay"]) {
+    dailySheet.getColumn(key).numFmt = "#,##0";
+  }
+
+  const advancesSheet = workbook.addWorksheet("Аванслар");
+  advancesSheet.columns = [
+    { header: "Ходим", key: "name", width: 26 },
+    { header: "Сана", key: "date", width: 14 },
+    { header: "Сумма", key: "amount", width: 16 },
+  ];
+  advancesSheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+  advancesSheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4F46E5" } };
+  for (const a of advances) {
+    const u = usersById.get(a.userId);
+    if (!u) continue;
+    advancesSheet.addRow({
+      name: u.fullName,
+      date: a.givenDate.toISOString().slice(0, 10),
+      amount: Number(a.amount),
+    });
+  }
+  advancesSheet.getColumn("amount").numFmt = "#,##0";
+
+  const finesSheet = workbook.addWorksheet("Жарималар");
+  finesSheet.columns = [
+    { header: "Ходим", key: "name", width: 26 },
+    { header: "Сана", key: "date", width: 14 },
+    { header: "Сабаб", key: "reason", width: 32 },
+    { header: "Сумма", key: "amount", width: 16 },
+    { header: "Ушланди", key: "deducted", width: 12 },
+  ];
+  finesSheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+  finesSheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4F46E5" } };
+  for (const f of fines) {
+    const u = usersById.get(f.userId);
+    if (!u) continue;
+    finesSheet.addRow({
+      name: u.fullName,
+      date: f.fineDate.toISOString().slice(0, 10),
+      reason: f.reason,
+      amount: Number(f.amount),
+      deducted: f.deducted ? "Ҳа" : "Йўқ",
+    });
+  }
+  finesSheet.getColumn("amount").numFmt = "#,##0";
 
   const buffer = await workbook.xlsx.writeBuffer();
 

@@ -15,6 +15,7 @@ import { hasModuleAccess } from "@/lib/access";
 import { monthStart, monthEnd } from "@/lib/month";
 import { computeDriverMonthlyPay } from "@/lib/driverPay";
 import { computeNetPay } from "@/lib/payroll";
+import { PayrollRowLink } from "./PayrollRowLink";
 import { generatePayrollAction, approvePayrollAction, setBonusAction, revertSalaryToDraftAction } from "./actions";
 
 const MONTH_RE = /^\d{4}-\d{2}$/;
@@ -186,9 +187,10 @@ export default async function PayrollPage({
           const pay = payByUserId.get(u.id)!;
           const editable = isCurrentMonth && (!salary || salary.status === "DRAFT");
           return (
-            <div
+            <PayrollRowLink
               key={u.id}
-              className="grid grid-cols-2 lg:grid-cols-[1.3fr_0.9fr_0.85fr_0.8fr_0.75fr_0.9fr_1fr] gap-y-1.5 gap-x-2 px-6 py-3.5 border-t border-row-divider items-center text-sm"
+              href={`/accountant/payroll/${u.id}?month=${monthStr}`}
+              className="grid grid-cols-2 lg:grid-cols-[1.3fr_0.9fr_0.85fr_0.8fr_0.75fr_0.9fr_1fr] gap-y-1.5 gap-x-2 px-6 py-3.5 border-t border-row-divider items-center text-sm hover:bg-page transition-colors"
             >
               <div className="font-extrabold text-heading col-span-2 lg:col-span-1">{u.fullName}</div>
               <div>
@@ -238,7 +240,7 @@ export default async function PayrollPage({
                   </form>
                 )}
               </div>
-            </div>
+            </PayrollRowLink>
           );
         })}
         {users.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Ходим топилмади</p>}
