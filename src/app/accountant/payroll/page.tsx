@@ -4,9 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { KpiCard } from "@/components/ui/KpiCard";
-import { RoleBadge } from "@/components/ui/RoleBadge";
 import { Pagination } from "@/components/ui/Pagination";
-import { MoneyInput } from "@/components/ui/MoneyInput";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { DEFAULT_PAGE_SIZE, parsePage, paginationSkip, totalPages } from "@/lib/paginate";
 import { formatSom, formatMillions, uzMonthName } from "@/lib/format";
@@ -15,8 +13,8 @@ import { hasModuleAccess } from "@/lib/access";
 import { monthStart, monthEnd } from "@/lib/month";
 import { computeDriverMonthlyPay } from "@/lib/driverPay";
 import { computeNetPay } from "@/lib/payroll";
-import { PayrollRowLink } from "./PayrollRowLink";
-import { generatePayrollAction, approvePayrollAction, setBonusAction, revertSalaryToDraftAction } from "./actions";
+import { PayrollRow } from "./PayrollRow";
+import { generatePayrollAction, approvePayrollAction } from "./actions";
 
 const MONTH_RE = /^\d{4}-\d{2}$/;
 
@@ -51,21 +49,29 @@ export default async function PayrollPage({
   // happened yet); the full completed month when looking at the past.
   const vmReferenceDate = isCurrentMonth ? now : monthEnd(month);
 
-  const [allUsers, salaries, advances, fleetVM] = await Promise.all([
+  const [allUsers, salaries, advances, fines, fleetVM] = await Promise.all([
     prisma.user.findMany({ where: { role: { not: "OWNER" }, isActive: true }, orderBy: [{ role: "asc" }, { fullName: "asc" }] }),
     prisma.salary.findMany({ where: { month } }),
     prisma.advance.findMany({ where: { month } }),
+    prisma.fine.findMany({ where: { deducted: true, fineDate: { gte: month, lte: monthEnd(month) } } }),
     getOwnerDashboardVM("MONTH", vmReferenceDate),
   ]);
 
   const skip = paginationSkip(page);
   const users = allUsers.slice(skip, skip + DEFAULT_PAGE_SIZE);
   const pages = totalPages(allUsers.length);
+  const todayStr = new Date().toISOString().slice(0, 10);
 
   const salaryByUser = new Map(salaries.map((s) => [s.userId, s]));
   const advanceByUser = new Map<string, number>();
   for (const a of advances) {
     advanceByUser.set(a.userId, (advanceByUser.get(a.userId) ?? 0) + Number(a.amount));
+  }
+  // Fines, like advances, are always live-queried from their own table
+  // rather than a possibly-not-yet-generated Salary row's frozen snapshot.
+  const finesByUser = new Map<string, number>();
+  for (const f of fines) {
+    finesByUser.set(f.userId, (finesByUser.get(f.userId) ?? 0) + Number(f.amount));
   }
 
   // A driver's base salary is computed from their daily trip revenue (see
@@ -83,36 +89,51 @@ export default async function PayrollPage({
     })
   );
 
-  // A driver's base salary keeps accruing trip-by-trip all month, so — while
-  // the month is still ongoing — it's always shown live rather than frozen
-  // at whatever "Тасдиқлаш" happened to lock in; only advance/fine/bonus
-  // (accountant-entered, not auto-computed) stay frozen once approved.
-  // netPay follows the same rule since it's derived from baseSalary.
+  // A driver's base salary keeps accruing trip-by-trip all month, with no
+  // other source of truth, so it's always live. A non-driver's flat rate
+  // only changes via an explicit edit (admin panel or "Таҳрирлаш" below),
+  // and every edit action here re-syncs the Salary row's baseSalary to
+  // match — so the settled Salary figure (once one exists) is trusted over
+  // User.baseSalary, which isn't reliably kept in sync on its own and can
+  // otherwise show a stale or blank rate. Advances/fines are always live
+  // (their own always-current tables) once the month is still ongoing;
+  // only Бонус has no live source, so it reads the stored row or else 0.
+  // A past month keeps its fully settled, frozen snapshot as the record.
   function effectivePay(u: (typeof allUsers)[number]) {
     const salary = salaryByUser.get(u.id);
     const advance = advanceByUser.get(u.id) ?? 0;
-    const isDriverLive = u.role === "DRIVER" && isCurrentMonth;
-    if (isDriverLive) {
-      const baseSalary = driverPayByUserId.get(u.id)?.total ?? BigInt(0);
+    const fines = finesByUser.get(u.id) ?? 0;
+    const bonus = salary?.bonus ?? BigInt(0);
+
+    const baseSalary =
+      u.role === "DRIVER" && isCurrentMonth
+        ? (driverPayByUserId.get(u.id)?.total ?? BigInt(0))
+        : (salary?.baseSalary ?? driverPayByUserId.get(u.id)?.total ?? u.baseSalary ?? BigInt(0));
+
+    if (isCurrentMonth) {
       const netPay = computeNetPay({
         baseSalary,
-        bonus: salary?.bonus ?? BigInt(0),
+        bonus,
         advancesTotal: BigInt(advance),
-        finesTotal: salary?.finesTotal ?? BigInt(0),
+        finesTotal: BigInt(fines),
       });
-      return { baseSalary, netPay, netPayKnown: true };
+      return { baseSalary, bonus, fines, netPay, netPayKnown: true };
     }
-    const fallback = driverPayByUserId.get(u.id)?.total ?? u.baseSalary ?? BigInt(0);
-    const baseSalary = salary?.baseSalary ?? fallback;
-    return { baseSalary, netPay: salary?.netPay ?? BigInt(0), netPayKnown: !!salary };
+    return {
+      baseSalary,
+      bonus,
+      fines: Number(salary?.finesTotal ?? 0),
+      netPay: salary?.netPay ?? BigInt(0),
+      netPayKnown: !!salary,
+    };
   }
 
   const payByUserId = new Map(allUsers.map((u) => [u.id, effectivePay(u)]));
 
   const salaryFund = allUsers.reduce((s, u) => s + Number(payByUserId.get(u.id)!.baseSalary), 0);
   const advancesTotal = advances.reduce((s, a) => s + Number(a.amount), 0);
-  const finesTotal = salaries.reduce((s, sal) => s + Number(sal.finesTotal), 0);
-  const bonusTotal = salaries.reduce((s, sal) => s + Number(sal.bonus), 0);
+  const finesTotal = allUsers.reduce((s, u) => s + Number(payByUserId.get(u.id)!.fines), 0);
+  const bonusTotal = allUsers.reduce((s, u) => s + Number(payByUserId.get(u.id)!.bonus), 0);
   const netPayTotal = allUsers.reduce((s, u) => s + Number(payByUserId.get(u.id)!.netPay), 0);
   // Advances are a pre-payment of the very same base salary (already inside
   // salaryFund) that gets clawed back at settlement, so it nets out —
@@ -182,65 +203,24 @@ export default async function PayrollPage({
           <div>Қўлга тегади</div>
         </div>
         {users.map((u) => {
-          const salary = salaryByUser.get(u.id);
           const advance = advanceByUser.get(u.id) ?? 0;
           const pay = payByUserId.get(u.id)!;
-          const editable = isCurrentMonth && (!salary || salary.status === "DRAFT");
           return (
-            <PayrollRowLink
+            <PayrollRow
               key={u.id}
-              href={`/accountant/payroll/${u.id}?month=${monthStr}`}
-              className="grid grid-cols-2 lg:grid-cols-[1.3fr_0.9fr_0.85fr_0.8fr_0.75fr_0.9fr_1fr] gap-y-1.5 gap-x-2 px-6 py-3.5 border-t border-row-divider items-center text-sm hover:bg-page transition-colors"
-            >
-              <div className="font-extrabold text-heading col-span-2 lg:col-span-1">{u.fullName}</div>
-              <div>
-                <RoleBadge role={u.role} point={u.point} />
-              </div>
-              <div className="font-bold text-heading">
-                {formatSom(Number(pay.baseSalary))}
-                {u.role === "DRIVER" && (
-                  <span className="block text-[10px] text-muted-2 font-semibold">
-                    {driverPayByUserId.get(u.id)?.dayCount ?? 0} кун ишлаган
-                  </span>
-                )}
-              </div>
-              <div className="font-extrabold text-primary">{advance > 0 ? `−${formatSom(advance)}` : "0"}</div>
-              <div className="font-extrabold text-danger">
-                {salary && Number(salary.finesTotal) > 0 ? `−${formatSom(Number(salary.finesTotal))}` : "0"}
-              </div>
-              <div>
-                {salary && editable ? (
-                  <form action={setBonusAction} className="flex items-center gap-1">
-                    <input type="hidden" name="salaryId" value={salary.id} />
-                    <MoneyInput
-                      name="bonus"
-                      defaultValue={Number(salary.bonus)}
-                      className="w-20 bg-page border border-border rounded-md px-2 py-1 text-xs font-bold text-heading outline-none focus:border-primary"
-                    />
-                    <button type="submit" className="text-success text-xs font-extrabold">
-                      ✓
-                    </button>
-                  </form>
-                ) : (
-                  <span className="font-bold text-success">+{formatSom(Number(salary?.bonus ?? 0))}</span>
-                )}
-              </div>
-              <div className="font-heading font-extrabold text-heading flex items-center gap-1.5">
-                {pay.netPayKnown ? formatSom(Number(pay.netPay)) : "—"}
-                {salary && salary.status === "APPROVED" && isCurrentMonth && (
-                  <form action={revertSalaryToDraftAction}>
-                    <input type="hidden" name="salaryId" value={salary.id} />
-                    <button
-                      type="submit"
-                      title="Қораламага қайтариш (янги жарима/аванс қўшилган бўлса)"
-                      className="text-muted-2 hover:text-primary text-xs font-bold"
-                    >
-                      ↩
-                    </button>
-                  </form>
-                )}
-              </div>
-            </PayrollRowLink>
+              user={{ id: u.id, fullName: u.fullName, role: u.role, point: u.point }}
+              baseSalary={Number(pay.baseSalary)}
+              bonus={Number(pay.bonus)}
+              fines={pay.fines}
+              advance={advance}
+              netPay={Number(pay.netPay)}
+              netPayKnown={pay.netPayKnown}
+              dayCount={driverPayByUserId.get(u.id)?.dayCount}
+              monthStr={monthStr}
+              isCurrentMonth={isCurrentMonth}
+              detailHref={`/accountant/payroll/${u.id}?month=${monthStr}`}
+              today={todayStr}
+            />
           );
         })}
         {users.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Ходим топилмади</p>}

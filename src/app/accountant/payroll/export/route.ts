@@ -39,6 +39,10 @@ export async function GET(request: Request) {
   for (const a of advances) {
     advanceByUser.set(a.userId, (advanceByUser.get(a.userId) ?? 0) + Number(a.amount));
   }
+  const finesByUser = new Map<string, number>();
+  for (const f of fines) {
+    if (f.deducted) finesByUser.set(f.userId, (finesByUser.get(f.userId) ?? 0) + Number(f.amount));
+  }
 
   // A driver's base salary is computed from daily trip revenue (see
   // driverPay.ts) — computed live so the export is accurate even before
@@ -85,23 +89,25 @@ export async function GET(request: Request) {
   for (const u of users) {
     const salary = salaryByUser.get(u.id);
     const advanceAmount = advanceByUser.get(u.id) ?? 0;
-    // A driver's base salary keeps accruing trip-by-trip all month, so while
-    // the month is still ongoing it's always the live daily-tariff total —
-    // never the stale figure frozen at whatever it was when "Тасдиқлаш" was
-    // clicked. Past months keep the stored (settled) snapshot as-is.
+    // A driver's pay keeps accruing trip-by-trip with no other source of
+    // truth, so it's always live. A non-driver's flat rate only changes via
+    // an explicit edit, and every edit re-syncs the Salary row, so the
+    // settled figure is trusted over User.baseSalary (not reliably kept in
+    // sync on its own). Advance/fine totals are always live either way —
+    // their own always-current tables, no settling/staleness risk.
     const isDriverLive = u.role === "DRIVER" && isCurrentMonth;
     const salaryAmount = isDriverLive
       ? Number(driverPayByUserId.get(u.id) ?? 0)
       : Number(salary?.baseSalary ?? driverPayByUserId.get(u.id) ?? u.baseSalary ?? BigInt(0));
-    const finesAmount = Number(salary?.finesTotal ?? 0);
+    const finesAmount = isCurrentMonth ? (finesByUser.get(u.id) ?? 0) : Number(salary?.finesTotal ?? 0);
     const bonusAmount = Number(salary?.bonus ?? 0);
-    const netAmount = isDriverLive
+    const netAmount = isCurrentMonth
       ? Number(
           computeNetPay({
             baseSalary: salaryAmount,
-            bonus: salary?.bonus ?? BigInt(0),
+            bonus: bonusAmount,
             advancesTotal: advanceAmount,
-            finesTotal: salary?.finesTotal ?? BigInt(0),
+            finesTotal: finesAmount,
           })
         )
       : salary
@@ -121,7 +127,7 @@ export async function GET(request: Request) {
       advance: advanceAmount,
       fines: finesAmount,
       bonus: bonusAmount,
-      net: salary || isDriverLive ? netAmount : null,
+      net: salary || isCurrentMonth ? netAmount : null,
     });
   }
 

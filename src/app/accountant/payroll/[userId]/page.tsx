@@ -53,6 +53,10 @@ export default async function PayrollDetailPage({
 
   const dailyPay = user.driver ? await getDailyPayBreakdown(user.driver.id, from, to) : [];
 
+  // A driver's pay is always recomputed from their actual trips (there's no
+  // other ground truth). A non-driver's flat rate only changes via an
+  // explicit edit (which re-syncs the Salary row), so the settled figure is
+  // trusted over User.baseSalary — not reliably kept in sync on its own.
   const baseSalary = user.driver
     ? BigInt(dailyPay.reduce((s, r) => s + r.pay, 0))
     : (salary?.baseSalary ?? user.baseSalary ?? BigInt(0));
