@@ -6,6 +6,7 @@ import { DatePicker } from "@/components/ui/DatePicker";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { WeeklyBarChart } from "@/components/charts/WeeklyBarChart";
 import { OwnerPayoutForm } from "@/components/dashboard/OwnerPayoutForm";
+import { CashHistorySection } from "@/components/dashboard/CashHistorySection";
 import type { OwnerDashboardVM, Period } from "@/lib/dashboard";
 import type { PointCashSummary, OwnerPayoutState } from "@/lib/ownerPayout";
 import { formatMillions, formatSom, formatTime } from "@/lib/format";
@@ -296,6 +297,10 @@ export function FleetDashboard({
                               <OwnerPayoutForm point={p.point} balance={cash.balance} action={recordPayoutAction} />
                             )}
                           </div>
+                          <CashHistorySection
+                            confirmedHistory={cash.confirmedHistory}
+                            payoutHistory={cash.payoutHistory}
+                          />
                         </div>
                       );
                     })()}

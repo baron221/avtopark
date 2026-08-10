@@ -8,13 +8,36 @@ export type PendingHandoverRow = {
   dispatcherName: string;
 };
 
+export type ConfirmedHandoverRow = {
+  id: string;
+  handoverDate: Date;
+  amount: number;
+  dispatcherName: string;
+  accountantName: string;
+};
+
+export type OwnerPayoutRow = {
+  id: string;
+  payoutDate: Date;
+  amount: number;
+  note: string | null;
+  enteredByName: string;
+};
+
 export type PointCashSummary = {
   point: Point;
   pending: PendingHandoverRow[];
   balance: number;
+  confirmedHistory: ConfirmedHandoverRow[];
+  payoutHistory: OwnerPayoutRow[];
 };
 
 export type OwnerPayoutState = { error: string };
+
+// Both history lists are capped — this is a running log that only grows,
+// and the point card isn't the place for a full unbounded ledger. Most
+// recent first.
+const HISTORY_LIMIT = 15;
 
 /**
  * Deliberately not scoped to a period/date — unlike the report page's own
@@ -23,11 +46,20 @@ export type OwnerPayoutState = { error: string };
  * date picker must not change it.
  */
 export async function getAccountantCashSummary(): Promise<PointCashSummary[]> {
-  const [pending, confirmedAgg, payoutAgg] = await Promise.all([
+  const [pending, confirmed, payouts, confirmedAgg, payoutAgg] = await Promise.all([
     prisma.cashHandover.findMany({
       where: { accountantConfirmedAt: null },
       orderBy: { handoverDate: "asc" },
       include: { dispatcherConfirmedByUser: true },
+    }),
+    prisma.cashHandover.findMany({
+      where: { accountantConfirmedAt: { not: null } },
+      orderBy: { handoverDate: "desc" },
+      include: { dispatcherConfirmedByUser: true, accountantConfirmedByUser: true },
+    }),
+    prisma.ownerPayout.findMany({
+      orderBy: { payoutDate: "desc" },
+      include: { enteredByUser: true },
     }),
     prisma.cashHandover.groupBy({
       by: ["point"],
@@ -51,6 +83,26 @@ export async function getAccountantCashSummary(): Promise<PointCashSummary[]> {
         dispatcherName: h.dispatcherConfirmedByUser.fullName,
       })),
     balance: (confirmedByPoint.get(point) ?? 0) - (paidByPoint.get(point) ?? 0),
+    confirmedHistory: confirmed
+      .filter((h) => h.point === point)
+      .slice(0, HISTORY_LIMIT)
+      .map((h) => ({
+        id: h.id,
+        handoverDate: h.handoverDate,
+        amount: Number(h.amount),
+        dispatcherName: h.dispatcherConfirmedByUser.fullName,
+        accountantName: h.accountantConfirmedByUser?.fullName ?? "—",
+      })),
+    payoutHistory: payouts
+      .filter((p) => p.point === point)
+      .slice(0, HISTORY_LIMIT)
+      .map((p) => ({
+        id: p.id,
+        payoutDate: p.payoutDate,
+        amount: Number(p.amount),
+        note: p.note,
+        enteredByName: p.enteredByUser.fullName,
+      })),
   }));
 }
 
