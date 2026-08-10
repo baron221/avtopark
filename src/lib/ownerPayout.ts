@@ -74,10 +74,10 @@ async function getLatestOpeningBalance(): Promise<{ amount: number; setDate: Dat
  * FuelLog records an Expense the moment fuel is taken on credit from the
  * station, not when cash actually changes hands — that only happens later
  * via StationPayment, so counting both would double-subtract the same
- * fuel cost. A driver's advance plus their eventually-approved net pay
- * (which already nets the advance back out — see computeNetPay) together
- * equal the real cash paid to that employee for the month, so summing
- * both here doesn't double-count either.
+ * fuel cost. A driver's advance plus their eventually-paid net pay (which
+ * already nets the advance back out — see computeNetPay) together equal
+ * the real cash paid to that employee for the month, so summing both here
+ * doesn't double-count either.
  */
 async function computeCashBalance(opening?: { amount: number; setDate: Date } | null): Promise<number> {
   const openingBalance = opening === undefined ? await getLatestOpeningBalance() : opening;
@@ -95,7 +95,11 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
       prisma.lunch.aggregate({ _sum: { amount: true }, where: { lunchDate: { gte: since } } }),
       prisma.staffExpense.aggregate({ _sum: { amount: true }, where: { expenseDate: { gte: since } } }),
       prisma.advance.aggregate({ _sum: { amount: true }, where: { givenDate: { gte: since } } }),
-      prisma.salary.aggregate({ _sum: { netPay: true }, where: { status: "APPROVED", month: { gte: since } } }),
+      // Filtered on paidAt (the exact moment "Ойлик берилди" was clicked per
+      // employee), not month (always the 1st of the calendar month) — the
+      // latter let this-month payroll paid out after the opening balance was
+      // set (i.e. basically always) go uncounted, since month-start < since.
+      prisma.salary.aggregate({ _sum: { netPay: true }, where: { status: "PAID", paidAt: { gte: since } } }),
       // StationPayment has no per-installment date, only paidAt (set once
       // the bill is FULLY paid) — a bill partially paid after `since` but
       // not yet fully settled won't be counted until it is. No better

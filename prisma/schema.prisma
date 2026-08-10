@@ -140,6 +140,7 @@ model User {
   staffExpensesEntered StaffExpense[] @relation("StaffExpenseEnteredBy")
   salaries         Salary[]         @relation("SalaryUser")
   salariesApproved Salary[]         @relation("SalaryApprovedBy")
+  salariesPaid     Salary[]         @relation("SalaryPaidBy")
   planPaymentsReceived PlanPayment[] @relation("PlanPaymentReceivedBy")
   advances         Advance[]        @relation("AdvanceUser")
   advancesEntered  Advance[]        @relation("AdvanceEnteredBy")
@@ -538,9 +539,12 @@ model Salary {
   netPay         BigInt       @map("net_pay")
   status      SalaryStatus @default(DRAFT)
   approvedBy  String?      @map("approved_by")
+  paidAt      DateTime?    @map("paid_at")
+  paidBy      String?      @map("paid_by")
 
   user User @relation("SalaryUser", fields: [userId], references: [id])
   approvedByUser User? @relation("SalaryApprovedBy", fields: [approvedBy], references: [id])
+  paidByUser User? @relation("SalaryPaidBy", fields: [paidBy], references: [id])
 
   @@unique([userId, month])
   @@map("salaries")

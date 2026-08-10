@@ -6,7 +6,7 @@ import { MoneyInput } from "@/components/ui/MoneyInput";
 import { RoleBadge } from "@/components/ui/RoleBadge";
 import { formatSom } from "@/lib/format";
 import { setMaoshAction, setBonusAction, addAdvanceAction, addFineAction } from "./actions";
-import type { Point, Role } from "@prisma/client";
+import type { Point, Role, SalaryStatus } from "@prisma/client";
 
 const GRID_COLS = "grid-cols-2 lg:grid-cols-[1.3fr_0.9fr_0.85fr_0.8fr_0.75fr_0.9fr_1fr]";
 
@@ -23,6 +23,9 @@ export function PayrollRow({
   isCurrentMonth,
   detailHref,
   today,
+  status,
+  paidAt,
+  markPaidAction,
 }: {
   user: { id: string; fullName: string; role: Role; point: Point | null };
   baseSalary: number;
@@ -36,6 +39,9 @@ export function PayrollRow({
   isCurrentMonth: boolean;
   detailHref: string;
   today: string;
+  status: SalaryStatus;
+  paidAt: Date | null;
+  markPaidAction: (formData: FormData) => Promise<void>;
 }) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
@@ -66,22 +72,45 @@ export function PayrollRow({
         <div className="font-bold text-success">+{formatSom(bonus)}</div>
         <div className="font-heading font-extrabold text-heading col-span-2 lg:col-span-1 flex items-center justify-between gap-2">
           <span className="whitespace-nowrap">{netPayKnown ? formatSom(netPay) : "—"}</span>
-          {isCurrentMonth && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setExpanded((v) => !v);
-              }}
-              className="bg-primary-tint text-primary rounded-md px-2.5 py-1 text-xs font-extrabold whitespace-nowrap hover:bg-primary hover:text-white transition-colors"
+          {status === "PAID" ? (
+            <span
+              title={paidAt ? `${paidAt.toLocaleDateString("uz-UZ")} да берилди` : undefined}
+              className="bg-success/10 text-success rounded-md px-2.5 py-1 text-xs font-extrabold whitespace-nowrap"
             >
-              Таҳрирлаш
-            </button>
+              Тўланди ✓
+            </span>
+          ) : (
+            <div className="flex items-center gap-1.5 flex-wrap justify-end">
+              {isCurrentMonth && status === "APPROVED" && (
+                <form action={markPaidAction}>
+                  <input type="hidden" name="userId" value={user.id} />
+                  <input type="hidden" name="month" value={monthStr} />
+                  <button
+                    type="submit"
+                    className="bg-success text-white rounded-md px-2.5 py-1 text-xs font-extrabold whitespace-nowrap hover:bg-success/90 transition-colors"
+                  >
+                    Ойлик берилди
+                  </button>
+                </form>
+              )}
+              {isCurrentMonth && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpanded((v) => !v);
+                  }}
+                  className="bg-primary-tint text-primary rounded-md px-2.5 py-1 text-xs font-extrabold whitespace-nowrap hover:bg-primary hover:text-white transition-colors"
+                >
+                  Таҳрирлаш
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
 
-      {expanded && (
+      {expanded && status !== "PAID" && (
         <div
           className="px-6 py-4 bg-page grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 border-t border-row-divider"
           onClick={(e) => e.stopPropagation()}

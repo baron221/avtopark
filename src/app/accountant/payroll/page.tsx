@@ -14,7 +14,7 @@ import { monthStart, monthEnd } from "@/lib/month";
 import { computeDriverMonthlyPay } from "@/lib/driverPay";
 import { computeNetPay } from "@/lib/payroll";
 import { PayrollRow } from "./PayrollRow";
-import { generatePayrollAction, approvePayrollAction } from "./actions";
+import { generatePayrollAction, approvePayrollAction, markSalaryPaidAction } from "./actions";
 
 const MONTH_RE = /^\d{4}-\d{2}$/;
 
@@ -117,7 +117,7 @@ export default async function PayrollPage({
         advancesTotal: BigInt(advance),
         finesTotal: BigInt(fines),
       });
-      return { baseSalary, bonus, fines, netPay, netPayKnown: true };
+      return { baseSalary, bonus, fines, netPay, netPayKnown: true, status: salary?.status ?? "DRAFT", paidAt: salary?.paidAt ?? null };
     }
     return {
       baseSalary,
@@ -125,6 +125,8 @@ export default async function PayrollPage({
       fines: Number(salary?.finesTotal ?? 0),
       netPay: salary?.netPay ?? BigInt(0),
       netPayKnown: !!salary,
+      status: salary?.status ?? "DRAFT",
+      paidAt: salary?.paidAt ?? null,
     };
   }
 
@@ -220,6 +222,9 @@ export default async function PayrollPage({
               isCurrentMonth={isCurrentMonth}
               detailHref={`/accountant/payroll/${u.id}?month=${monthStr}`}
               today={todayStr}
+              status={pay.status}
+              paidAt={pay.paidAt}
+              markPaidAction={markSalaryPaidAction}
             />
           );
         })}
