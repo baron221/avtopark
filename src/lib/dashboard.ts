@@ -82,6 +82,15 @@ function endOfDay(d: Date) {
   x.setHours(23, 59, 59, 999);
   return x;
 }
+
+// A DAY-period view was showing just "Avgust" everywhere (Чиқим/Тушум card
+// titles etc.) with no indication of which day — the month alone was
+// ambiguous once a specific date, not the whole month, was selected.
+function periodLabel(period: Period, date: Date): string {
+  if (period === "DAY") return `${date.getDate()}-${uzMonthName(date)}`;
+  if (period === "WEEK") return "Сўнгги 7 кун";
+  return uzMonthName(date);
+}
 function addDays(d: Date, days: number) {
   const x = new Date(d);
   x.setDate(x.getDate() + days);
@@ -458,7 +467,7 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
 
   return {
     period,
-    periodLabel: uzMonthName(now),
+    periodLabel: periodLabel(period, now),
     vehicleCount,
     driverCount,
     totalIncome,
