@@ -3,8 +3,10 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { KpiCard } from "@/components/ui/KpiCard";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import { formatSom, formatTime } from "@/lib/format";
 import { monthStart as getMonthStart } from "@/lib/month";
+import { reportPlanHandoverAction } from "./actions";
 
 function startOfDay(d: Date) {
   const x = new Date(d);
@@ -41,7 +43,7 @@ export default async function DriverPage() {
   const today = { from: startOfDay(now), to: endOfDay(now) };
   const monthStart = getMonthStart(now);
 
-  const [todayTrips, todayPlan, monthTrips, monthPlan, salary] = await Promise.all([
+  const [todayTrips, todayPlan, monthTrips, monthPlan, salary, todayPlanHandover] = await Promise.all([
     prisma.trip.findMany({
       where: { driverId: driver.id, tripDate: { gte: today.from, lte: today.to } },
       include: { route: true },
@@ -61,6 +63,9 @@ export default async function DriverPage() {
       where: { driverId: driver.id, planDate: { gte: monthStart } },
     }),
     prisma.salary.findUnique({ where: { userId_month: { userId: session.user.id, month: monthStart } } }),
+    prisma.planHandover.findUnique({
+      where: { driverId_handoverDate: { driverId: driver.id, handoverDate: today.from } },
+    }),
   ]);
 
   const todayTripRevenue = todayTrips.reduce((s, t) => s + Number(t.revenue), 0);
@@ -88,6 +93,44 @@ export default async function DriverPage() {
           hint={todayPlan ? undefined : "Бу машина рейс асосида ишлайди"}
         />
       </div>
+
+      {driver.vehicleId && (
+        <Card className="p-5 flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <div className="font-heading font-bold text-[15px] text-heading">Кунлик план тўлови</div>
+            <div className="text-[13px] text-muted-2 font-semibold">
+              {todayPlanHandover
+                ? `Бугун тўланган: ${formatSom(Number(todayPlanHandover.amount))}`
+                : "Бугун план тўлаган бўлсангиз, суммасини киритинг"}
+            </div>
+          </div>
+          {!todayPlanHandover && (
+            <form action={reportPlanHandoverAction} className="flex items-center gap-2">
+              <MoneyInput
+                name="amount"
+                placeholder="Сумма"
+                className="w-32 bg-page border-2 border-border rounded-xl px-3 py-2 font-bold text-sm text-heading outline-none focus:border-success"
+              />
+              <button
+                type="submit"
+                className="bg-success text-white rounded-[10px] px-4 py-2.5 font-extrabold text-[13px]"
+              >
+                Тўладим ✓
+              </button>
+            </form>
+          )}
+          {todayPlanHandover && !todayPlanHandover.confirmedAt && (
+            <span className="bg-primary-tint text-primary text-xs font-extrabold px-3 py-1.5 rounded-full">
+              Буxгалтер тасдиғини кутмоқда
+            </span>
+          )}
+          {todayPlanHandover?.confirmedAt && (
+            <span className="bg-success/10 text-success text-xs font-extrabold px-3 py-1.5 rounded-full">
+              ✓ Буxгалтер қабул қилди
+            </span>
+          )}
+        </Card>
+      )}
 
       <Card className="overflow-hidden">
         <div className="px-5 py-3.5 font-heading font-bold text-[15px] text-heading">Бугунги рейслар</div>

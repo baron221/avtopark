@@ -147,6 +147,8 @@ model User {
   deletionsPerformed DeletionLog[]  @relation("DeletionLogDeletedBy")
   cashHandoversAsDispatcher CashHandover[] @relation("CashHandoverDispatcher")
   cashHandoversAsAccountant CashHandover[] @relation("CashHandoverAccountant")
+  planHandoversReported PlanHandover[] @relation("PlanHandoverReportedBy")
+  planHandoversConfirmed PlanHandover[] @relation("PlanHandoverConfirmedBy")
 
   @@index([role])
   @@index([point])
@@ -196,6 +198,7 @@ model Vehicle {
   oilChanges      OilChange[]
   assignmentLogs  DriverAssignmentLog[]
   mileages        VehicleMileage[]
+  planHandovers   PlanHandover[]
 
   @@index([point])
   @@index([status])
@@ -259,6 +262,7 @@ model Driver {
   shifts         Shift[]
   fuelLogs       FuelLog[]
   assignmentLogs DriverAssignmentLog[]
+  planHandovers  PlanHandover[]
 
   @@map("drivers")
 }
@@ -600,6 +604,36 @@ model CashHandover {
   @@unique([point, handoverDate])
   @@index([handoverDate])
   @@map("cash_handovers")
+}
+
+// A driver on a fixed daily "plan" (lease-fee) arrangement pays that amount
+// to the company once a day, separate from trip revenue. Unlike CashHandover
+// there's no live source for the amount (it isn't derived from Trip data),
+// so the driver types what they paid themselves; there's also no separate
+// pre-set target — whatever gets reported and confirmed here IS the record,
+// by design (no vehicle-level "expected daily plan amount" exists anywhere
+// in the app to compare against). reportedBy is the driver's own user;
+// confirmedBy is the accountant who received it.
+model PlanHandover {
+  id           String    @id @default(uuid())
+  vehicleId    String    @map("vehicle_id")
+  driverId     String    @map("driver_id")
+  handoverDate DateTime  @map("handover_date")
+  amount       BigInt
+  reportedBy   String    @map("reported_by")
+  reportedAt   DateTime  @map("reported_at")
+  confirmedBy  String?   @map("confirmed_by")
+  confirmedAt  DateTime? @map("confirmed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+  driver  Driver  @relation(fields: [driverId], references: [id])
+  reportedByUser  User  @relation("PlanHandoverReportedBy", fields: [reportedBy], references: [id])
+  confirmedByUser User? @relation("PlanHandoverConfirmedBy", fields: [confirmedBy], references: [id])
+
+  @@unique([driverId, handoverDate])
+  @@index([handoverDate])
+  @@map("plan_handovers")
 }
 
 // Admin-grantable extra VIEW-only access for a role to a module that role

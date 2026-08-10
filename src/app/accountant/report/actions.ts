@@ -22,3 +22,21 @@ export async function confirmCashReceiptAction(formData: FormData) {
 
   revalidatePath("/accountant/report");
 }
+
+export async function confirmPlanReceiptAction(formData: FormData) {
+  const session = await auth();
+  if (!session || (session.user.role !== "ACCOUNTANT" && !(await hasModuleAccess(session.user.role, "FLEET_DASHBOARD")))) {
+    throw new Error("Рухсат йўқ");
+  }
+
+  const id = String(formData.get("id") ?? "");
+  const handover = await prisma.planHandover.findUnique({ where: { id } });
+  if (!handover || handover.confirmedAt) return;
+
+  await prisma.planHandover.update({
+    where: { id },
+    data: { confirmedBy: session.user.id, confirmedAt: new Date() },
+  });
+
+  revalidatePath("/accountant/report");
+}
