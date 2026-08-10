@@ -26,6 +26,7 @@ export function PayrollRow({
   status,
   paidAt,
   markPaidAction,
+  revertPaidAction,
 }: {
   user: { id: string; fullName: string; role: Role; point: Point | null };
   baseSalary: number;
@@ -42,6 +43,7 @@ export function PayrollRow({
   status: SalaryStatus;
   paidAt: Date | null;
   markPaidAction: (formData: FormData) => Promise<void>;
+  revertPaidAction: (formData: FormData) => Promise<void>;
 }) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
@@ -73,12 +75,30 @@ export function PayrollRow({
         <div className="font-heading font-extrabold text-heading col-span-2 lg:col-span-1 flex items-center justify-between gap-2">
           <span className="whitespace-nowrap">{netPayKnown ? formatSom(netPay) : "—"}</span>
           {status === "PAID" ? (
-            <span
-              title={paidAt ? `${paidAt.toLocaleDateString("uz-UZ")} да берилди` : undefined}
-              className="bg-success/10 text-success rounded-md px-2.5 py-1 text-xs font-extrabold whitespace-nowrap"
-            >
-              Тўланди ✓
-            </span>
+            <div className="flex items-center gap-1.5 flex-wrap justify-end">
+              <span
+                title={paidAt ? `${paidAt.toLocaleDateString("uz-UZ")} да берилди` : undefined}
+                className="bg-success/10 text-success rounded-md px-2.5 py-1 text-xs font-extrabold whitespace-nowrap"
+              >
+                Тўланди ✓
+              </span>
+              {isCurrentMonth && (
+                <form action={revertPaidAction}>
+                  <input type="hidden" name="userId" value={user.id} />
+                  <input type="hidden" name="month" value={monthStr} />
+                  <button
+                    type="submit"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!confirm("Хато босилдими? Тўланди белгиси бекор қилинсинми?")) e.preventDefault();
+                    }}
+                    className="text-muted-2 text-[11px] font-bold whitespace-nowrap hover:text-danger hover:underline"
+                  >
+                    Бекор қилиш
+                  </button>
+                </form>
+              )}
+            </div>
           ) : (
             <div className="flex items-center gap-1.5 flex-wrap justify-end">
               {isCurrentMonth && status === "APPROVED" && (
@@ -87,6 +107,10 @@ export function PayrollRow({
                   <input type="hidden" name="month" value={monthStr} />
                   <button
                     type="submit"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!confirm(`${user.fullName}га ${formatSom(netPay)} нақд қўлга берилдими?`)) e.preventDefault();
+                    }}
                     className="bg-success text-white rounded-md px-2.5 py-1 text-xs font-extrabold whitespace-nowrap hover:bg-success/90 transition-colors"
                   >
                     Ойлик берилди

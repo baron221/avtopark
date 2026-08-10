@@ -198,6 +198,28 @@ export async function markSalaryPaidAction(formData: FormData) {
   revalidatePath("/accountant/payroll");
 }
 
+/** Undoes an accidental "Ойлик берилди" click — back to APPROVED (the step
+ * right before PAID), clearing paidAt/paidBy so the cash-balance formula
+ * stops counting it and the row unlocks for editing again. Same current-
+ * month scope as every other payroll action; no time limit beyond that. */
+export async function revertSalaryPaidAction(formData: FormData) {
+  await requireAccountant();
+
+  const targetUserId = String(formData.get("userId") ?? "");
+  const month = parseMonth(String(formData.get("month") ?? ""));
+  if (!requireCurrentMonth(month)) return;
+
+  const salary = await prisma.salary.findUnique({ where: { userId_month: { userId: targetUserId, month } } });
+  if (!salary || salary.status !== "PAID") return;
+
+  await prisma.salary.update({
+    where: { id: salary.id },
+    data: { status: "APPROVED", paidAt: null, paidBy: null },
+  });
+
+  revalidatePath("/accountant/payroll");
+}
+
 /** Manual override of a non-driver's flat monthly rate — drivers' pay is
  * computed from trip revenue, not hand-set, so this no-ops for them. */
 export async function setMaoshAction(formData: FormData) {

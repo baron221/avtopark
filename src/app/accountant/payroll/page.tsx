@@ -14,7 +14,7 @@ import { monthStart, monthEnd } from "@/lib/month";
 import { computeDriverMonthlyPay } from "@/lib/driverPay";
 import { computeNetPay } from "@/lib/payroll";
 import { PayrollRow } from "./PayrollRow";
-import { generatePayrollAction, approvePayrollAction, markSalaryPaidAction } from "./actions";
+import { generatePayrollAction, approvePayrollAction, markSalaryPaidAction, revertSalaryPaidAction } from "./actions";
 
 const MONTH_RE = /^\d{4}-\d{2}$/;
 
@@ -225,6 +225,7 @@ export default async function PayrollPage({
               status={pay.status}
               paidAt={pay.paidAt}
               markPaidAction={markSalaryPaidAction}
+              revertPaidAction={revertSalaryPaidAction}
             />
           );
         })}
