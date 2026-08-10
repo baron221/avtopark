@@ -198,7 +198,7 @@ export async function markSalaryPaidAction(formData: FormData) {
   revalidatePath("/accountant/payroll");
 }
 
-/** Undoes an accidental "Ойлик берилди" click — back to APPROVED (the step
+/** Undoes an accidental "Ойлик бериш" click — back to APPROVED (the step
  * right before PAID), clearing paidAt/paidBy so the cash-balance formula
  * stops counting it and the row unlocks for editing again. Same current-
  * month scope as every other payroll action; no time limit beyond that. */

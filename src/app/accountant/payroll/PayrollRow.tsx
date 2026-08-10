@@ -113,7 +113,7 @@ export function PayrollRow({
                     }}
                     className="bg-success text-white rounded-md px-2.5 py-1 text-xs font-extrabold whitespace-nowrap hover:bg-success/90 transition-colors"
                   >
-                    Ойлик берилди
+                    Ойлик бериш
                   </button>
                 </form>
               )}

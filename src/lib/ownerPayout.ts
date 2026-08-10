@@ -100,7 +100,7 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
       prisma.lunch.aggregate({ _sum: { amount: true }, where: { lunchDate: { gte: since } } }),
       prisma.staffExpense.aggregate({ _sum: { amount: true }, where: { expenseDate: { gte: since } } }),
       prisma.advance.aggregate({ _sum: { amount: true }, where: { givenDate: { gte: since } } }),
-      // Filtered on paidAt (the exact moment "Ойлик берилди" was clicked per
+      // Filtered on paidAt (the exact moment "Ойлик бериш" was clicked per
       // employee), not month (always the 1st of the calendar month) — the
       // latter let this-month payroll paid out after the opening balance was
       // set (i.e. basically always) go uncounted, since month-start < since.
