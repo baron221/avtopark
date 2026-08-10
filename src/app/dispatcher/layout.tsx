@@ -2,6 +2,8 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/app/actions";
 import { hasAnyModuleAccess, getGrantedNavLinks, getGuestNavLinks } from "@/lib/access";
+import { getActivePoint } from "@/lib/activePoint";
+import { setActivePointAction } from "./actions";
 import { DispatcherNavDesktop, DispatcherNavMobile } from "./DispatcherNav";
 
 const POINT_LABELS: Record<string, string> = {
@@ -20,7 +22,8 @@ export default async function DispatcherLayout({ children }: { children: React.R
     redirect("/coming-soon");
   }
 
-  const pointLabel = isDispatcher ? (POINT_LABELS[session.user.point!] ?? session.user.point) : null;
+  const activePoint = isDispatcher ? await getActivePoint(session.user.point!) : null;
+  const pointLabel = activePoint ? (POINT_LABELS[activePoint] ?? activePoint) : null;
   const extra = isDispatcher
     ? await getGrantedNavLinks(session.user.role, ["COLLECT_PAYMENT", "INCOME_EXPENSE_LOG", "TRIP_ENTRY"])
     : await getGuestNavLinks(session.user.role);
@@ -34,10 +37,18 @@ export default async function DispatcherLayout({ children }: { children: React.R
           </div>
           <div>
             <div className="font-heading font-bold text-base text-heading">Фарғона–Қува Автопарк</div>
-            {pointLabel && (
-              <span className="bg-primary-tint text-primary text-xs font-extrabold px-2.5 py-0.5 rounded-full">
-                📍 {pointLabel} пункти
-              </span>
+            {activePoint && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="bg-primary-tint text-primary text-xs font-extrabold px-2.5 py-0.5 rounded-full">
+                  📍 {pointLabel} пункти
+                </span>
+                <form action={setActivePointAction}>
+                  <input type="hidden" name="point" value={activePoint === "FARGONA" ? "QUVA" : "FARGONA"} />
+                  <button type="submit" className="text-[11px] text-primary font-bold hover:underline whitespace-nowrap">
+                    {activePoint === "FARGONA" ? "Қувага ўтиш" : "Фарғонага ўтиш"}
+                  </button>
+                </form>
+              </div>
             )}
           </div>
         </div>

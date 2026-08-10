@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { formatSom } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
+import { getActivePoint } from "@/lib/activePoint";
 import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 import { IncomeForm } from "../journal/IncomeForm";
 import { DriverTripsTable, type DriverGroup } from "./DriverTripsTable";
@@ -36,7 +37,11 @@ export default async function DispatcherPointPage({
   if (!isDispatcher && !guestAllowed) redirect("/coming-soon");
 
   const { point: pointParam } = await searchParams;
-  const point: Point = isDispatcher ? session.user.point! : pointParam === "QUVA" ? "QUVA" : "FARGONA";
+  const point: Point = isDispatcher
+    ? await getActivePoint(session.user.point!)
+    : pointParam === "QUVA"
+      ? "QUVA"
+      : "FARGONA";
   const today = new Date();
   const from = startOfDay(today);
   const to = endOfDay(today);

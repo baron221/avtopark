@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { hasModuleAccess } from "@/lib/access";
+import { getActivePoint } from "@/lib/activePoint";
 import { EditLunchForm } from "./EditLunchForm";
 import type { Point } from "@prisma/client";
 
@@ -24,7 +25,11 @@ export default async function EditLunchPage({
   const { id } = await params;
   const { from, point: pointParam } = await searchParams;
 
-  const point: Point = isDispatcher ? session.user.point! : pointParam === "QUVA" ? "QUVA" : "FARGONA";
+  const point: Point = isDispatcher
+    ? await getActivePoint(session.user.point!)
+    : pointParam === "QUVA"
+      ? "QUVA"
+      : "FARGONA";
 
   const lunch = await prisma.lunch.findUnique({ where: { id }, include: { user: true } });
   if (!lunch || lunch.point !== point) notFound();

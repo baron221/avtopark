@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { formatSom, formatTime } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
+import { getActivePoint } from "@/lib/activePoint";
 import { ExpenseForm } from "./ExpenseForm";
 import { DeleteEntryButton } from "./DeleteEntryButton";
 import { deleteTripAction, deleteStaffExpenseAction, deleteLunchAction } from "../actions";
@@ -42,7 +43,11 @@ export default async function DispatcherJournalPage({
   if (!isDispatcher && !guestAllowed) redirect("/coming-soon");
 
   const { point: pointParam } = await searchParams;
-  const point: Point = isDispatcher ? session.user.point! : pointParam === "QUVA" ? "QUVA" : "FARGONA";
+  const point: Point = isDispatcher
+    ? await getActivePoint(session.user.point!)
+    : pointParam === "QUVA"
+      ? "QUVA"
+      : "FARGONA";
   const staffExpensePoint = point === "FARGONA" ? "FARGONA" : "QUVA";
   const today = new Date();
   const from = startOfDay(today);

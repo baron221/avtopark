@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hasAnyModuleAccess, type ModuleKey } from "@/lib/access";
@@ -9,6 +10,7 @@ import { logDeletion } from "@/lib/deletionLog";
 import { sendSms } from "@/lib/sms";
 import { formatTime } from "@/lib/format";
 import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
+import { ACTIVE_POINT_COOKIE, getActivePoint } from "@/lib/activePoint";
 import type { Point, StaffExpenseCategory, StaffExpensePoint, TripKind } from "@prisma/client";
 
 const EXPENSE_CATEGORY_LABELS: Record<string, string> = {
@@ -32,17 +34,21 @@ function toStaffExpensePoint(point: Point): StaffExpensePoint {
   return point === "FARGONA" ? "FARGONA" : "QUVA";
 }
 
-// A real Dispatcher always acts on their own point (form input is ignored,
-// so they can never be tricked into touching the other point's data). A
-// back-office role granted one of the point-scoped modules has no point of
-// its own, so it must say which one via the form/query string instead.
+// A real Dispatcher acts on whichever point they're currently marked active
+// on (see activePoint.ts — they physically rotate between points, so this
+// isn't always their assigned home point), never on form input — so they
+// can never be tricked into touching the other point's data by a crafted
+// request. A back-office role granted one of the point-scoped modules has
+// no point of its own, so it must say which one via the form/query string
+// instead.
 async function requireDispatcherOrGranted(formData: FormData, moduleKey: ModuleKey | ModuleKey[]) {
   const session = await auth();
   if (!session) throw new Error("Ruxsat yo'q");
 
   if (session.user.role === "DISPATCHER") {
     if (!session.user.point) throw new Error("Ruxsat yo'q");
-    return { userId: session.user.id, point: session.user.point };
+    const point = await getActivePoint(session.user.point);
+    return { userId: session.user.id, point };
   }
 
   const moduleKeys = Array.isArray(moduleKey) ? moduleKey : [moduleKey];
@@ -52,6 +58,24 @@ async function requireDispatcherOrGranted(formData: FormData, moduleKey: ModuleK
   const rawPoint = String(formData.get("point") ?? "");
   const point: Point = rawPoint === "QUVA" ? "QUVA" : "FARGONA";
   return { userId: session.user.id, point };
+}
+
+/** Lets a real dispatcher say which point they're currently working at —
+ * see activePoint.ts for why this is a cookie rather than updating
+ * User.point directly. */
+export async function setActivePointAction(formData: FormData) {
+  const session = await auth();
+  if (!session || session.user.role !== "DISPATCHER" || !session.user.point) return;
+
+  const point: Point = formData.get("point") === "QUVA" ? "QUVA" : "FARGONA";
+  const store = await cookies();
+  store.set(ACTIVE_POINT_COOKIE, point, {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 180,
+    sameSite: "lax",
+  });
+
+  revalidatePath("/dispatcher", "layout");
 }
 
 export async function addTripAction(formData: FormData) {
