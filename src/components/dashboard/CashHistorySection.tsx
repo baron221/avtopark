@@ -35,6 +35,7 @@ export function CashHistorySection({
                 <span className="text-muted-2 font-semibold">
                   {h.handoverDate.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" })} ·{" "}
                   {POINT_LABELS[h.point] ?? h.point} · {h.dispatcherName} → {h.accountantName}
+                  {h.note ? ` · Сабаб: ${h.note}` : ""}
                 </span>
                 <span className="font-bold text-heading whitespace-nowrap">{formatSom(h.amount)}</span>
               </div>

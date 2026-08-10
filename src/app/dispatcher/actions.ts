@@ -127,14 +127,22 @@ export async function addTripAction(formData: FormData) {
 // by whatever was paid out of it today. A snapshot at confirm time, not a
 // live figure that could drift if a trip gets entered afterward. Idempotent:
 // a second confirm the same day is a silent no-op rather than duplicating.
-export async function confirmCashHandoverAction(formData: FormData) {
-  const { userId, point } = await requireDispatcherOrGranted(formData, ["TRIP_ENTRY", "COLLECT_PAYMENT"]);
-
+//
+// overrideAmount/note cover the case where the computed figure doesn't match
+// what was actually counted (a missed expense, a rounding difference, ...) —
+// the dispatcher can hand over a different amount, but only with a reason on
+// record, since that's real cash silently diverging from the log.
+async function createTodaysHandover(
+  userId: string,
+  point: Point,
+  overrideAmount?: bigint,
+  note?: string
+): Promise<{ error: string }> {
   const today = startOfDay(new Date());
   const existing = await prisma.cashHandover.findUnique({
     where: { point_handoverDate: { point, handoverDate: today } },
   });
-  if (existing) return;
+  if (existing) return { error: "" };
 
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -152,14 +160,47 @@ export async function confirmCashHandoverAction(formData: FormData) {
   // What the dispatcher physically has left to hand over — today's local
   // expenses/lunches already came out of this same cash, so counting the
   // raw trip total (the old behaviour) overstated it by exactly that much.
-  const amount = kirim - chiqim > BigInt(0) ? kirim - chiqim : BigInt(0);
+  const computed = kirim - chiqim > BigInt(0) ? kirim - chiqim : BigInt(0);
+  const amount = overrideAmount ?? computed;
 
   await prisma.cashHandover.create({
-    data: { point, handoverDate: today, amount, dispatcherConfirmedBy: userId, dispatcherConfirmedAt: new Date() },
+    data: {
+      point,
+      handoverDate: today,
+      amount,
+      note: note || null,
+      dispatcherConfirmedBy: userId,
+      dispatcherConfirmedAt: new Date(),
+    },
   });
 
   revalidatePath("/dispatcher/point");
   revalidatePath("/accountant/report");
+  return { error: "" };
+}
+
+export async function confirmCashHandoverAction(formData: FormData) {
+  const { userId, point } = await requireDispatcherOrGranted(formData, ["TRIP_ENTRY", "COLLECT_PAYMENT"]);
+  await createTodaysHandover(userId, point);
+}
+
+export type ConfirmHandoverState = { error: string };
+
+/** Same as confirmCashHandoverAction, but for when the computed amount
+ * doesn't match what was actually counted — the dispatcher enters the real
+ * amount by hand, and must say why it differs. */
+export async function confirmCashHandoverWithAdjustmentAction(
+  _prevState: ConfirmHandoverState,
+  formData: FormData
+): Promise<ConfirmHandoverState> {
+  const { userId, point } = await requireDispatcherOrGranted(formData, ["TRIP_ENTRY", "COLLECT_PAYMENT"]);
+
+  const rawAmount = Number(formData.get("amount"));
+  const note = String(formData.get("note") ?? "").trim();
+  if (!Number.isFinite(rawAmount) || rawAmount < 0) return { error: "Суммани тўғри киритинг" };
+  if (!note) return { error: "Сабабини киритинг" };
+
+  return createTodaysHandover(userId, point, BigInt(Math.round(rawAmount)), note);
 }
 
 export type UpdateTripState = { error: string };

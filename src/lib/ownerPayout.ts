@@ -8,6 +8,9 @@ export type PendingHandoverRow = {
   handoverDate: Date;
   amount: number;
   dispatcherName: string;
+  /** Only set when the dispatcher overrode the auto-computed amount —
+   * shown to the accountant so they know why it differs before confirming. */
+  note: string | null;
 };
 
 export type PointPending = {
@@ -22,6 +25,8 @@ export type ConfirmedHandoverRow = {
   point: Point;
   dispatcherName: string;
   accountantName: string;
+  /** Only set when the dispatcher overrode the auto-computed amount. */
+  note: string | null;
 };
 
 export type OwnerPayoutRow = {
@@ -170,6 +175,7 @@ export async function getCashLedgerSummary(): Promise<CashLedgerSummary> {
         handoverDate: h.handoverDate,
         amount: Number(h.amount),
         dispatcherName: h.dispatcherConfirmedByUser.fullName,
+        note: h.note,
       })),
   }));
 
@@ -184,6 +190,7 @@ export async function getCashLedgerSummary(): Promise<CashLedgerSummary> {
       point: h.point,
       dispatcherName: h.dispatcherConfirmedByUser.fullName,
       accountantName: h.accountantConfirmedByUser?.fullName ?? "—",
+      note: h.note,
     })),
     payoutHistory: payouts.map((p) => ({
       id: p.id,

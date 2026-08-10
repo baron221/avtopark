@@ -9,7 +9,8 @@ import { hasModuleAccess } from "@/lib/access";
 import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 import { IncomeForm } from "../journal/IncomeForm";
 import { DriverTripsTable, type DriverGroup } from "./DriverTripsTable";
-import { deleteTripAction, confirmCashHandoverAction } from "../actions";
+import { deleteTripAction, confirmCashHandoverAction, confirmCashHandoverWithAdjustmentAction } from "../actions";
+import { HandoverForm } from "./HandoverForm";
 import type { Point } from "@prisma/client";
 
 function startOfDay(d: Date) {
@@ -190,17 +191,17 @@ export default async function DispatcherPointPage({
                 ? `Йиғилди ${formatSom(collectedToday)} − расход ${formatSom(pointChiqimToday)} = ${formatSom(netToHandover)}`
                 : `Бугун йиғилган: ${formatSom(netToHandover)}`}
           </div>
+          {todaysHandover?.note && (
+            <div className="text-[12px] text-danger font-semibold mt-0.5">Сабаб: {todaysHandover.note}</div>
+          )}
         </div>
         {!todaysHandover && netToHandover > 0 && (
-          <form action={confirmCashHandoverAction}>
-            {!isDispatcher && <input type="hidden" name="point" value={point} />}
-            <button
-              type="submit"
-              className="bg-success text-white rounded-[10px] px-5 py-2.5 font-extrabold text-[13px]"
-            >
-              Топширдим ✓
-            </button>
-          </form>
+          <HandoverForm
+            point={!isDispatcher ? point : undefined}
+            computedAmount={netToHandover}
+            action={confirmCashHandoverAction}
+            adjustAction={confirmCashHandoverWithAdjustmentAction}
+          />
         )}
         {todaysHandover && !todaysHandover.accountantConfirmedAt && (
           <span className="bg-primary-tint text-primary text-xs font-extrabold px-3 py-1.5 rounded-full">

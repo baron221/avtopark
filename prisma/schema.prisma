@@ -594,6 +594,10 @@ model CashHandover {
   point                 Point
   handoverDate          DateTime  @map("handover_date")
   amount                BigInt
+  // Only set when the dispatcher overrode the auto-computed
+  // kirim-chiqim amount — required in that case so there's always an
+  // audit trail for why the handed-over cash didn't match the log.
+  note                  String?
   dispatcherConfirmedBy String    @map("dispatcher_confirmed_by")
   dispatcherConfirmedAt DateTime  @map("dispatcher_confirmed_at")
   accountantConfirmedBy String?   @map("accountant_confirmed_by")

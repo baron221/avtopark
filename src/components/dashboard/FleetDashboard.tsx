@@ -267,6 +267,9 @@ export function FleetDashboard({
                                   {h.dispatcherName} ·{" "}
                                   {h.handoverDate.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" })}
                                 </div>
+                                {h.note && (
+                                  <div className="text-[11px] text-danger font-semibold">Сабаб: {h.note}</div>
+                                )}
                               </div>
                               <form action={confirmReceiptAction}>
                                 <input type="hidden" name="id" value={h.id} />
