@@ -1,6 +1,11 @@
 @import "tailwindcss";
 
 :root {
+  /* This design is light-only — without this, some Android browsers'
+     auto-dark-mode heuristics repaint form controls (inputs, placeholder
+     text) using dark-theme guesses that clash with our explicit light
+     colors, making placeholder/typed text unreadable on those devices. */
+  color-scheme: light;
   --background: #F6F7FB;
   --foreground: #1E1F2B;
 }

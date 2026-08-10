@@ -30,6 +30,10 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: "#4F46E5",
+  // Without this, env(safe-area-inset-bottom) always resolves to 0 — needed
+  // so the fixed mobile bottom nav doesn't crowd a device's on-screen
+  // gesture bar/nav buttons.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

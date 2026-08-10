@@ -42,7 +42,7 @@ export function SearchableSelect({
     : options;
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative w-full">
       <input type="hidden" name={name} value={selectedId} />
       <input
         type="text"
@@ -54,7 +54,7 @@ export function SearchableSelect({
         onChange={(e) => setQuery(e.target.value)}
         placeholder={placeholder}
         autoComplete="off"
-        className={className}
+        className={`w-full ${className ?? ""}`}
       />
       {open && (
         <div className="absolute z-20 mt-1 w-full max-h-64 overflow-y-auto bg-card border-2 border-border rounded-xl shadow-lg">
