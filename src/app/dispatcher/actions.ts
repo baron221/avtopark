@@ -120,11 +120,13 @@ export async function addTripAction(formData: FormData) {
 }
 
 // The dispatcher hands over today's cash-in-hand to the accountant once a
-// day, in person — this just records that confirmation. amount is a
-// snapshot of today's collected total at the moment of confirming (real
-// cash actually counted and handed over), not a live figure that could
-// drift if a trip gets entered afterward. Idempotent: a second confirm the
-// same day is a silent no-op rather than creating a duplicate handover.
+// day, in person — this just records that confirmation. amount is trip
+// revenue minus today's point-level expenses/lunches (see journal/page.tsx's
+// identical kirim/chiqim/qoldiq math) — real cash actually counted and
+// handed over, not the raw collected total, since that's already spent down
+// by whatever was paid out of it today. A snapshot at confirm time, not a
+// live figure that could drift if a trip gets entered afterward. Idempotent:
+// a second confirm the same day is a silent no-op rather than duplicating.
 export async function confirmCashHandoverAction(formData: FormData) {
   const { userId, point } = await requireDispatcherOrGranted(formData, ["TRIP_ENTRY", "COLLECT_PAYMENT"]);
 
@@ -136,11 +138,21 @@ export async function confirmCashHandoverAction(formData: FormData) {
 
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const trips = await prisma.trip.findMany({
-    where: { tripDate: { gte: today, lt: tomorrow }, point },
-    select: { revenue: true },
-  });
-  const amount = trips.reduce((s, t) => s + t.revenue, BigInt(0));
+  const [trips, expenses, lunches] = await Promise.all([
+    prisma.trip.findMany({ where: { tripDate: { gte: today, lt: tomorrow }, point }, select: { revenue: true } }),
+    prisma.staffExpense.findMany({
+      where: { point: toStaffExpensePoint(point), expenseDate: { gte: today, lt: tomorrow } },
+      select: { amount: true },
+    }),
+    prisma.lunch.findMany({ where: { point, lunchDate: { gte: today, lt: tomorrow } }, select: { amount: true } }),
+  ]);
+  const kirim = trips.reduce((s, t) => s + t.revenue, BigInt(0));
+  const chiqim =
+    expenses.reduce((s, e) => s + e.amount, BigInt(0)) + lunches.reduce((s, l) => s + l.amount, BigInt(0));
+  // What the dispatcher physically has left to hand over — today's local
+  // expenses/lunches already came out of this same cash, so counting the
+  // raw trip total (the old behaviour) overstated it by exactly that much.
+  const amount = kirim - chiqim > BigInt(0) ? kirim - chiqim : BigInt(0);
 
   await prisma.cashHandover.create({
     data: { point, handoverDate: today, amount, dispatcherConfirmedBy: userId, dispatcherConfirmedAt: new Date() },
