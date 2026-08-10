@@ -240,6 +240,49 @@ export function FleetDashboard({
           </div>
         )}
 
+        {/* Point vehicles — per-point income breakdown by vehicle. Expense/
+            profit aren't shown here: a vehicle's repair/fuel cost isn't tied
+            to a point (the shared fleet works both), so it can't be split
+            correctly — that's why "Машиналар бўйича фойда" below stays
+            combined and this table is income-only. */}
+        {vm.pointVehicles.some((p) => p.rows.length > 0) && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {vm.pointVehicles.map((p) => (
+              <Card key={p.point} className="overflow-hidden">
+                <div className="px-5 py-4 font-heading font-bold text-base text-heading">
+                  {POINT_LABELS[p.point]} машиналари · {vm.periodLabel}
+                </div>
+                <div className="grid grid-cols-[1fr_0.9fr_0.5fr_0.5fr_0.8fr_0.7fr] px-5 py-2 bg-page text-[11px] font-extrabold text-muted-2 uppercase tracking-wide">
+                  <div>Машина</div>
+                  <div>Ҳайдовчи</div>
+                  <div>Рейс</div>
+                  <div>Заказ</div>
+                  <div>Тушум</div>
+                  <div>Ҳолат</div>
+                </div>
+                {p.rows.map((r) => (
+                  <div
+                    key={r.vehicleId}
+                    className="grid grid-cols-[1fr_0.9fr_0.5fr_0.5fr_0.8fr_0.7fr] gap-x-1.5 px-5 py-2.5 border-t border-row-divider items-center text-xs"
+                  >
+                    <div className="bg-primary-tint rounded-md px-1.5 py-0.5 font-extrabold text-[10px] text-primary font-heading w-fit">
+                      {r.plate}
+                    </div>
+                    <div className="text-body font-semibold truncate">{r.driverName}</div>
+                    <div className="text-muted-2 font-bold">{r.tripCount}</div>
+                    <div className="text-muted-2 font-bold">{r.orderCount}</div>
+                    <div className="font-extrabold text-heading">{formatSom(r.income)}</div>
+                    <div>
+                      <StatusPill status={r.status} />
+                    </div>
+                  </div>
+                ))}
+                {p.rows.length === 0 && <p className="text-[13px] text-muted-2 px-5 py-4">Бу даврда маълумот йўқ</p>}
+              </Card>
+            ))}
+          </div>
+        )}
+
         {/* Orders list */}
         {vm.orders.length > 0 && (
           <Card className="overflow-hidden">

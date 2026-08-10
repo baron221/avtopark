@@ -18,6 +18,17 @@ export type PointBreakdownRow = {
   expenseByCategory: { category: string; amount: number }[];
 };
 
+export type PointVehicleRow = {
+  vehicleId: string;
+  plate: string;
+  model: string;
+  driverName: string;
+  tripCount: number;
+  orderCount: number;
+  income: number;
+  status: string;
+};
+
 export type OrderRow = {
   id: string;
   time: Date;
@@ -57,6 +68,7 @@ export type OwnerDashboardVM = {
   expenseBreakdown: ExpenseBreakdownItem[];
   vehicles: VehicleProfitRow[];
   pointBreakdown: PointBreakdownRow[];
+  pointVehicles: { point: "FARGONA" | "QUVA"; rows: PointVehicleRow[] }[];
   orders: OrderRow[];
 };
 
@@ -399,6 +411,38 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
     };
   });
 
+  // Per-vehicle income at each point specifically (via Trip.point) — unlike
+  // vehicleRows' expense/profit above, a vehicle's repair/fuel cost isn't
+  // tied to a point (the fleet is shared), so there's no correct way to
+  // split it per point; this breakdown is income-only for that reason.
+  const pointVehicles = (["FARGONA", "QUVA"] as const).map((point) => {
+    const byVehicle = new Map<string, { tripCount: number; orderCount: number; income: number }>();
+    for (const t of tripsFlat) {
+      if (t.point !== point) continue;
+      const entry = byVehicle.get(t.vehicleId) ?? { tripCount: 0, orderCount: 0, income: 0 };
+      if (t.kind === "ORDER") entry.orderCount += 1;
+      else entry.tripCount += 1;
+      entry.income += Number(t.revenue);
+      byVehicle.set(t.vehicleId, entry);
+    }
+    const rows: PointVehicleRow[] = Array.from(byVehicle.entries())
+      .map(([vehicleId, stats]) => {
+        const v = vehicleById.get(vehicleId);
+        return {
+          vehicleId,
+          plate: v?.plate ?? "—",
+          model: v?.model ?? "—",
+          driverName: driverByVehicleId.get(vehicleId)?.user.fullName ?? "—",
+          tripCount: stats.tripCount,
+          orderCount: stats.orderCount,
+          income: stats.income,
+          status: v?.status ?? "—",
+        };
+      })
+      .sort((a, b) => b.income - a.income);
+    return { point, rows };
+  });
+
   const orderRows: OrderRow[] = tripsFlat
     .filter((t) => t.kind === "ORDER")
     .map((t) => ({
@@ -426,6 +470,7 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
     expenseBreakdown,
     vehicles: vehicleRows,
     pointBreakdown,
+    pointVehicles,
     orders: orderRows,
   };
 }
