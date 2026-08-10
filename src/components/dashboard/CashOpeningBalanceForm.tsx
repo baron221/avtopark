@@ -22,7 +22,6 @@ export function CashOpeningBalanceForm({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [state, formAction] = useActionState(action, initialState);
-  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <div>
@@ -35,19 +34,13 @@ export function CashOpeningBalanceForm({
       </button>
       {expanded && (
         <form action={formAction} className="mt-2 flex flex-col gap-1.5 bg-card border border-border rounded-xl p-3 w-56">
-          <label className="text-[11px] font-bold text-muted-2 uppercase">Ҳозирги қўлдаги нақд пул</label>
+          <label className="text-[11px] font-bold text-muted-2 uppercase">
+            Ҳозир қўлдаги нақд пул (айнан ҳозирги дақиқа бўйича)
+          </label>
           <MoneyInput
             name="amount"
             placeholder="Сумма"
             className="bg-page border border-border rounded-md px-2.5 py-1.5 text-xs font-bold text-heading outline-none focus:border-primary"
-          />
-          <input
-            type="date"
-            name="date"
-            defaultValue={today}
-            max={today}
-            required
-            className="bg-page border border-border rounded-md px-2 py-1.5 text-xs font-bold text-heading outline-none focus:border-primary"
           />
           <input
             type="text"

@@ -66,15 +66,17 @@ export async function setCashOpeningBalanceAction(
   }
 
   const amount = Math.round(Number(formData.get("amount")));
-  const rawDate = String(formData.get("date") ?? "");
-  const setDate = rawDate ? new Date(`${rawDate}T00:00:00Z`) : new Date();
   const note = String(formData.get("note") ?? "").trim() || null;
 
   if (!Number.isFinite(amount) || amount < 0) return { error: "Суммани тўғри киритинг" };
-  if (Number.isNaN(setDate.getTime())) return { error: "Санани тўғри киритинг" };
 
+  // Deliberately the exact current moment, not a user-pickable date — this
+  // is the cutoff every later aggregate filters by (`gte: since`). A
+  // date-only value collapses to midnight, which would double-subtract
+  // anything already recorded earlier that same day (already reflected in
+  // the physically-counted amount) on top of counting it again here.
   await prisma.cashOpeningBalance.create({
-    data: { amount: BigInt(amount), setDate, note, enteredBy: session.user.id },
+    data: { amount: BigInt(amount), setDate: new Date(), note, enteredBy: session.user.id },
   });
 
   revalidatePath("/accountant/report");
