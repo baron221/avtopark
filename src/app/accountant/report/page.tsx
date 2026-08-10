@@ -4,7 +4,7 @@ import { FleetDashboard } from "@/components/dashboard/FleetDashboard";
 import { getOwnerDashboardVM, type Period } from "@/lib/dashboard";
 import { getCashLedgerSummary } from "@/lib/ownerPayout";
 import { hasModuleAccess } from "@/lib/access";
-import { confirmCashReceiptAction, recordOwnerPayoutAction } from "./actions";
+import { confirmCashReceiptAction, recordOwnerPayoutAction, setCashOpeningBalanceAction } from "./actions";
 
 function isPeriod(value: string | undefined): value is Period {
   return value === "DAY" || value === "WEEK" || value === "MONTH";
@@ -49,6 +49,7 @@ export default async function AccountantReportPage({
       cashLedger={cashLedger}
       confirmReceiptAction={confirmCashReceiptAction}
       recordPayoutAction={recordOwnerPayoutAction}
+      setOpeningBalanceAction={setCashOpeningBalanceAction}
     />
   );
 }

@@ -55,3 +55,28 @@ export async function recordOwnerPayoutAction(
   revalidatePath("/accountant/report");
   return { error: "" };
 }
+
+export async function setCashOpeningBalanceAction(
+  _prevState: OwnerPayoutState,
+  formData: FormData
+): Promise<OwnerPayoutState> {
+  const session = await auth();
+  if (!session || (session.user.role !== "ACCOUNTANT" && !(await hasModuleAccess(session.user.role, "FLEET_DASHBOARD")))) {
+    throw new Error("Рухсат йўқ");
+  }
+
+  const amount = Math.round(Number(formData.get("amount")));
+  const rawDate = String(formData.get("date") ?? "");
+  const setDate = rawDate ? new Date(`${rawDate}T00:00:00Z`) : new Date();
+  const note = String(formData.get("note") ?? "").trim() || null;
+
+  if (!Number.isFinite(amount) || amount < 0) return { error: "Суммани тўғри киритинг" };
+  if (Number.isNaN(setDate.getTime())) return { error: "Санани тўғри киритинг" };
+
+  await prisma.cashOpeningBalance.create({
+    data: { amount: BigInt(amount), setDate, note, enteredBy: session.user.id },
+  });
+
+  revalidatePath("/accountant/report");
+  return { error: "" };
+}

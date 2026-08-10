@@ -6,6 +6,7 @@ import { DatePicker } from "@/components/ui/DatePicker";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { WeeklyBarChart } from "@/components/charts/WeeklyBarChart";
 import { OwnerPayoutForm } from "@/components/dashboard/OwnerPayoutForm";
+import { CashOpeningBalanceForm } from "@/components/dashboard/CashOpeningBalanceForm";
 import { CashHistorySection } from "@/components/dashboard/CashHistorySection";
 import type { OwnerDashboardVM, Period } from "@/lib/dashboard";
 import type { CashLedgerSummary, OwnerPayoutState, MonthlyPayoutPoint } from "@/lib/ownerPayout";
@@ -27,6 +28,7 @@ export function FleetDashboard({
   cashLedger,
   confirmReceiptAction,
   recordPayoutAction,
+  setOpeningBalanceAction,
   ownerPayoutSummary,
 }: {
   vm: OwnerDashboardVM;
@@ -44,6 +46,7 @@ export function FleetDashboard({
   cashLedger?: CashLedgerSummary;
   confirmReceiptAction?: (formData: FormData) => Promise<void>;
   recordPayoutAction?: (prevState: OwnerPayoutState, formData: FormData) => Promise<OwnerPayoutState>;
+  setOpeningBalanceAction?: (prevState: OwnerPayoutState, formData: FormData) => Promise<OwnerPayoutState>;
   /** Owner-only, read-only view of what's actually been paid out to them — passed only by /owner. */
   ownerPayoutSummary?: { thisMonth: number; lastMonth: number; trend: MonthlyPayoutPoint[] };
 }) {
@@ -298,10 +301,33 @@ export function FleetDashboard({
                 <div className="font-heading font-extrabold text-2xl text-heading">
                   {formatSom(cashLedger.balance)}
                 </div>
+                {cashLedger.openingBalance ? (
+                  <div className="text-[11px] text-muted-2 font-semibold mt-1">
+                    Бошланғич қолдиқ {formatSom(cashLedger.openingBalance.amount)} ·{" "}
+                    {cashLedger.openingBalance.setDate.toLocaleDateString("uz-UZ", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    })}
+                    дан ҳисобланмоқда
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-danger font-semibold mt-1">
+                    Бошланғич қолдиқ белгиланмаган — қолдиқ 0 деб кўрсатилмоқда
+                  </div>
+                )}
               </div>
-              {recordPayoutAction && cashLedger.balance > 0 && (
-                <OwnerPayoutForm balance={cashLedger.balance} action={recordPayoutAction} />
-              )}
+              <div className="flex flex-col items-end gap-2">
+                {recordPayoutAction && cashLedger.balance > 0 && (
+                  <OwnerPayoutForm balance={cashLedger.balance} action={recordPayoutAction} />
+                )}
+                {setOpeningBalanceAction && (
+                  <CashOpeningBalanceForm
+                    hasExisting={!!cashLedger.openingBalance}
+                    action={setOpeningBalanceAction}
+                  />
+                )}
+              </div>
             </div>
             <CashHistorySection
               confirmedHistory={cashLedger.confirmedHistory}

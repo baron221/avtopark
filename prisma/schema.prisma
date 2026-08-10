@@ -148,6 +148,7 @@ model User {
   cashHandoversAsDispatcher CashHandover[] @relation("CashHandoverDispatcher")
   cashHandoversAsAccountant CashHandover[] @relation("CashHandoverAccountant")
   ownerPayoutsEntered OwnerPayout[] @relation("OwnerPayoutEnteredBy")
+  cashOpeningBalancesEntered CashOpeningBalance[] @relation("CashOpeningBalanceEnteredBy")
 
   @@index([role])
   @@index([point])
@@ -623,6 +624,29 @@ model OwnerPayout {
 
   @@index([payoutDate])
   @@map("owner_payouts")
+}
+
+// A reconciliation point: the accountant physically counts the cash on
+// hand and records it here. The cash-balance formula (see
+// getCashLedgerSummary) only counts CashHandover/expense/payout activity
+// from the most recent entry's setDate onward — without this, summing
+// EVERY historical Expense/Salary/Advance row against a CashHandover
+// tracker that only started accruing recently produced a deeply negative,
+// meaningless number (months of expense history vs. days of income
+// history). Multiple rows may exist over time as an audit trail; only the
+// latest one is live.
+model CashOpeningBalance {
+  id        String   @id @default(uuid())
+  amount    BigInt
+  setDate   DateTime @map("set_date")
+  note      String?
+  enteredBy String   @map("entered_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  enteredByUser User @relation("CashOpeningBalanceEnteredBy", fields: [enteredBy], references: [id])
+
+  @@index([setDate])
+  @@map("cash_opening_balances")
 }
 
 // Admin-grantable extra VIEW-only access for a role to a module that role
