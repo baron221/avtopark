@@ -59,27 +59,29 @@ export function AccountantNavMobile({
   const pathname = usePathname();
   const items = [...base, ...extra];
   return (
-    <div className="lg:hidden fixed bottom-0 inset-x-0 z-10 bg-card border-t border-border flex py-2 px-2">
-      {items.map((item) => {
-        const active = pathname.startsWith(item.href);
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`relative flex-1 text-center text-[11px] font-extrabold ${active ? "text-primary" : "text-muted-2"}`}
-          >
-            <div className="relative inline-block">
-              <div className="text-base leading-tight">{item.icon}</div>
-              {item.href === "/accountant/report" && reportBadgeCount > 0 && (
-                <span className="absolute -top-1 -right-2 bg-danger text-white text-[9px] font-extrabold rounded-full min-w-[14px] h-3.5 px-1 flex items-center justify-center">
-                  {reportBadgeCount > 9 ? "9+" : reportBadgeCount}
-                </span>
-              )}
-            </div>
-            <div>{item.label}</div>
-          </Link>
-        );
-      })}
+    <div className="lg:hidden fixed bottom-0 inset-x-0 z-10 bg-card border-t border-border">
+      <div className="flex overflow-x-auto py-2 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {items.map((item) => {
+          const active = pathname.startsWith(item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex-shrink-0 flex flex-col items-center gap-0.5 min-w-[60px] px-2 text-center text-[10px] font-extrabold whitespace-nowrap ${active ? "text-primary" : "text-muted-2"}`}
+            >
+              <div className="relative inline-block">
+                <div className="text-base leading-tight">{item.icon}</div>
+                {item.href === "/accountant/report" && reportBadgeCount > 0 && (
+                  <span className="absolute -top-1 -right-2 bg-danger text-white text-[9px] font-extrabold rounded-full min-w-[14px] h-3.5 px-1 flex items-center justify-center">
+                    {reportBadgeCount > 9 ? "9+" : reportBadgeCount}
+                  </span>
+                )}
+              </div>
+              <div>{item.label}</div>
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -156,7 +156,7 @@ export function FleetDashboard({
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-5">
           {/* Chart card */}
           <Card className="p-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
               <div className="font-heading font-bold text-base text-heading">Ҳафталик фойда динамикаси</div>
               <div className="flex gap-3.5 text-xs font-bold">
                 <span className="text-primary">● Тушум</span>
@@ -352,31 +352,59 @@ export function FleetDashboard({
                 <div className="px-5 py-4 font-heading font-bold text-base text-heading">
                   {POINT_LABELS[p.point]} машиналари · {vm.periodLabel}
                 </div>
-                <div className="grid grid-cols-[1fr_0.9fr_0.5fr_0.5fr_0.8fr_0.7fr] px-5 py-2 bg-page text-[11px] font-extrabold text-muted-2 uppercase tracking-wide">
-                  <div>Машина</div>
-                  <div>Ҳайдовчи</div>
-                  <div>Рейс</div>
-                  <div>Заказ</div>
-                  <div>Тушум</div>
-                  <div>Ҳолат</div>
-                </div>
-                {p.rows.map((r) => (
-                  <div
-                    key={r.vehicleId}
-                    className="grid grid-cols-[1fr_0.9fr_0.5fr_0.5fr_0.8fr_0.7fr] gap-x-1.5 px-5 py-2.5 border-t border-row-divider items-center text-xs"
-                  >
-                    <div className="bg-primary-tint rounded-md px-1.5 py-0.5 font-extrabold text-[10px] text-primary font-heading w-fit">
-                      {r.plate}
-                    </div>
-                    <div className="text-body font-semibold truncate">{r.driverName}</div>
-                    <div className="text-muted-2 font-bold">{r.tripCount}</div>
-                    <div className="text-muted-2 font-bold">{r.orderCount}</div>
-                    <div className="font-extrabold text-heading">{formatSom(r.income)}</div>
-                    <div>
-                      <StatusPill status={r.status} />
-                    </div>
+
+                {/* Desktop table */}
+                <div className="hidden lg:block">
+                  <div className="grid grid-cols-[1fr_0.9fr_0.5fr_0.5fr_0.8fr_0.7fr] px-5 py-2 bg-page text-[11px] font-extrabold text-muted-2 uppercase tracking-wide">
+                    <div>Машина</div>
+                    <div>Ҳайдовчи</div>
+                    <div>Рейс</div>
+                    <div>Заказ</div>
+                    <div>Тушум</div>
+                    <div>Ҳолат</div>
                   </div>
-                ))}
+                  {p.rows.map((r) => (
+                    <div
+                      key={r.vehicleId}
+                      className="grid grid-cols-[1fr_0.9fr_0.5fr_0.5fr_0.8fr_0.7fr] gap-x-1.5 px-5 py-2.5 border-t border-row-divider items-center text-xs"
+                    >
+                      <div className="bg-primary-tint rounded-md px-1.5 py-0.5 font-extrabold text-[10px] text-primary font-heading w-fit">
+                        {r.plate}
+                      </div>
+                      <div className="text-body font-semibold truncate">{r.driverName}</div>
+                      <div className="text-muted-2 font-bold">{r.tripCount}</div>
+                      <div className="text-muted-2 font-bold">{r.orderCount}</div>
+                      <div className="font-extrabold text-heading">{formatSom(r.income)}</div>
+                      <div>
+                        <StatusPill status={r.status} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Mobile cards */}
+                <div className="lg:hidden">
+                  {p.rows.map((r) => (
+                    <div key={r.vehicleId} className="flex flex-col gap-1.5 px-5 py-3 border-t border-row-divider">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="bg-primary-tint rounded-md px-1.5 py-0.5 font-extrabold text-[10px] text-primary font-heading shrink-0">
+                            {r.plate}
+                          </div>
+                          <span className="text-xs text-body font-semibold truncate">{r.driverName}</span>
+                        </div>
+                        <StatusPill status={r.status} />
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-2 font-semibold">
+                          {r.tripCount} рейс · {r.orderCount} заказ
+                        </span>
+                        <span className="font-extrabold text-heading">{formatSom(r.income)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
                 {p.rows.length === 0 && <p className="text-[13px] text-muted-2 px-5 py-4">Бу даврда маълумот йўқ</p>}
               </Card>
             ))}

@@ -140,22 +140,22 @@ export default async function OwnerReportPage({
 
       <Card className="p-5">
         <div className="font-heading font-bold text-[15px] text-heading mb-4">Охирги 6 ой динамикаси</div>
-        <div className="flex items-end gap-4 h-[160px]">
+        <div className="flex items-end gap-1.5 sm:gap-4 h-[160px]">
           {trend.map((t) => (
-            <div key={t.label} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-              <div className="flex gap-1.5 items-end w-full justify-center h-full">
+            <div key={t.label} className="flex-1 min-w-0 flex flex-col items-center gap-2 h-full justify-end">
+              <div className="flex gap-1 sm:gap-1.5 items-end w-full justify-center h-full">
                 <div
-                  className="w-[18px] rounded-t-md bg-primary"
+                  className="w-[13px] sm:w-[18px] rounded-t-md bg-primary"
                   style={{ height: `${(t.income / maxTrend) * 100}%` }}
                   title={formatSom(t.income)}
                 />
                 <div
-                  className="w-[18px] rounded-t-md bg-[#C9CBE3]"
+                  className="w-[13px] sm:w-[18px] rounded-t-md bg-[#C9CBE3]"
                   style={{ height: `${(t.expense / maxTrend) * 100}%` }}
                   title={formatSom(t.expense)}
                 />
               </div>
-              <div className="text-xs text-muted-2 font-bold">{t.label}</div>
+              <div className="text-[10px] sm:text-xs text-muted-2 font-bold">{t.label}</div>
             </div>
           ))}
         </div>
