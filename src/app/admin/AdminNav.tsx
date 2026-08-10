@@ -36,7 +36,7 @@ export function AdminNavMobile({ items = NAV }: { items?: NavItem[] }) {
   const pathname = usePathname();
   return (
     <div className="lg:hidden fixed bottom-0 inset-x-0 z-10 bg-card border-t border-border">
-      <div className="flex overflow-x-auto pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex justify-between overflow-x-auto pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {items.map((item) => {
           const active = pathname.startsWith(item.href);
           return (
