@@ -5,7 +5,9 @@ import { PeriodToggle } from "@/components/ui/PeriodToggle";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { WeeklyBarChart } from "@/components/charts/WeeklyBarChart";
+import { OwnerPayoutForm } from "@/components/dashboard/OwnerPayoutForm";
 import type { OwnerDashboardVM, Period } from "@/lib/dashboard";
+import type { PointCashSummary, OwnerPayoutState } from "@/lib/ownerPayout";
 import { formatMillions, formatSom, formatTime } from "@/lib/format";
 import { logoutAction } from "@/app/actions";
 
@@ -21,6 +23,9 @@ export function FleetDashboard({
   embedded = false,
   date,
   exportHref,
+  accountantCash,
+  confirmReceiptAction,
+  recordPayoutAction,
 }: {
   vm: OwnerDashboardVM;
   period: Period;
@@ -33,6 +38,10 @@ export function FleetDashboard({
   date?: string;
   /** When set, shows an Excel download link pointed at this route (query-string-compatible with period/date). */
   exportHref?: string;
+  /** Accountant-only per-point cash data (pending confirmations + running balance). Passed only by /accountant/report — Owner/Admin omit it entirely, so this whole section renders nothing for them. */
+  accountantCash?: PointCashSummary[];
+  confirmReceiptAction?: (formData: FormData) => Promise<void>;
+  recordPayoutAction?: (prevState: OwnerPayoutState, formData: FormData) => Promise<OwnerPayoutState>;
 }) {
   const initial = userName?.[0]?.toUpperCase() ?? "?";
   const activeVehicleCount = vm.vehicles.filter((v) => v.tripCount > 0 || v.income > 0).length;
@@ -234,6 +243,62 @@ export function FleetDashboard({
                       <p className="text-xs text-muted-2">Бу даврда харажат ёзилмаган</p>
                     )}
                   </div>
+
+                  {accountantCash &&
+                    (() => {
+                      const cash = accountantCash.find((c) => c.point === p.point);
+                      if (!cash) return null;
+                      return (
+                        <div className="pt-3 border-t border-row-divider flex flex-col gap-3">
+                          {cash.pending.length > 0 && confirmReceiptAction && (
+                            <div className="flex flex-col gap-2">
+                              <div className="text-[13px] font-extrabold text-heading">
+                                Диспетчердан кутилмоқда
+                              </div>
+                              {cash.pending.map((h) => (
+                                <div
+                                  key={h.id}
+                                  className="flex items-center justify-between gap-2 bg-page rounded-xl p-2.5"
+                                >
+                                  <div>
+                                    <div className="text-xs font-bold text-heading">{formatSom(h.amount)}</div>
+                                    <div className="text-[11px] text-muted-2 font-semibold">
+                                      {h.dispatcherName} ·{" "}
+                                      {h.handoverDate.toLocaleDateString("uz-UZ", {
+                                        day: "2-digit",
+                                        month: "2-digit",
+                                      })}
+                                    </div>
+                                  </div>
+                                  <form action={confirmReceiptAction}>
+                                    <input type="hidden" name="id" value={h.id} />
+                                    <button
+                                      type="submit"
+                                      className="bg-success text-white rounded-lg px-3 py-1.5 text-xs font-extrabold whitespace-nowrap"
+                                    >
+                                      Қабул қилдим ✓
+                                    </button>
+                                  </form>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <div className="text-[11px] text-muted-2 font-bold uppercase">
+                                Эгасига берилмаган қолдиқ
+                              </div>
+                              <div className="font-heading font-extrabold text-lg text-heading">
+                                {formatSom(cash.balance)}
+                              </div>
+                            </div>
+                            {recordPayoutAction && cash.balance > 0 && (
+                              <OwnerPayoutForm point={p.point} balance={cash.balance} action={recordPayoutAction} />
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
                 </Card>
               );
             })}

@@ -13,7 +13,16 @@ const NAV = [
 
 type NavItem = { href: string; label: string; icon: string };
 
-export function AccountantNavDesktop({ extra = [], base = NAV }: { extra?: NavItem[]; base?: typeof NAV }) {
+export function AccountantNavDesktop({
+  extra = [],
+  base = NAV,
+  reportBadgeCount = 0,
+}: {
+  extra?: NavItem[];
+  base?: typeof NAV;
+  /** Pending cash-handover confirmations — a lightweight in-app "notification" since there's no push/SMS infra for this. */
+  reportBadgeCount?: number;
+}) {
   const pathname = usePathname();
   const items = [...base, ...extra];
   return (
@@ -22,18 +31,31 @@ export function AccountantNavDesktop({ extra = [], base = NAV }: { extra?: NavIt
         <Link
           key={item.href}
           href={item.href}
-          className={`px-4 py-1.5 rounded-lg text-[13px] font-bold ${
+          className={`relative px-4 py-1.5 rounded-lg text-[13px] font-bold ${
             pathname.startsWith(item.href) ? "bg-primary text-white" : "text-muted"
           }`}
         >
           {item.label}
+          {item.href === "/accountant/report" && reportBadgeCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-danger text-white text-[10px] font-extrabold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center">
+              {reportBadgeCount > 9 ? "9+" : reportBadgeCount}
+            </span>
+          )}
         </Link>
       ))}
     </nav>
   );
 }
 
-export function AccountantNavMobile({ extra = [], base = NAV }: { extra?: NavItem[]; base?: typeof NAV }) {
+export function AccountantNavMobile({
+  extra = [],
+  base = NAV,
+  reportBadgeCount = 0,
+}: {
+  extra?: NavItem[];
+  base?: typeof NAV;
+  reportBadgeCount?: number;
+}) {
   const pathname = usePathname();
   const items = [...base, ...extra];
   return (
@@ -44,10 +66,17 @@ export function AccountantNavMobile({ extra = [], base = NAV }: { extra?: NavIte
           <Link
             key={item.href}
             href={item.href}
-            className={`flex-1 text-center text-[11px] font-extrabold ${active ? "text-primary" : "text-muted-2"}`}
+            className={`relative flex-1 text-center text-[11px] font-extrabold ${active ? "text-primary" : "text-muted-2"}`}
           >
-            <div className="text-base leading-tight">{item.icon}</div>
-            {item.label}
+            <div className="relative inline-block">
+              <div className="text-base leading-tight">{item.icon}</div>
+              {item.href === "/accountant/report" && reportBadgeCount > 0 && (
+                <span className="absolute -top-1 -right-2 bg-danger text-white text-[9px] font-extrabold rounded-full min-w-[14px] h-3.5 px-1 flex items-center justify-center">
+                  {reportBadgeCount > 9 ? "9+" : reportBadgeCount}
+                </span>
+              )}
+            </div>
+            <div>{item.label}</div>
           </Link>
         );
       })}

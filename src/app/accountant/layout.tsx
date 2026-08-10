@@ -1,7 +1,8 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/app/actions";
-import { hasAnyModuleAccess, getGrantedNavLinks, getGuestNavLinks } from "@/lib/access";
+import { hasAnyModuleAccess, hasModuleAccess, getGrantedNavLinks, getGuestNavLinks } from "@/lib/access";
+import { getPendingCashHandoverCount } from "@/lib/ownerPayout";
 import { AccountantNavDesktop, AccountantNavMobile } from "./AccountantNav";
 
 export default async function AccountantLayout({ children }: { children: React.ReactNode }) {
@@ -14,6 +15,8 @@ export default async function AccountantLayout({ children }: { children: React.R
   const extra = isAccountant
     ? await getGrantedNavLinks(session.user.role, ["FLEET_DASHBOARD", "PAYROLL"])
     : await getGuestNavLinks(session.user.role);
+  const canSeeReport = isAccountant || (await hasModuleAccess(session.user.role, "FLEET_DASHBOARD"));
+  const reportBadgeCount = canSeeReport ? await getPendingCashHandoverCount() : 0;
 
   return (
     <div className="min-h-screen flex flex-col pb-16 lg:pb-0">
@@ -26,7 +29,7 @@ export default async function AccountantLayout({ children }: { children: React.R
         </div>
 
         <div className="hidden lg:block">
-          <AccountantNavDesktop extra={extra} base={isAccountant ? undefined : []} />
+          <AccountantNavDesktop extra={extra} base={isAccountant ? undefined : []} reportBadgeCount={reportBadgeCount} />
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -41,7 +44,7 @@ export default async function AccountantLayout({ children }: { children: React.R
 
       <div className="flex-1">{children}</div>
 
-      <AccountantNavMobile extra={extra} base={isAccountant ? undefined : []} />
+      <AccountantNavMobile extra={extra} base={isAccountant ? undefined : []} reportBadgeCount={reportBadgeCount} />
     </div>
   );
 }

@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hasModuleAccess } from "@/lib/access";
+import type { OwnerPayoutState } from "@/lib/ownerPayout";
+import type { Point } from "@prisma/client";
 
 export async function confirmCashReceiptAction(formData: FormData) {
   const session = await auth();
@@ -23,20 +25,43 @@ export async function confirmCashReceiptAction(formData: FormData) {
   revalidatePath("/accountant/report");
 }
 
-export async function confirmPlanReceiptAction(formData: FormData) {
+export async function recordOwnerPayoutAction(
+  _prevState: OwnerPayoutState,
+  formData: FormData
+): Promise<OwnerPayoutState> {
   const session = await auth();
   if (!session || (session.user.role !== "ACCOUNTANT" && !(await hasModuleAccess(session.user.role, "FLEET_DASHBOARD")))) {
     throw new Error("Рухсат йўқ");
   }
 
-  const id = String(formData.get("id") ?? "");
-  const handover = await prisma.planHandover.findUnique({ where: { id } });
-  if (!handover || handover.confirmedAt) return;
+  const rawPoint = String(formData.get("point") ?? "");
+  const point: Point = rawPoint === "QUVA" ? "QUVA" : "FARGONA";
+  const amount = Math.round(Number(formData.get("amount")));
+  const rawDate = String(formData.get("date") ?? "");
+  const payoutDate = rawDate ? new Date(`${rawDate}T00:00:00Z`) : new Date();
+  const note = String(formData.get("note") ?? "").trim() || null;
 
-  await prisma.planHandover.update({
-    where: { id },
-    data: { confirmedBy: session.user.id, confirmedAt: new Date() },
+  if (!(amount > 0)) return { error: "Суммани тўғри киритинг" };
+  if (Number.isNaN(payoutDate.getTime())) return { error: "Санани тўғри киритинг" };
+
+  // Re-derive the balance server-side rather than trusting anything the
+  // client could have submitted — this directly guards real cash-on-hand.
+  const [confirmedAgg, payoutAgg] = await Promise.all([
+    prisma.cashHandover.aggregate({
+      _sum: { amount: true },
+      where: { point, accountantConfirmedAt: { not: null } },
+    }),
+    prisma.ownerPayout.aggregate({ _sum: { amount: true }, where: { point } }),
+  ]);
+  const balance = Number(confirmedAgg._sum.amount ?? BigInt(0)) - Number(payoutAgg._sum.amount ?? BigInt(0));
+  if (amount > balance) {
+    return { error: `Қолдиқдан (${balance.toLocaleString("uz-UZ")} сўм) ортиқ бўлиши мумкин эмас` };
+  }
+
+  await prisma.ownerPayout.create({
+    data: { point, amount: BigInt(amount), payoutDate, note, enteredBy: session.user.id },
   });
 
   revalidatePath("/accountant/report");
+  return { error: "" };
 }
