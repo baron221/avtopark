@@ -4,7 +4,6 @@ import { useActionState, useState } from "react";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 import { formatSom } from "@/lib/format";
 import type { OwnerPayoutState } from "@/lib/ownerPayout";
-import type { Point } from "@prisma/client";
 
 const initialState: OwnerPayoutState = { error: "" };
 
@@ -15,11 +14,9 @@ const initialState: OwnerPayoutState = { error: "" };
  * comes in as a prop instead, same as DriverTripsTable's deleteAction.
  */
 export function OwnerPayoutForm({
-  point,
   balance,
   action,
 }: {
-  point: Point;
   balance: number;
   action: (prevState: OwnerPayoutState, formData: FormData) => Promise<OwnerPayoutState>;
 }) {
@@ -38,7 +35,6 @@ export function OwnerPayoutForm({
       </button>
       {expanded && (
         <form action={formAction} className="mt-2 flex flex-col gap-1.5 bg-page rounded-xl p-3 w-56">
-          <input type="hidden" name="point" value={point} />
           <label className="text-[11px] font-bold text-muted-2 uppercase">
             Сумма (қолдиқ: {formatSom(balance)})
           </label>

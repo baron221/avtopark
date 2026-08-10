@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { FleetDashboard } from "@/components/dashboard/FleetDashboard";
 import { getOwnerDashboardVM, type Period } from "@/lib/dashboard";
-import { getAccountantCashSummary } from "@/lib/ownerPayout";
+import { getCashLedgerSummary } from "@/lib/ownerPayout";
 import { hasModuleAccess } from "@/lib/access";
 import { confirmCashReceiptAction, recordOwnerPayoutAction } from "./actions";
 
@@ -35,7 +35,7 @@ export default async function AccountantReportPage({
   const { period: periodParam, date: dateParam } = await searchParams;
   const period: Period = isPeriod(periodParam) ? periodParam : "MONTH";
   const { date, dateStr } = parseDateParam(dateParam);
-  const [vm, accountantCash] = await Promise.all([getOwnerDashboardVM(period, date), getAccountantCashSummary()]);
+  const [vm, cashLedger] = await Promise.all([getOwnerDashboardVM(period, date), getCashLedgerSummary()]);
 
   return (
     <FleetDashboard
@@ -46,7 +46,7 @@ export default async function AccountantReportPage({
       embedded
       date={dateStr}
       exportHref={`/accountant/report/export/excel?period=${period}&date=${dateStr}`}
-      accountantCash={accountantCash}
+      cashLedger={cashLedger}
       confirmReceiptAction={confirmCashReceiptAction}
       recordPayoutAction={recordOwnerPayoutAction}
     />

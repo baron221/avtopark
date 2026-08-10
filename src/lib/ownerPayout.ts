@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { monthStart, monthEnd } from "@/lib/month";
+import { uzMonthName } from "@/lib/format";
 import type { Point } from "@prisma/client";
 
 export type PendingHandoverRow = {
@@ -8,10 +10,16 @@ export type PendingHandoverRow = {
   dispatcherName: string;
 };
 
+export type PointPending = {
+  point: Point;
+  pending: PendingHandoverRow[];
+};
+
 export type ConfirmedHandoverRow = {
   id: string;
   handoverDate: Date;
   amount: number;
+  point: Point;
   dispatcherName: string;
   accountantName: string;
 };
@@ -24,9 +32,12 @@ export type OwnerPayoutRow = {
   enteredByName: string;
 };
 
-export type PointCashSummary = {
-  point: Point;
-  pending: PendingHandoverRow[];
+export type CashLedgerSummary = {
+  pointPending: PointPending[];
+  /** Confirmed cash on hand, all expenses paid out of that same physical
+   * cash already deducted (see computeCashBalance) — a single company-wide
+   * figure, not split by point, since most of what it's spent on (salary,
+   * repairs, fuel-station bills, ...) isn't point-attributable. */
   balance: number;
   confirmedHistory: ConfirmedHandoverRow[];
   payoutHistory: OwnerPayoutRow[];
@@ -35,18 +46,59 @@ export type PointCashSummary = {
 export type OwnerPayoutState = { error: string };
 
 // Both history lists are capped — this is a running log that only grows,
-// and the point card isn't the place for a full unbounded ledger. Most
+// and the dashboard isn't the place for a full unbounded ledger. Most
 // recent first.
 const HISTORY_LIMIT = 15;
 
 /**
- * Deliberately not scoped to a period/date — unlike the report page's own
- * date picker, this is a running all-time cash-on-hand balance (confirmed
- * CashHandover total minus OwnerPayout total, per point), so switching the
- * date picker must not change it.
+ * The company's actual cash-on-hand: everything dispatchers have handed
+ * over and the accountant confirmed, minus everything that's physically
+ * paid out of that same cash pile — owner payouts, and every real expense
+ * the business pays in cash. Vehicle fuel is deliberately excluded from
+ * the generic Expense sum: FuelLog records an Expense the moment fuel is
+ * taken on credit from the station, not when cash actually changes hands
+ * — that only happens later via StationPayment, so counting both would
+ * double-subtract the same fuel cost. A driver's advance plus their
+ * eventually-approved net pay (which already nets the advance back out —
+ * see computeNetPay) together equal the real cash paid to that employee
+ * for the month, so summing both here doesn't double-count either.
  */
-export async function getAccountantCashSummary(): Promise<PointCashSummary[]> {
-  const [pending, confirmed, payouts, confirmedAgg, payoutAgg] = await Promise.all([
+async function computeCashBalance(): Promise<number> {
+  const [confirmedAgg, payoutAgg, expenseAgg, lunchAgg, staffExpenseAgg, advanceAgg, salaryAgg, stationPaymentAgg] =
+    await Promise.all([
+      prisma.cashHandover.aggregate({ _sum: { amount: true }, where: { accountantConfirmedAt: { not: null } } }),
+      prisma.ownerPayout.aggregate({ _sum: { amount: true } }),
+      prisma.expense.aggregate({ _sum: { amount: true }, where: { category: { not: "FUEL" } } }),
+      prisma.lunch.aggregate({ _sum: { amount: true } }),
+      prisma.staffExpense.aggregate({ _sum: { amount: true } }),
+      prisma.advance.aggregate({ _sum: { amount: true } }),
+      prisma.salary.aggregate({ _sum: { netPay: true }, where: { status: "APPROVED" } }),
+      prisma.stationPayment.aggregate({ _sum: { paidAmount: true } }),
+    ]);
+
+  const confirmed = Number(confirmedAgg._sum.amount ?? BigInt(0));
+  const paidToOwner = Number(payoutAgg._sum.amount ?? BigInt(0));
+  const expenses = Number(expenseAgg._sum.amount ?? BigInt(0));
+  const lunch = Number(lunchAgg._sum.amount ?? BigInt(0));
+  const staffExpenses = Number(staffExpenseAgg._sum.amount ?? BigInt(0));
+  const advances = Number(advanceAgg._sum.amount ?? BigInt(0));
+  const salaries = Number(salaryAgg._sum.netPay ?? BigInt(0));
+  const stationPayments = Number(stationPaymentAgg._sum.paidAmount ?? BigInt(0));
+
+  return confirmed - paidToOwner - expenses - lunch - staffExpenses - advances - salaries - stationPayments;
+}
+
+export async function getCashBalance(): Promise<number> {
+  return computeCashBalance();
+}
+
+/**
+ * Deliberately not scoped to a period/date — unlike the report page's own
+ * date picker, this is a running all-time cash-on-hand balance, so
+ * switching the date picker must not change it.
+ */
+export async function getCashLedgerSummary(): Promise<CashLedgerSummary> {
+  const [pending, confirmed, payouts, balance] = await Promise.all([
     prisma.cashHandover.findMany({
       where: { accountantConfirmedAt: null },
       orderBy: { handoverDate: "asc" },
@@ -55,24 +107,18 @@ export async function getAccountantCashSummary(): Promise<PointCashSummary[]> {
     prisma.cashHandover.findMany({
       where: { accountantConfirmedAt: { not: null } },
       orderBy: { handoverDate: "desc" },
+      take: HISTORY_LIMIT,
       include: { dispatcherConfirmedByUser: true, accountantConfirmedByUser: true },
     }),
     prisma.ownerPayout.findMany({
       orderBy: { payoutDate: "desc" },
+      take: HISTORY_LIMIT,
       include: { enteredByUser: true },
     }),
-    prisma.cashHandover.groupBy({
-      by: ["point"],
-      where: { accountantConfirmedAt: { not: null } },
-      _sum: { amount: true },
-    }),
-    prisma.ownerPayout.groupBy({ by: ["point"], _sum: { amount: true } }),
+    computeCashBalance(),
   ]);
 
-  const confirmedByPoint = new Map(confirmedAgg.map((r) => [r.point, Number(r._sum.amount ?? BigInt(0))]));
-  const paidByPoint = new Map(payoutAgg.map((r) => [r.point, Number(r._sum.amount ?? BigInt(0))]));
-
-  return (["FARGONA", "QUVA"] as const).map((point) => ({
+  const pointPending: PointPending[] = (["FARGONA", "QUVA"] as const).map((point) => ({
     point,
     pending: pending
       .filter((h) => h.point === point)
@@ -82,33 +128,83 @@ export async function getAccountantCashSummary(): Promise<PointCashSummary[]> {
         amount: Number(h.amount),
         dispatcherName: h.dispatcherConfirmedByUser.fullName,
       })),
-    balance: (confirmedByPoint.get(point) ?? 0) - (paidByPoint.get(point) ?? 0),
-    confirmedHistory: confirmed
-      .filter((h) => h.point === point)
-      .slice(0, HISTORY_LIMIT)
-      .map((h) => ({
-        id: h.id,
-        handoverDate: h.handoverDate,
-        amount: Number(h.amount),
-        dispatcherName: h.dispatcherConfirmedByUser.fullName,
-        accountantName: h.accountantConfirmedByUser?.fullName ?? "—",
-      })),
-    payoutHistory: payouts
-      .filter((p) => p.point === point)
-      .slice(0, HISTORY_LIMIT)
-      .map((p) => ({
-        id: p.id,
-        payoutDate: p.payoutDate,
-        amount: Number(p.amount),
-        note: p.note,
-        enteredByName: p.enteredByUser.fullName,
-      })),
   }));
+
+  return {
+    pointPending,
+    balance,
+    confirmedHistory: confirmed.map((h) => ({
+      id: h.id,
+      handoverDate: h.handoverDate,
+      amount: Number(h.amount),
+      point: h.point,
+      dispatcherName: h.dispatcherConfirmedByUser.fullName,
+      accountantName: h.accountantConfirmedByUser?.fullName ?? "—",
+    })),
+    payoutHistory: payouts.map((p) => ({
+      id: p.id,
+      payoutDate: p.payoutDate,
+      amount: Number(p.amount),
+      note: p.note,
+      enteredByName: p.enteredByUser.fullName,
+    })),
+  };
 }
 
 /** Lightweight count for the accountant nav badge — kept separate from
- * getAccountantCashSummary so every accountant-section page navigation
- * (which re-runs the layout) doesn't pay for the full balance computation. */
+ * getCashLedgerSummary so every accountant-section page navigation (which
+ * re-runs the layout) doesn't pay for the full ledger computation. */
 export async function getPendingCashHandoverCount(): Promise<number> {
   return prisma.cashHandover.count({ where: { accountantConfirmedAt: null } });
+}
+
+export type MonthlyPayoutPoint = { label: string; amount: number };
+
+/** For the Owner's dashboard — how much they've actually received, month by
+ * month. Read-only (no confirm/payout actions for Owner, that's the
+ * accountant's job); this is purely visibility into money already paid. */
+export async function getOwnerPayoutTrend(monthsBack = 6): Promise<MonthlyPayoutPoint[]> {
+  const now = new Date();
+  const currentMonthStart = monthStart(now);
+  const rangeFrom = new Date(
+    Date.UTC(currentMonthStart.getUTCFullYear(), currentMonthStart.getUTCMonth() - (monthsBack - 1), 1)
+  );
+
+  const payouts = await prisma.ownerPayout.findMany({
+    where: { payoutDate: { gte: rangeFrom } },
+    select: { payoutDate: true, amount: true },
+  });
+
+  const monthIndex = (date: Date) =>
+    (date.getUTCFullYear() - rangeFrom.getUTCFullYear()) * 12 + (date.getUTCMonth() - rangeFrom.getUTCMonth());
+
+  const amounts = new Array(monthsBack).fill(0);
+  for (const p of payouts) {
+    const i = monthIndex(p.payoutDate);
+    if (i >= 0 && i < monthsBack) amounts[i] += Number(p.amount);
+  }
+
+  return amounts.map((amount, i) => {
+    const d = new Date(Date.UTC(rangeFrom.getUTCFullYear(), rangeFrom.getUTCMonth() + i, 1));
+    return { label: uzMonthName(d), amount };
+  });
+}
+
+export async function getOwnerPayoutMonthSummary(): Promise<{ thisMonth: number; lastMonth: number }> {
+  const now = new Date();
+  const thisStart = monthStart(now);
+  const thisEnd = monthEnd(now);
+  const lastMonthDate = new Date(Date.UTC(thisStart.getUTCFullYear(), thisStart.getUTCMonth() - 1, 1));
+  const lastStart = monthStart(lastMonthDate);
+  const lastEnd = monthEnd(lastMonthDate);
+
+  const [thisAgg, lastAgg] = await Promise.all([
+    prisma.ownerPayout.aggregate({ _sum: { amount: true }, where: { payoutDate: { gte: thisStart, lte: thisEnd } } }),
+    prisma.ownerPayout.aggregate({ _sum: { amount: true }, where: { payoutDate: { gte: lastStart, lte: lastEnd } } }),
+  ]);
+
+  return {
+    thisMonth: Number(thisAgg._sum.amount ?? BigInt(0)),
+    lastMonth: Number(lastAgg._sum.amount ?? BigInt(0)),
+  };
 }

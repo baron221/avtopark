@@ -8,7 +8,7 @@ import { WeeklyBarChart } from "@/components/charts/WeeklyBarChart";
 import { OwnerPayoutForm } from "@/components/dashboard/OwnerPayoutForm";
 import { CashHistorySection } from "@/components/dashboard/CashHistorySection";
 import type { OwnerDashboardVM, Period } from "@/lib/dashboard";
-import type { PointCashSummary, OwnerPayoutState } from "@/lib/ownerPayout";
+import type { CashLedgerSummary, OwnerPayoutState, MonthlyPayoutPoint } from "@/lib/ownerPayout";
 import { formatMillions, formatSom, formatTime } from "@/lib/format";
 import { logoutAction } from "@/app/actions";
 
@@ -24,9 +24,10 @@ export function FleetDashboard({
   embedded = false,
   date,
   exportHref,
-  accountantCash,
+  cashLedger,
   confirmReceiptAction,
   recordPayoutAction,
+  ownerPayoutSummary,
 }: {
   vm: OwnerDashboardVM;
   period: Period;
@@ -39,10 +40,12 @@ export function FleetDashboard({
   date?: string;
   /** When set, shows an Excel download link pointed at this route (query-string-compatible with period/date). */
   exportHref?: string;
-  /** Accountant-only per-point cash data (pending confirmations + running balance). Passed only by /accountant/report — Owner/Admin omit it entirely, so this whole section renders nothing for them. */
-  accountantCash?: PointCashSummary[];
+  /** Accountant-only cash data (pending confirmations per point + a combined running balance/history). Passed only by /accountant/report — Owner/Admin omit it entirely, so this whole section renders nothing for them. */
+  cashLedger?: CashLedgerSummary;
   confirmReceiptAction?: (formData: FormData) => Promise<void>;
   recordPayoutAction?: (prevState: OwnerPayoutState, formData: FormData) => Promise<OwnerPayoutState>;
+  /** Owner-only, read-only view of what's actually been paid out to them — passed only by /owner. */
+  ownerPayoutSummary?: { thisMonth: number; lastMonth: number; trend: MonthlyPayoutPoint[] };
 }) {
   const initial = userName?.[0]?.toUpperCase() ?? "?";
   const activeVehicleCount = vm.vehicles.filter((v) => v.tripCount > 0 || v.income > 0).length;
@@ -245,68 +248,95 @@ export function FleetDashboard({
                     )}
                   </div>
 
-                  {accountantCash &&
+                  {cashLedger &&
+                    confirmReceiptAction &&
                     (() => {
-                      const cash = accountantCash.find((c) => c.point === p.point);
-                      if (!cash) return null;
+                      const pointPending = cashLedger.pointPending.find((c) => c.point === p.point);
+                      if (!pointPending || pointPending.pending.length === 0) return null;
                       return (
-                        <div className="pt-3 border-t border-row-divider flex flex-col gap-3">
-                          {cash.pending.length > 0 && confirmReceiptAction && (
-                            <div className="flex flex-col gap-2">
-                              <div className="text-[13px] font-extrabold text-heading">
-                                Диспетчердан кутилмоқда
-                              </div>
-                              {cash.pending.map((h) => (
-                                <div
-                                  key={h.id}
-                                  className="flex items-center justify-between gap-2 bg-page rounded-xl p-2.5"
-                                >
-                                  <div>
-                                    <div className="text-xs font-bold text-heading">{formatSom(h.amount)}</div>
-                                    <div className="text-[11px] text-muted-2 font-semibold">
-                                      {h.dispatcherName} ·{" "}
-                                      {h.handoverDate.toLocaleDateString("uz-UZ", {
-                                        day: "2-digit",
-                                        month: "2-digit",
-                                      })}
-                                    </div>
-                                  </div>
-                                  <form action={confirmReceiptAction}>
-                                    <input type="hidden" name="id" value={h.id} />
-                                    <button
-                                      type="submit"
-                                      className="bg-success text-white rounded-lg px-3 py-1.5 text-xs font-extrabold whitespace-nowrap"
-                                    >
-                                      Қабул қилдим ✓
-                                    </button>
-                                  </form>
+                        <div className="pt-3 border-t border-row-divider flex flex-col gap-2">
+                          <div className="text-[13px] font-extrabold text-heading">Диспетчердан кутилмоқда</div>
+                          {pointPending.pending.map((h) => (
+                            <div key={h.id} className="flex items-center justify-between gap-2 bg-page rounded-xl p-2.5">
+                              <div>
+                                <div className="text-xs font-bold text-heading">{formatSom(h.amount)}</div>
+                                <div className="text-[11px] text-muted-2 font-semibold">
+                                  {h.dispatcherName} ·{" "}
+                                  {h.handoverDate.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" })}
                                 </div>
-                              ))}
-                            </div>
-                          )}
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <div className="text-[11px] text-muted-2 font-bold uppercase">
-                                Эгасига берилмаган қолдиқ
                               </div>
-                              <div className="font-heading font-extrabold text-lg text-heading">
-                                {formatSom(cash.balance)}
-                              </div>
+                              <form action={confirmReceiptAction}>
+                                <input type="hidden" name="id" value={h.id} />
+                                <button
+                                  type="submit"
+                                  className="bg-success text-white rounded-lg px-3 py-1.5 text-xs font-extrabold whitespace-nowrap"
+                                >
+                                  Қабул қилдим ✓
+                                </button>
+                              </form>
                             </div>
-                            {recordPayoutAction && cash.balance > 0 && (
-                              <OwnerPayoutForm point={p.point} balance={cash.balance} action={recordPayoutAction} />
-                            )}
-                          </div>
-                          <CashHistorySection
-                            confirmedHistory={cash.confirmedHistory}
-                            payoutHistory={cash.payoutHistory}
-                          />
+                          ))}
                         </div>
                       );
                     })()}
                 </Card>
               );
             })}
+          </div>
+        )}
+
+        {/* Combined cash-on-hand — not split by point since most of what
+            it's spent on (salary, repairs, fuel-station bills, ...) isn't
+            point-attributable either. Accountant-only. */}
+        {cashLedger && (
+          <Card className="p-6 flex flex-col gap-3.5">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <div className="text-[11px] text-muted-2 font-bold uppercase">
+                  Эгасига берилмаган қолдиқ (харажатлардан кейин)
+                </div>
+                <div className="font-heading font-extrabold text-2xl text-heading">
+                  {formatSom(cashLedger.balance)}
+                </div>
+              </div>
+              {recordPayoutAction && cashLedger.balance > 0 && (
+                <OwnerPayoutForm balance={cashLedger.balance} action={recordPayoutAction} />
+              )}
+            </div>
+            <CashHistorySection
+              confirmedHistory={cashLedger.confirmedHistory}
+              payoutHistory={cashLedger.payoutHistory}
+            />
+          </Card>
+        )}
+
+        {/* Owner-only, read-only view of money already received. */}
+        {ownerPayoutSummary && (
+          <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-4">
+            <div className="grid grid-cols-2 gap-4">
+              <KpiCard label="Бу ой қабул қилинди" value={formatMillions(ownerPayoutSummary.thisMonth)} />
+              <KpiCard label="Ўтган ой қабул қилинди" value={formatMillions(ownerPayoutSummary.lastMonth)} />
+            </div>
+            <Card className="p-6">
+              <div className="font-heading font-bold text-base text-heading mb-4">
+                Қабул қилинган пул · 6 ой динамикаси
+              </div>
+              <div className="flex items-end gap-4 h-[120px]">
+                {ownerPayoutSummary.trend.map((t) => {
+                  const max = Math.max(1, ...ownerPayoutSummary.trend.map((x) => x.amount));
+                  return (
+                    <div key={t.label} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+                      <div
+                        className="w-[18px] rounded-t-md bg-primary"
+                        style={{ height: `${(t.amount / max) * 100}%` }}
+                        title={formatSom(t.amount)}
+                      />
+                      <div className="text-xs text-muted-2 font-bold">{t.label}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
           </div>
         )}
 

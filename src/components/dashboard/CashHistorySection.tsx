@@ -4,6 +4,8 @@ import { useState } from "react";
 import { formatSom } from "@/lib/format";
 import type { ConfirmedHandoverRow, OwnerPayoutRow } from "@/lib/ownerPayout";
 
+const POINT_LABELS: Record<string, string> = { FARGONA: "Фарғона", QUVA: "Қува" };
+
 export function CashHistorySection({
   confirmedHistory,
   payoutHistory,
@@ -32,7 +34,7 @@ export function CashHistorySection({
               <div key={h.id} className="flex items-center justify-between gap-2 text-xs">
                 <span className="text-muted-2 font-semibold">
                   {h.handoverDate.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" })} ·{" "}
-                  {h.dispatcherName} → {h.accountantName}
+                  {POINT_LABELS[h.point] ?? h.point} · {h.dispatcherName} → {h.accountantName}
                 </span>
                 <span className="font-bold text-heading whitespace-nowrap">{formatSom(h.amount)}</span>
               </div>

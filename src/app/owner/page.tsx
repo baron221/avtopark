@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { FleetDashboard } from "@/components/dashboard/FleetDashboard";
 import { getOwnerDashboardVM, type Period } from "@/lib/dashboard";
+import { getOwnerPayoutMonthSummary, getOwnerPayoutTrend } from "@/lib/ownerPayout";
 import { hasModuleAccess } from "@/lib/access";
 
 function isPeriod(value: string | undefined): value is Period {
@@ -20,9 +21,21 @@ export default async function OwnerPage({
 
   const { period: periodParam } = await searchParams;
   const period: Period = isPeriod(periodParam) ? periodParam : "MONTH";
-  const vm = await getOwnerDashboardVM(period);
+  const [vm, monthSummary, trend] = await Promise.all([
+    getOwnerDashboardVM(period),
+    // Personal payout data — only the real Owner sees it, not a granted role.
+    isOwner ? getOwnerPayoutMonthSummary() : Promise.resolve(null),
+    isOwner ? getOwnerPayoutTrend(6) : Promise.resolve(null),
+  ]);
 
   return (
-    <FleetDashboard vm={vm} period={period} basePath="/owner" userName={session.user.name ?? "Эгаси"} embedded />
+    <FleetDashboard
+      vm={vm}
+      period={period}
+      basePath="/owner"
+      userName={session.user.name ?? "Эгаси"}
+      embedded
+      ownerPayoutSummary={monthSummary && trend ? { ...monthSummary, trend } : undefined}
+    />
   );
 }

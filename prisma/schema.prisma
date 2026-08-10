@@ -604,15 +604,15 @@ model CashHandover {
 }
 
 // The accountant's confirmed CashHandover cash isn't handed to the real
-// business owner immediately — it accumulates per point until the
-// accountant physically pays it out. This is that payout record: a single
-// accountant-entered fact (no two-sided confirm, unlike CashHandover),
-// since there's no second party confirming a payout to the owner. The
-// balance it reduces is a derived figure (confirmed CashHandover total
-// minus this table's total per point), not stored anywhere directly.
+// business owner immediately — it's a shared cash pool (not split by
+// point, since most expenses paid out of it aren't point-attributable
+// either) that accumulates until the accountant physically pays it out.
+// This is that payout record: a single accountant-entered fact (no
+// two-sided confirm, unlike CashHandover), since there's no second party
+// confirming a payout to the owner. The balance it reduces is a derived
+// figure (see getCashLedgerSummary), not stored anywhere directly.
 model OwnerPayout {
   id         String   @id @default(uuid())
-  point      Point
   amount     BigInt
   payoutDate DateTime @map("payout_date")
   note       String?
@@ -621,7 +621,7 @@ model OwnerPayout {
 
   enteredByUser User @relation("OwnerPayoutEnteredBy", fields: [enteredBy], references: [id])
 
-  @@index([point, payoutDate])
+  @@index([payoutDate])
   @@map("owner_payouts")
 }
 
