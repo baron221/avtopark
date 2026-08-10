@@ -9,9 +9,11 @@ const POINT_LABELS: Record<string, string> = { FARGONA: "Фарғона", QUVA: 
 export function CashHistorySection({
   confirmedHistory,
   payoutHistory,
+  revertReceiptAction,
 }: {
   confirmedHistory: ConfirmedHandoverRow[];
   payoutHistory: OwnerPayoutRow[];
+  revertReceiptAction?: (formData: FormData) => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -37,7 +39,22 @@ export function CashHistorySection({
                   {POINT_LABELS[h.point] ?? h.point} · {h.dispatcherName} → {h.accountantName}
                   {h.note ? ` · Сабаб: ${h.note}` : ""}
                 </span>
-                <span className="font-bold text-heading whitespace-nowrap">{formatSom(h.amount)}</span>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="font-bold text-heading whitespace-nowrap">{formatSom(h.amount)}</span>
+                  {revertReceiptAction && (
+                    <form
+                      action={revertReceiptAction}
+                      onSubmit={(e) => {
+                        if (!window.confirm("Қабул қилинганини бекор қиламизми?")) e.preventDefault();
+                      }}
+                    >
+                      <input type="hidden" name="id" value={h.id} />
+                      <button type="submit" className="text-danger text-[11px] font-bold hover:underline whitespace-nowrap">
+                        Бекор қилиш
+                      </button>
+                    </form>
+                  )}
+                </div>
               </div>
             ))}
             {confirmedHistory.length === 0 && <p className="text-xs text-muted-2">Ҳали йўқ</p>}

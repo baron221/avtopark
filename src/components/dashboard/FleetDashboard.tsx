@@ -27,6 +27,7 @@ export function FleetDashboard({
   exportHref,
   cashLedger,
   confirmReceiptAction,
+  revertReceiptAction,
   recordPayoutAction,
   setOpeningBalanceAction,
   ownerPayoutSummary,
@@ -45,6 +46,7 @@ export function FleetDashboard({
   /** Accountant-only cash data (pending confirmations per point + a combined running balance/history). Passed only by /accountant/report — Owner/Admin omit it entirely, so this whole section renders nothing for them. */
   cashLedger?: CashLedgerSummary;
   confirmReceiptAction?: (formData: FormData) => Promise<void>;
+  revertReceiptAction?: (formData: FormData) => Promise<void>;
   recordPayoutAction?: (prevState: OwnerPayoutState, formData: FormData) => Promise<OwnerPayoutState>;
   setOpeningBalanceAction?: (prevState: OwnerPayoutState, formData: FormData) => Promise<OwnerPayoutState>;
   /** Owner-only, read-only view of what's actually been paid out to them — passed only by /owner. */
@@ -335,6 +337,7 @@ export function FleetDashboard({
             <CashHistorySection
               confirmedHistory={cashLedger.confirmedHistory}
               payoutHistory={cashLedger.payoutHistory}
+              revertReceiptAction={revertReceiptAction}
             />
           </Card>
         )}

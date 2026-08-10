@@ -24,6 +24,28 @@ export async function confirmCashReceiptAction(formData: FormData) {
   revalidatePath("/accountant/report");
 }
 
+/** Undoes an accidental "Қабул қилдим" click — back to pending (unconfirmed),
+ * so it reappears in the pending list and drops back out of the confirmed
+ * cash balance. The dispatcher's own handover record and any note on it are
+ * untouched, only the accountant's confirmation. */
+export async function revertCashReceiptAction(formData: FormData) {
+  const session = await auth();
+  if (!session || (session.user.role !== "ACCOUNTANT" && !(await hasModuleAccess(session.user.role, "FLEET_DASHBOARD")))) {
+    throw new Error("Рухсат йўқ");
+  }
+
+  const id = String(formData.get("id") ?? "");
+  const handover = await prisma.cashHandover.findUnique({ where: { id } });
+  if (!handover || !handover.accountantConfirmedAt) return;
+
+  await prisma.cashHandover.update({
+    where: { id },
+    data: { accountantConfirmedBy: null, accountantConfirmedAt: null },
+  });
+
+  revalidatePath("/accountant/report");
+}
+
 export async function recordOwnerPayoutAction(
   _prevState: OwnerPayoutState,
   formData: FormData
