@@ -10,8 +10,14 @@ import { getActivePoint } from "@/lib/activePoint";
 import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 import { IncomeForm } from "../journal/IncomeForm";
 import { DriverTripsTable, type DriverGroup } from "./DriverTripsTable";
-import { deleteTripAction, confirmCashHandoverAction, confirmCashHandoverWithAdjustmentAction } from "../actions";
+import {
+  deleteTripAction,
+  confirmCashHandoverAction,
+  confirmCashHandoverWithAdjustmentAction,
+  cancelCashHandoverAction,
+} from "../actions";
 import { HandoverForm } from "./HandoverForm";
+import { CancelHandoverButton } from "./CancelHandoverButton";
 import type { Point } from "@prisma/client";
 
 function startOfDay(d: Date) {
@@ -72,7 +78,7 @@ export default async function DispatcherPointPage({
       prisma.cashHandover.findUnique({ where: { point_handoverDate: { point, handoverDate: from } } }),
       // Point-wide (not just this dispatcher's own) — matches exactly what
       // confirmCashHandoverAction nets out, so this display never disagrees
-      // with what clicking "Топширдим" actually records.
+      // with what clicking "Топшириш" actually records.
       prisma.staffExpense.aggregate({
         _sum: { amount: true },
         where: { point: staffExpensePoint, expenseDate: { gte: from, lte: to } },
@@ -209,9 +215,12 @@ export default async function DispatcherPointPage({
           />
         )}
         {todaysHandover && !todaysHandover.accountantConfirmedAt && (
-          <span className="bg-primary-tint text-primary text-xs font-extrabold px-3 py-1.5 rounded-full">
-            Буxгалтер тасдиғини кутмоқда
-          </span>
+          <div className="flex items-center gap-2.5">
+            <span className="bg-primary-tint text-primary text-xs font-extrabold px-3 py-1.5 rounded-full whitespace-nowrap">
+              Буxгалтер тасдиғини кутмоқда
+            </span>
+            <CancelHandoverButton action={cancelCashHandoverAction} point={!isDispatcher ? point : undefined} />
+          </div>
         )}
         {todaysHandover?.accountantConfirmedAt && (
           <span className="bg-success/10 text-success text-xs font-extrabold px-3 py-1.5 rounded-full">

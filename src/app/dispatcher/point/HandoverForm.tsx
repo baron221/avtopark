@@ -42,7 +42,7 @@ export function HandoverForm({
         {state.error && <p className="text-[11px] text-danger font-semibold">{state.error}</p>}
         <div className="flex gap-1.5">
           <button type="submit" className="flex-1 bg-success text-white rounded-md px-2.5 py-1.5 text-xs font-extrabold">
-            Топширдим ✓
+            Топшириш ✓
           </button>
           <button
             type="button"
@@ -68,7 +68,7 @@ export function HandoverForm({
       <form action={action}>
         {point && <input type="hidden" name="point" value={point} />}
         <button type="submit" className="bg-success text-white rounded-[10px] px-5 py-2.5 font-extrabold text-[13px]">
-          Топширдим ✓
+          Топшириш ✓
         </button>
       </form>
     </div>

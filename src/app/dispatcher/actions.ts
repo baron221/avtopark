@@ -227,6 +227,31 @@ export async function confirmCashHandoverWithAdjustmentAction(
   return createTodaysHandover(userId, point, BigInt(Math.round(rawAmount)), note);
 }
 
+/** Undoes an accidental "Топшириш" click — only while the accountant hasn't
+ * confirmed receipt yet, since after that the cash has genuinely already
+ * changed hands and been counted on their end; undoing at that point would
+ * desync from reality rather than fix a mistake. */
+export async function cancelCashHandoverAction(formData: FormData) {
+  const { userId, point } = await requireDispatcherOrGranted(formData, ["TRIP_ENTRY", "COLLECT_PAYMENT"]);
+
+  const today = startOfDay(new Date());
+  const handover = await prisma.cashHandover.findUnique({
+    where: { point_handoverDate: { point, handoverDate: today } },
+  });
+  if (!handover || handover.accountantConfirmedAt) return;
+
+  await logDeletion(
+    "CashHandover",
+    handover.id,
+    `${POINT_LABELS[point]} · ${handover.amount.toString()} сўм${handover.note ? ` · ${handover.note}` : ""}`,
+    userId
+  );
+  await prisma.cashHandover.delete({ where: { id: handover.id } });
+
+  revalidatePath("/dispatcher/point");
+  revalidatePath("/accountant/report");
+}
+
 export type UpdateTripState = { error: string };
 
 export async function updateTripAction(
