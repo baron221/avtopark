@@ -119,6 +119,12 @@ export function IncomeForm({
               required
               className="bg-page border-2 border-border rounded-xl px-3.5 py-2.5 text-sm font-semibold text-heading outline-none focus:border-success"
             />
+            <input
+              name="phone"
+              type="tel"
+              placeholder="Телефон рақами (ихтиёрий)"
+              className="bg-page border-2 border-border rounded-xl px-3.5 py-2.5 text-sm font-semibold text-heading outline-none focus:border-success"
+            />
           </>
         ) : (
           <>

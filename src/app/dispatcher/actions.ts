@@ -9,6 +9,7 @@ import { hasAnyModuleAccess, type ModuleKey } from "@/lib/access";
 import { logDeletion } from "@/lib/deletionLog";
 import { sendSms } from "@/lib/sms";
 import { formatTime } from "@/lib/format";
+import { normalizePhone } from "@/lib/phone";
 import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 import { ACTIVE_POINT_COOKIE, getActivePoint } from "@/lib/activePoint";
 import { OTHER_INCOME_CATEGORIES, OTHER_INCOME_CATEGORY_LABELS } from "@/lib/otherIncome";
@@ -159,6 +160,7 @@ export async function addOtherIncomeAction(formData: FormData) {
     : "BOSHQA";
   const amount = Number(formData.get("amount") ?? 0);
   const note = String(formData.get("note") ?? "").trim();
+  const phone = normalizePhone(String(formData.get("phone") ?? "").trim()) || null;
   if (!(amount > 0) || !note) return;
 
   await prisma.otherIncome.create({
@@ -167,6 +169,7 @@ export async function addOtherIncomeAction(formData: FormData) {
       category,
       amount: BigInt(Math.round(amount)),
       note,
+      phone,
       incomeDate: new Date(),
       enteredBy: userId,
     },
@@ -502,7 +505,7 @@ export async function deleteOtherIncomeAction(formData: FormData) {
   await logDeletion(
     "OtherIncome",
     income.id,
-    `${OTHER_INCOME_CATEGORY_LABELS[income.category]} · ${income.amount.toString()} сўм · ${income.note}`,
+    `${OTHER_INCOME_CATEGORY_LABELS[income.category]} · ${income.amount.toString()} сўм · ${income.note}${income.phone ? ` · ${income.phone}` : ""}`,
     userId
   );
   await prisma.otherIncome.delete({ where: { id } });
