@@ -9,7 +9,10 @@ import { getActivePoint } from "@/lib/activePoint";
 import { ExpenseForm } from "./ExpenseForm";
 import { DeleteEntryButton } from "./DeleteEntryButton";
 import { deleteTripAction, deleteStaffExpenseAction, deleteLunchAction, deleteOtherIncomeAction } from "../actions";
+import { addExternalVehicleAction, deleteExternalVehicleAction } from "@/app/actions";
 import { OTHER_INCOME_CATEGORY_LABELS } from "@/lib/otherIncome";
+import { getExternalVehicles } from "@/lib/externalVehicle";
+import { ExternalVehicleManager } from "@/components/ExternalVehicleManager";
 import type { Point } from "@prisma/client";
 
 function startOfDay(d: Date) {
@@ -54,7 +57,7 @@ export default async function DispatcherJournalPage({
   const from = startOfDay(today);
   const to = endOfDay(today);
 
-  const [trips, otherIncomes, expenses, lunches, drivers, dispatchers] = await Promise.all([
+  const [trips, otherIncomes, expenses, lunches, drivers, dispatchers, externalVehicles] = await Promise.all([
     prisma.trip.findMany({
       where: { tripDate: { gte: from, lte: to }, point },
       include: { vehicle: true },
@@ -76,6 +79,7 @@ export default async function DispatcherJournalPage({
       where: { role: "DISPATCHER", isActive: true },
       orderBy: { fullName: "asc" },
     }),
+    getExternalVehicles(),
   ]);
 
   const lunchPeople = [
@@ -195,7 +199,16 @@ export default async function DispatcherJournalPage({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4 items-start">
-        {canIncomeExpense && <ExpenseForm point={isDispatcher ? undefined : point} people={lunchPeople} />}
+        <div className="flex flex-col gap-4">
+          {canIncomeExpense && <ExpenseForm point={isDispatcher ? undefined : point} people={lunchPeople} />}
+          {canIncomeExpense && (
+            <ExternalVehicleManager
+              vehicles={externalVehicles}
+              addAction={addExternalVehicleAction}
+              deleteAction={deleteExternalVehicleAction}
+            />
+          )}
+        </div>
 
         <Card className="overflow-hidden hidden lg:block">
           <div className="px-5 py-3.5 font-heading font-bold text-[15px] text-heading">Бугунги журнал</div>

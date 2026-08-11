@@ -8,6 +8,9 @@ import { DEFAULT_PAGE_SIZE, parsePage, paginationSkip, totalPages } from "@/lib/
 import { getOwnerDashboardVM } from "@/lib/dashboard";
 import { formatSom } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
+import { getExternalVehicles } from "@/lib/externalVehicle";
+import { ExternalVehicleManager } from "@/components/ExternalVehicleManager";
+import { addExternalVehicleAction, deleteExternalVehicleAction } from "@/app/actions";
 
 const FILTERS = [
   { key: "ALL", label: "Барчаси" },
@@ -31,7 +34,7 @@ export default async function MechanicVehiclesPage({
   const status = FILTERS.some((f) => f.key === statusParam) ? statusParam! : "ALL";
   const page = parsePage(pageParam);
 
-  const vm = await getOwnerDashboardVM("MONTH");
+  const [vm, externalVehicles] = await Promise.all([getOwnerDashboardVM("MONTH"), getExternalVehicles()]);
   const filteredVehicles = status === "ALL" ? vm.vehicles : vm.vehicles.filter((v) => v.status === status);
   const skip = paginationSkip(page);
   const vehicles = filteredVehicles.slice(skip, skip + DEFAULT_PAGE_SIZE);
@@ -105,6 +108,14 @@ export default async function MechanicVehiclesPage({
         {vehicles.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Бу филтрга мос машина йўқ</p>}
         <Pagination page={page} totalPages={pages} basePath="/mechanic/vehicles" params={{ status }} />
       </Card>
+
+      <div className="max-w-[420px] w-full">
+        <ExternalVehicleManager
+          vehicles={externalVehicles}
+          addAction={addExternalVehicleAction}
+          deleteAction={deleteExternalVehicleAction}
+        />
+      </div>
     </div>
   );
 }

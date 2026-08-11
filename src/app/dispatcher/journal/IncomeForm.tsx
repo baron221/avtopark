@@ -17,6 +17,7 @@ export function IncomeForm({
   point,
   todayStr,
   monthStartStr,
+  externalVehiclePlates,
 }: {
   vehicles: VehicleOption[];
   baseFare: number;
@@ -25,6 +26,10 @@ export function IncomeForm({
   /** ISO yyyy-mm-dd — bounds for the optional backdate picker below. */
   todayStr: string;
   monthStartStr: string;
+  /** Known non-fleet payers (see ExternalVehicleManager) — offered as
+   * autocomplete suggestions, not a closed list: a one-off payer never
+   * added there must still be typeable. */
+  externalVehiclePlates: string[];
 }) {
   const router = useRouter();
   const [kind, setKind] = useState<Kind>("TRIP");
@@ -153,9 +158,16 @@ export function IncomeForm({
             />
             <input
               name="plateNumber"
+              list="external-vehicle-plates"
+              autoComplete="off"
               placeholder="Машина рақами (масалан: 40 296 RCA)"
               className="bg-page border-2 border-border rounded-xl px-3.5 py-2.5 text-sm font-semibold text-heading outline-none focus:border-success"
             />
+            <datalist id="external-vehicle-plates">
+              {externalVehiclePlates.map((p) => (
+                <option key={p} value={p} />
+              ))}
+            </datalist>
             <input
               name="note"
               placeholder="Изоҳ (ихтиёрий)"

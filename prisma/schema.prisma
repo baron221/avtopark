@@ -140,6 +140,7 @@ model User {
   driver         Driver?
   enteredTrips     Trip[]           @relation("TripEnteredBy")
   enteredOtherIncomes OtherIncome[] @relation("OtherIncomeEnteredBy")
+  externalVehiclesCreated ExternalVehicle[] @relation("ExternalVehicleCreatedBy")
   enteredExpenses  Expense[]        @relation("ExpenseEnteredBy")
   finesReceived    Fine[]           @relation("FineUser")
   finesEntered     Fine[]           @relation("FineEnteredBy")
@@ -341,6 +342,22 @@ model OtherIncome {
 
   @@index([point, incomeDate])
   @@map("other_incomes")
+}
+
+// A known non-fleet vehicle that regularly pays the company (see
+// OtherIncome) — lets the plate number field autocomplete instead of being
+// typed fresh every time. Not a foreign key from OtherIncome (that stays a
+// free-text plateNumber) since a one-off payer that's never added here must
+// still be enterable.
+model ExternalVehicle {
+  id        String   @id @default(uuid())
+  plate     String   @unique
+  createdBy String   @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  createdByUser User @relation("ExternalVehicleCreatedBy", fields: [createdBy], references: [id])
+
+  @@map("external_vehicles")
 }
 
 model DailyPlan {

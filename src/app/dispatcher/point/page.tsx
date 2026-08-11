@@ -8,6 +8,7 @@ import { formatSom } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
 import { getActivePoint } from "@/lib/activePoint";
 import { monthStart } from "@/lib/month";
+import { getExternalVehicles } from "@/lib/externalVehicle";
 import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 import { IncomeForm } from "../journal/IncomeForm";
 import { DriverTripsTable, type DriverGroup } from "./DriverTripsTable";
@@ -67,6 +68,7 @@ export default async function DispatcherPointPage({
     todaysHandover,
     pointExpenseAgg,
     pointLunchAgg,
+    externalVehicles,
   ] = await Promise.all([
     // The fleet is shared between both points (the same vehicles shuttle
     // Farg'ona <-> Quva), so every point's dispatcher picks from the whole
@@ -97,6 +99,7 @@ export default async function DispatcherPointPage({
       where: { point: staffExpensePoint, expenseDate: { gte: from, lte: to } },
     }),
     prisma.lunch.aggregate({ _sum: { amount: true }, where: { point, lunchDate: { gte: from, lte: to } } }),
+    getExternalVehicles(),
   ]);
 
   const otherIncomeTotal = otherIncomeToday.reduce((s, i) => s + Number(i.amount), 0);
@@ -187,6 +190,7 @@ export default async function DispatcherPointPage({
           point={isDispatcher ? undefined : point}
           todayStr={todayStr}
           monthStartStr={monthStartStr}
+          externalVehiclePlates={externalVehicles.map((v) => v.plate)}
         />
         <p className="text-xs text-muted-2 font-semibold text-center pt-3">
           Расход ва обед қўшиш учун{" "}
