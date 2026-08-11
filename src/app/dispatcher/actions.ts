@@ -191,9 +191,9 @@ export async function addOtherIncomeAction(formData: FormData) {
     ? (rawCategory as OtherIncomeCategory)
     : "BOSHQA";
   const amount = Number(formData.get("amount") ?? 0);
-  const note = String(formData.get("note") ?? "").trim();
+  const note = String(formData.get("note") ?? "").trim() || null;
   const plateNumber = String(formData.get("plateNumber") ?? "").trim() || null;
-  if (!(amount > 0) || !note) return;
+  if (!(amount > 0)) return;
 
   const now = new Date();
   const incomeDate = parseBackdate(formData, now) ?? now;
@@ -539,7 +539,7 @@ export async function deleteOtherIncomeAction(formData: FormData) {
   await logDeletion(
     "OtherIncome",
     income.id,
-    `${OTHER_INCOME_CATEGORY_LABELS[income.category]} · ${income.amount.toString()} сўм · ${income.note}${income.plateNumber ? ` · ${income.plateNumber}` : ""}`,
+    `${OTHER_INCOME_CATEGORY_LABELS[income.category]} · ${income.amount.toString()} сўм${income.plateNumber ? ` · ${income.plateNumber}` : ""}${income.note ? ` · ${income.note}` : ""}`,
     userId
   );
   await prisma.otherIncome.delete({ where: { id } });

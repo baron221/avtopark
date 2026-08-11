@@ -324,14 +324,14 @@ model Trip {
 
 // Income from a vehicle that isn't part of the company's own fleet — it has
 // no vehicleId/driverId to attach to (unlike Trip), since those vehicles
-// don't exist in this system at all. note carries whatever identifies the
-// vehicle/payer instead, so it's required rather than optional.
+// don't exist in this system at all. plateNumber is the primary identifier;
+// note is just a free-text comment on top of it, so both are optional.
 model OtherIncome {
   id         String              @id @default(uuid())
   point      Point
   category   OtherIncomeCategory @default(BOSHQA)
   amount     BigInt
-  note       String
+  note       String?
   plateNumber String?            @map("plate_number")
   incomeDate DateTime            @map("income_date")
   enteredBy  String              @map("entered_by")

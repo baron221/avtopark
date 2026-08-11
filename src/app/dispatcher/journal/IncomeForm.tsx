@@ -152,14 +152,13 @@ export function IncomeForm({
               className="bg-page border-2 border-success rounded-xl px-3.5 py-3 font-heading text-xl font-bold text-heading outline-none"
             />
             <input
-              name="note"
-              placeholder="Қайси машина/ким учун (мажбурий)"
-              required
+              name="plateNumber"
+              placeholder="Машина рақами (масалан: 40 296 RCA)"
               className="bg-page border-2 border-border rounded-xl px-3.5 py-2.5 text-sm font-semibold text-heading outline-none focus:border-success"
             />
             <input
-              name="plateNumber"
-              placeholder="Машина рақами (масалан: 40 296 RCA)"
+              name="note"
+              placeholder="Изоҳ (ихтиёрий)"
               className="bg-page border-2 border-border rounded-xl px-3.5 py-2.5 text-sm font-semibold text-heading outline-none focus:border-success"
             />
           </>
