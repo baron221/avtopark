@@ -15,13 +15,26 @@ const CATEGORIES = [
 
 type LunchPerson = { userId: string; label: string };
 
-export function ExpenseForm({ point, people }: { point?: Point; people: LunchPerson[] }) {
+export function ExpenseForm({
+  point,
+  people,
+  todayStr,
+  monthStartStr,
+}: {
+  point?: Point;
+  people: LunchPerson[];
+  /** ISO yyyy-mm-dd — bounds for the optional backdate picker below. */
+  todayStr: string;
+  monthStartStr: string;
+}) {
   const router = useRouter();
   const [category, setCategory] = useState("STOYANKA");
   const isLunch = category === "OBED";
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
   const [resetKey, setResetKey] = useState(0);
+  const [showDate, setShowDate] = useState(false);
+  const [dateValue, setDateValue] = useState(todayStr);
   const formRef = useRef<HTMLFormElement>(null);
   const savedTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -46,6 +59,37 @@ export function ExpenseForm({ point, people }: { point?: Point; people: LunchPer
       <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-3">
         {point && <input type="hidden" name="point" value={point} />}
         {!isLunch && <input type="hidden" name="category" value={category} />}
+        {showDate ? (
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={dateValue}
+              min={monthStartStr}
+              max={todayStr}
+              onChange={(e) => setDateValue(e.target.value || todayStr)}
+              className="bg-page border-2 border-border rounded-xl px-3.5 py-2.5 text-sm font-semibold text-heading outline-none focus:border-danger"
+            />
+            {dateValue !== todayStr && <input type="hidden" name="date" value={dateValue} />}
+            <button
+              type="button"
+              onClick={() => {
+                setShowDate(false);
+                setDateValue(todayStr);
+              }}
+              className="text-muted-2 text-xs font-bold hover:text-danger"
+            >
+              Бугунга қайтариш
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowDate(true)}
+            className="text-primary text-xs font-extrabold hover:underline self-start"
+          >
+            Ўтган кун учун киритиш
+          </button>
+        )}
         <div className="flex flex-wrap gap-2">
           {CATEGORIES.map((c) => (
             <button

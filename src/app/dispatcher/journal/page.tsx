@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { formatSom, formatTime } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
 import { getActivePoint } from "@/lib/activePoint";
+import { monthStart } from "@/lib/month";
 import { ExpenseForm } from "./ExpenseForm";
 import { DeleteEntryButton } from "./DeleteEntryButton";
 import { deleteTripAction, deleteStaffExpenseAction, deleteLunchAction, deleteOtherIncomeAction } from "../actions";
@@ -56,6 +57,8 @@ export default async function DispatcherJournalPage({
   const today = new Date();
   const from = startOfDay(today);
   const to = endOfDay(today);
+  const todayStr = today.toISOString().slice(0, 10);
+  const monthStartStr = monthStart(today).toISOString().slice(0, 10);
 
   const [trips, otherIncomes, expenses, lunches, drivers, dispatchers, externalVehicles] = await Promise.all([
     prisma.trip.findMany({
@@ -200,7 +203,14 @@ export default async function DispatcherJournalPage({
 
       <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4 items-start">
         <div className="flex flex-col gap-4">
-          {canIncomeExpense && <ExpenseForm point={isDispatcher ? undefined : point} people={lunchPeople} />}
+          {canIncomeExpense && (
+            <ExpenseForm
+              point={isDispatcher ? undefined : point}
+              people={lunchPeople}
+              todayStr={todayStr}
+              monthStartStr={monthStartStr}
+            />
+          )}
           {canIncomeExpense && (
             <ExternalVehicleManager
               vehicles={externalVehicles}

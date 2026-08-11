@@ -401,6 +401,8 @@ export async function addStaffExpenseAction(formData: FormData) {
   const note = String(formData.get("note") ?? "").trim() || null;
   if (!(amount > 0) || !category) return;
 
+  const now = new Date();
+  const expenseDate = parseBackdate(formData, now) ?? now;
   await prisma.staffExpense.create({
     data: {
       userId,
@@ -408,7 +410,7 @@ export async function addStaffExpenseAction(formData: FormData) {
       category,
       amount: BigInt(Math.round(amount)),
       note,
-      expenseDate: new Date(),
+      expenseDate,
       enteredBy: userId,
     },
   });
@@ -475,7 +477,8 @@ export async function addLunchAction(formData: FormData) {
   const forUserId = String(formData.get("forUserId") ?? "").trim() || userId;
   const raw = Number(formData.get("amount"));
   const amount = Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_LUNCH_AMOUNT;
-  const lunchDate = startOfDay(new Date());
+  const now = new Date();
+  const lunchDate = startOfDay(parseBackdate(formData, now) ?? now);
 
   await prisma.lunch.upsert({
     where: { userId_lunchDate: { userId: forUserId, lunchDate } },
