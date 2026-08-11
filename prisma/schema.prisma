@@ -112,6 +112,16 @@ enum StaffExpenseCategory {
   BOSHQA
 }
 
+// Cash a dispatcher collects from a vehicle that isn't part of the
+// company's own fleet — a tax/paperwork fee, fuel sold, a parking-lot
+// charge, etc. See OtherIncome.
+enum OtherIncomeCategory {
+  SOLIQ
+  YOQILGI
+  STOYANKA
+  BOSHQA
+}
+
 // ---------- Models ----------
 
 model User {
@@ -129,6 +139,7 @@ model User {
 
   driver         Driver?
   enteredTrips     Trip[]           @relation("TripEnteredBy")
+  enteredOtherIncomes OtherIncome[] @relation("OtherIncomeEnteredBy")
   enteredExpenses  Expense[]        @relation("ExpenseEnteredBy")
   finesReceived    Fine[]           @relation("FineUser")
   finesEntered     Fine[]           @relation("FineEnteredBy")
@@ -309,6 +320,26 @@ model Trip {
   @@index([tripDate])
   @@index([point, tripDate])
   @@map("trips")
+}
+
+// Income from a vehicle that isn't part of the company's own fleet — it has
+// no vehicleId/driverId to attach to (unlike Trip), since those vehicles
+// don't exist in this system at all. note carries whatever identifies the
+// vehicle/payer instead, so it's required rather than optional.
+model OtherIncome {
+  id         String              @id @default(uuid())
+  point      Point
+  category   OtherIncomeCategory @default(BOSHQA)
+  amount     BigInt
+  note       String
+  incomeDate DateTime            @map("income_date")
+  enteredBy  String              @map("entered_by")
+  createdAt  DateTime            @default(now()) @map("created_at")
+
+  enteredByUser User @relation("OtherIncomeEnteredBy", fields: [enteredBy], references: [id])
+
+  @@index([point, incomeDate])
+  @@map("other_incomes")
 }
 
 model DailyPlan {

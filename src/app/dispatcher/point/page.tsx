@@ -54,39 +54,50 @@ export default async function DispatcherPointPage({
 
   const staffExpensePoint = point === "FARGONA" ? "FARGONA" : "QUVA";
 
-  const [vehicles, tripsToday, myExpenseAgg, myLunch, baseFareRoute, todaysHandover, pointExpenseAgg, pointLunchAgg] =
-    await Promise.all([
-      // The fleet is shared between both points (the same vehicles shuttle
-      // Farg'ona <-> Quva), so every point's dispatcher picks from the whole
-      // active fleet rather than a per-point subset.
-      prisma.vehicle.findMany({
-        where: { status: { in: DISPATCHABLE_STATUSES } },
-        include: { driver: { include: { user: true } } },
-        orderBy: { plate: "asc" },
-      }),
-      prisma.trip.findMany({
-        where: { tripDate: { gte: from, lte: to }, point },
-        include: { vehicle: true, driver: { include: { user: true } } },
-        orderBy: { createdAt: "asc" },
-      }),
-      prisma.staffExpense.aggregate({
-        _sum: { amount: true },
-        where: { userId: session.user.id, expenseDate: { gte: from, lte: to } },
-      }),
-      prisma.lunch.findUnique({ where: { userId_lunchDate: { userId: session.user.id, lunchDate: from } } }),
-      prisma.route.findFirst({ where: { isActive: true } }),
-      prisma.cashHandover.findUnique({ where: { point_handoverDate: { point, handoverDate: from } } }),
-      // Point-wide (not just this dispatcher's own) — matches exactly what
-      // confirmCashHandoverAction nets out, so this display never disagrees
-      // with what clicking "Топшириш" actually records.
-      prisma.staffExpense.aggregate({
-        _sum: { amount: true },
-        where: { point: staffExpensePoint, expenseDate: { gte: from, lte: to } },
-      }),
-      prisma.lunch.aggregate({ _sum: { amount: true }, where: { point, lunchDate: { gte: from, lte: to } } }),
-    ]);
+  const [
+    vehicles,
+    tripsToday,
+    otherIncomeToday,
+    myExpenseAgg,
+    myLunch,
+    baseFareRoute,
+    todaysHandover,
+    pointExpenseAgg,
+    pointLunchAgg,
+  ] = await Promise.all([
+    // The fleet is shared between both points (the same vehicles shuttle
+    // Farg'ona <-> Quva), so every point's dispatcher picks from the whole
+    // active fleet rather than a per-point subset.
+    prisma.vehicle.findMany({
+      where: { status: { in: DISPATCHABLE_STATUSES } },
+      include: { driver: { include: { user: true } } },
+      orderBy: { plate: "asc" },
+    }),
+    prisma.trip.findMany({
+      where: { tripDate: { gte: from, lte: to }, point },
+      include: { vehicle: true, driver: { include: { user: true } } },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.otherIncome.findMany({ where: { point, incomeDate: { gte: from, lte: to } }, orderBy: { createdAt: "asc" } }),
+    prisma.staffExpense.aggregate({
+      _sum: { amount: true },
+      where: { userId: session.user.id, expenseDate: { gte: from, lte: to } },
+    }),
+    prisma.lunch.findUnique({ where: { userId_lunchDate: { userId: session.user.id, lunchDate: from } } }),
+    prisma.route.findFirst({ where: { isActive: true } }),
+    prisma.cashHandover.findUnique({ where: { point_handoverDate: { point, handoverDate: from } } }),
+    // Point-wide (not just this dispatcher's own) — matches exactly what
+    // confirmCashHandoverAction nets out, so this display never disagrees
+    // with what clicking "Топшириш" actually records.
+    prisma.staffExpense.aggregate({
+      _sum: { amount: true },
+      where: { point: staffExpensePoint, expenseDate: { gte: from, lte: to } },
+    }),
+    prisma.lunch.aggregate({ _sum: { amount: true }, where: { point, lunchDate: { gte: from, lte: to } } }),
+  ]);
 
-  const collectedToday = tripsToday.reduce((s, t) => s + Number(t.revenue), 0);
+  const otherIncomeTotal = otherIncomeToday.reduce((s, i) => s + Number(i.amount), 0);
+  const collectedToday = tripsToday.reduce((s, t) => s + Number(t.revenue), 0) + otherIncomeTotal;
   const vehiclesWithMoney = new Set(tripsToday.map((t) => t.vehicleId));
   const myExpenseToday = Number(myExpenseAgg._sum.amount ?? BigInt(0));
   const myLunchToday = myLunch ? Number(myLunch.amount) : 0;

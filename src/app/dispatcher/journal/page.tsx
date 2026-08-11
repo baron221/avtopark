@@ -8,7 +8,8 @@ import { hasModuleAccess } from "@/lib/access";
 import { getActivePoint } from "@/lib/activePoint";
 import { ExpenseForm } from "./ExpenseForm";
 import { DeleteEntryButton } from "./DeleteEntryButton";
-import { deleteTripAction, deleteStaffExpenseAction, deleteLunchAction } from "../actions";
+import { deleteTripAction, deleteStaffExpenseAction, deleteLunchAction, deleteOtherIncomeAction } from "../actions";
+import { OTHER_INCOME_CATEGORY_LABELS } from "@/lib/otherIncome";
 import type { Point } from "@prisma/client";
 
 function startOfDay(d: Date) {
@@ -53,10 +54,14 @@ export default async function DispatcherJournalPage({
   const from = startOfDay(today);
   const to = endOfDay(today);
 
-  const [trips, expenses, lunches, drivers, dispatchers] = await Promise.all([
+  const [trips, otherIncomes, expenses, lunches, drivers, dispatchers] = await Promise.all([
     prisma.trip.findMany({
       where: { tripDate: { gte: from, lte: to }, point },
       include: { vehicle: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.otherIncome.findMany({
+      where: { point, incomeDate: { gte: from, lte: to } },
       orderBy: { createdAt: "asc" },
     }),
     prisma.staffExpense.findMany({
@@ -81,7 +86,8 @@ export default async function DispatcherJournalPage({
     ...dispatchers.map((u) => ({ userId: u.id, label: u.fullName })),
   ];
 
-  const kirim = trips.reduce((s, t) => s + Number(t.revenue), 0);
+  const kirim =
+    trips.reduce((s, t) => s + Number(t.revenue), 0) + otherIncomes.reduce((s, i) => s + Number(i.amount), 0);
   const chiqim = expenses.reduce((s, e) => s + Number(e.amount), 0) + lunches.reduce((s, l) => s + Number(l.amount), 0);
   const qoldiq = kirim - chiqim;
 
@@ -113,6 +119,16 @@ export default async function DispatcherJournalPage({
       editHref: canTripEntry
         ? `/dispatcher/trips/${t.id}/edit?from=journal${isDispatcher ? "" : `&point=${point}`}`
         : undefined,
+    })),
+    ...otherIncomes.map((i) => ({
+      id: i.id,
+      time: i.createdAt,
+      kind: OTHER_INCOME_CATEGORY_LABELS[i.category],
+      kindBg: "#E4F5EC",
+      kindColor: "#1B9E6B",
+      detail: i.note,
+      amount: Number(i.amount),
+      deleteAction: canTripEntry ? deleteOtherIncomeAction : undefined,
     })),
     ...expenses.map((e) => ({
       id: e.id,

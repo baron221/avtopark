@@ -11,7 +11,8 @@ import { sendSms } from "@/lib/sms";
 import { formatTime } from "@/lib/format";
 import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 import { ACTIVE_POINT_COOKIE, getActivePoint } from "@/lib/activePoint";
-import type { Point, StaffExpenseCategory, StaffExpensePoint, TripKind } from "@prisma/client";
+import { OTHER_INCOME_CATEGORIES, OTHER_INCOME_CATEGORY_LABELS } from "@/lib/otherIncome";
+import type { Point, StaffExpenseCategory, StaffExpensePoint, TripKind, OtherIncomeCategory } from "@prisma/client";
 
 const EXPENSE_CATEGORY_LABELS: Record<string, string> = {
   STOYANKA: "Стоянка",
@@ -143,14 +144,48 @@ export async function addTripAction(formData: FormData) {
   revalidatePath("/dispatcher/point");
 }
 
+/** Cash from a vehicle outside the company's own fleet — paying for tax
+ * paperwork, fuel, a parking spot, or similar — collected by the dispatcher
+ * the same way trip revenue is, so it counts toward the same cash pool
+ * (see createTodaysHandover below). No vehicleId to attach to (that vehicle
+ * doesn't exist in this system), so note is the only record of what/who it
+ * was for. */
+export async function addOtherIncomeAction(formData: FormData) {
+  const { userId, point } = await requireDispatcherOrGranted(formData, ["TRIP_ENTRY", "COLLECT_PAYMENT"]);
+
+  const rawCategory = String(formData.get("category") ?? "");
+  const category: OtherIncomeCategory = OTHER_INCOME_CATEGORIES.includes(rawCategory as OtherIncomeCategory)
+    ? (rawCategory as OtherIncomeCategory)
+    : "BOSHQA";
+  const amount = Number(formData.get("amount") ?? 0);
+  const note = String(formData.get("note") ?? "").trim();
+  if (!(amount > 0) || !note) return;
+
+  await prisma.otherIncome.create({
+    data: {
+      point,
+      category,
+      amount: BigInt(Math.round(amount)),
+      note,
+      incomeDate: new Date(),
+      enteredBy: userId,
+    },
+  });
+
+  revalidatePath("/dispatcher/journal");
+  revalidatePath("/dispatcher/point");
+}
+
 // The dispatcher hands over today's cash-in-hand to the accountant once a
 // day, in person — this just records that confirmation. amount is trip
-// revenue minus today's point-level expenses/lunches (see journal/page.tsx's
-// identical kirim/chiqim/qoldiq math) — real cash actually counted and
-// handed over, not the raw collected total, since that's already spent down
-// by whatever was paid out of it today. A snapshot at confirm time, not a
-// live figure that could drift if a trip gets entered afterward. Idempotent:
-// a second confirm the same day is a silent no-op rather than duplicating.
+// revenue plus other-vehicle income (tax/fuel/parking-lot payments from
+// vehicles outside the company's own fleet — see OtherIncome) minus today's
+// point-level expenses/lunches (see journal/page.tsx's identical
+// kirim/chiqim/qoldiq math) — real cash actually counted and handed over,
+// not the raw collected total, since that's already spent down by whatever
+// was paid out of it today. A snapshot at confirm time, not a live figure
+// that could drift if a trip gets entered afterward. Idempotent: a second
+// confirm the same day is a silent no-op rather than duplicating.
 //
 // overrideAmount/note cover the case where the computed figure doesn't match
 // what was actually counted (a missed expense, a rounding difference, ...) —
@@ -170,15 +205,20 @@ async function createTodaysHandover(
 
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const [trips, expenses, lunches] = await Promise.all([
+  const [trips, otherIncomes, expenses, lunches] = await Promise.all([
     prisma.trip.findMany({ where: { tripDate: { gte: today, lt: tomorrow }, point }, select: { revenue: true } }),
+    prisma.otherIncome.findMany({
+      where: { point, incomeDate: { gte: today, lt: tomorrow } },
+      select: { amount: true },
+    }),
     prisma.staffExpense.findMany({
       where: { point: toStaffExpensePoint(point), expenseDate: { gte: today, lt: tomorrow } },
       select: { amount: true },
     }),
     prisma.lunch.findMany({ where: { point, lunchDate: { gte: today, lt: tomorrow } }, select: { amount: true } }),
   ]);
-  const kirim = trips.reduce((s, t) => s + t.revenue, BigInt(0));
+  const kirim =
+    trips.reduce((s, t) => s + t.revenue, BigInt(0)) + otherIncomes.reduce((s, i) => s + i.amount, BigInt(0));
   const chiqim =
     expenses.reduce((s, e) => s + e.amount, BigInt(0)) + lunches.reduce((s, l) => s + l.amount, BigInt(0));
   // What the dispatcher physically has left to hand over — today's local
@@ -447,6 +487,25 @@ export async function deleteLunchAction(formData: FormData) {
     userId
   );
   await prisma.lunch.delete({ where: { id } });
+
+  revalidatePath("/dispatcher/journal");
+  revalidatePath("/dispatcher/point");
+}
+
+export async function deleteOtherIncomeAction(formData: FormData) {
+  const { userId, point } = await requireDispatcherOrGranted(formData, ["TRIP_ENTRY", "COLLECT_PAYMENT"]);
+  const id = String(formData.get("id") ?? "");
+
+  const income = await prisma.otherIncome.findUnique({ where: { id } });
+  if (!income || income.point !== point) return;
+
+  await logDeletion(
+    "OtherIncome",
+    income.id,
+    `${OTHER_INCOME_CATEGORY_LABELS[income.category]} · ${income.amount.toString()} сўм · ${income.note}`,
+    userId
+  );
+  await prisma.otherIncome.delete({ where: { id } });
 
   revalidatePath("/dispatcher/journal");
   revalidatePath("/dispatcher/point");
