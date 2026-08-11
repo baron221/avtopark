@@ -126,7 +126,7 @@ export default async function DispatcherJournalPage({
       kind: OTHER_INCOME_CATEGORY_LABELS[i.category],
       kindBg: "#E4F5EC",
       kindColor: "#1B9E6B",
-      detail: i.phone ? `${i.note} · ${i.phone}` : i.note,
+      detail: i.plateNumber ? `${i.note} · ${i.plateNumber}` : i.note,
       amount: Number(i.amount),
       deleteAction: canTripEntry ? deleteOtherIncomeAction : undefined,
     })),

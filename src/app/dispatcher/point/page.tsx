@@ -7,6 +7,7 @@ import { KpiCard } from "@/components/ui/KpiCard";
 import { formatSom } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
 import { getActivePoint } from "@/lib/activePoint";
+import { monthStart } from "@/lib/month";
 import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 import { IncomeForm } from "../journal/IncomeForm";
 import { DriverTripsTable, type DriverGroup } from "./DriverTripsTable";
@@ -51,6 +52,8 @@ export default async function DispatcherPointPage({
   const today = new Date();
   const from = startOfDay(today);
   const to = endOfDay(today);
+  const todayStr = today.toISOString().slice(0, 10);
+  const monthStartStr = monthStart(today).toISOString().slice(0, 10);
 
   const staffExpensePoint = point === "FARGONA" ? "FARGONA" : "QUVA";
 
@@ -182,6 +185,8 @@ export default async function DispatcherPointPage({
           vehicles={vehicleOptions}
           baseFare={baseFareRoute?.baseFare ?? 20000}
           point={isDispatcher ? undefined : point}
+          todayStr={todayStr}
+          monthStartStr={monthStartStr}
         />
         <p className="text-xs text-muted-2 font-semibold text-center pt-3">
           Расход ва обед қўшиш учун{" "}

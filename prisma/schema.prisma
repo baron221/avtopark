@@ -332,7 +332,7 @@ model OtherIncome {
   category   OtherIncomeCategory @default(BOSHQA)
   amount     BigInt
   note       String
-  phone      String?
+  plateNumber String?            @map("plate_number")
   incomeDate DateTime            @map("income_date")
   enteredBy  String              @map("entered_by")
   createdAt  DateTime            @default(now()) @map("created_at")

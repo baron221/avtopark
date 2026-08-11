@@ -9,11 +9,33 @@ import { hasAnyModuleAccess, type ModuleKey } from "@/lib/access";
 import { logDeletion } from "@/lib/deletionLog";
 import { sendSms } from "@/lib/sms";
 import { formatTime } from "@/lib/format";
-import { normalizePhone } from "@/lib/phone";
 import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 import { ACTIVE_POINT_COOKIE, getActivePoint } from "@/lib/activePoint";
 import { OTHER_INCOME_CATEGORIES, OTHER_INCOME_CATEGORY_LABELS } from "@/lib/otherIncome";
+import { monthStart } from "@/lib/month";
 import type { Point, StaffExpenseCategory, StaffExpensePoint, TripKind, OtherIncomeCategory } from "@prisma/client";
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Backfilling past days (a client's paper records for other-vehicle income,
+ * or trips nobody entered at the time) must land on their real date, not
+ * today's — otherwise driver pay for that day would be lost, or worse,
+ * silently miscounted as today's. Bounded to the current month: a trip/
+ * income entered here still needs to reach the still-open month's live pay
+ * calculation, but reopening an already-settled prior month invites the
+ * exact mismatch this exists to prevent (see Salary's PAID lock elsewhere).
+ * Returns null (meaning "use right now") for anything missing or out of
+ * bounds, same as this file's other date inputs (see addAdvanceAction). */
+function parseBackdate(formData: FormData, now: Date): Date | null {
+  const raw = String(formData.get("date") ?? "");
+  if (!DATE_RE.test(raw)) return null;
+
+  const picked = new Date(`${raw}T12:00:00Z`);
+  if (Number.isNaN(picked.getTime())) return null;
+  if (picked > now) return null;
+  if (picked < monthStart(now)) return null;
+  return picked;
+}
 
 const EXPENSE_CATEGORY_LABELS: Record<string, string> = {
   STOYANKA: "Стоянка",
@@ -115,14 +137,16 @@ export async function addTripAction(formData: FormData) {
   if (!(revenue > 0) || !Number.isFinite(passengerCount) || passengerCount < 1) return;
 
   const now = new Date();
+  const backdate = parseBackdate(formData, now);
+  const tripDate = backdate ?? now;
   await prisma.trip.create({
     data: {
       vehicleId,
       driverId: vehicle.driver.id,
       routeId: route.id,
       point,
-      tripDate: now,
-      departureTime: now,
+      tripDate,
+      departureTime: tripDate,
       passengerCount,
       tripNumber,
       revenue: BigInt(Math.round(revenue)),
@@ -131,6 +155,14 @@ export async function addTripAction(formData: FormData) {
       enteredBy: userId,
     },
   });
+
+  // A backdated entry is paperwork catch-up, not a live event — the driver
+  // doesn't need an SMS about a trip "recorded" days after it happened.
+  if (backdate) {
+    revalidatePath("/dispatcher/journal");
+    revalidatePath("/dispatcher/point");
+    return;
+  }
 
   const kindLabel = kind === "ORDER" ? "Алоҳида заказ" : tripNumber ? `${tripNumber}-рейс` : "Рейс";
   // Awaited (not fired-and-forgotten) — on a serverless runtime the
@@ -160,17 +192,19 @@ export async function addOtherIncomeAction(formData: FormData) {
     : "BOSHQA";
   const amount = Number(formData.get("amount") ?? 0);
   const note = String(formData.get("note") ?? "").trim();
-  const phone = normalizePhone(String(formData.get("phone") ?? "").trim()) || null;
+  const plateNumber = String(formData.get("plateNumber") ?? "").trim() || null;
   if (!(amount > 0) || !note) return;
 
+  const now = new Date();
+  const incomeDate = parseBackdate(formData, now) ?? now;
   await prisma.otherIncome.create({
     data: {
       point,
       category,
       amount: BigInt(Math.round(amount)),
       note,
-      phone,
-      incomeDate: new Date(),
+      plateNumber,
+      incomeDate,
       enteredBy: userId,
     },
   });
@@ -505,7 +539,7 @@ export async function deleteOtherIncomeAction(formData: FormData) {
   await logDeletion(
     "OtherIncome",
     income.id,
-    `${OTHER_INCOME_CATEGORY_LABELS[income.category]} · ${income.amount.toString()} сўм · ${income.note}${income.phone ? ` · ${income.phone}` : ""}`,
+    `${OTHER_INCOME_CATEGORY_LABELS[income.category]} · ${income.amount.toString()} сўм · ${income.note}${income.plateNumber ? ` · ${income.plateNumber}` : ""}`,
     userId
   );
   await prisma.otherIncome.delete({ where: { id } });

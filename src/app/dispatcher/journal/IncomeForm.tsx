@@ -15,11 +15,16 @@ export function IncomeForm({
   vehicles,
   baseFare,
   point,
+  todayStr,
+  monthStartStr,
 }: {
   vehicles: VehicleOption[];
   baseFare: number;
   /** Set only for a granted non-Dispatcher visitor, who has no point of their own. */
   point?: Point;
+  /** ISO yyyy-mm-dd — bounds for the optional backdate picker below. */
+  todayStr: string;
+  monthStartStr: string;
 }) {
   const router = useRouter();
   const [kind, setKind] = useState<Kind>("TRIP");
@@ -30,6 +35,8 @@ export function IncomeForm({
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
   const [resetKey, setResetKey] = useState(0);
+  const [showDate, setShowDate] = useState(false);
+  const [dateValue, setDateValue] = useState(todayStr);
   const formRef = useRef<HTMLFormElement>(null);
   const savedTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -58,6 +65,37 @@ export function IncomeForm({
         {/* Ignored by addOtherIncomeAction when kind is OTHER_INCOME — only addTripAction reads this. */}
         <input type="hidden" name="kind" value={kind} />
         {point && <input type="hidden" name="point" value={point} />}
+        {showDate ? (
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={dateValue}
+              min={monthStartStr}
+              max={todayStr}
+              onChange={(e) => setDateValue(e.target.value || todayStr)}
+              className="bg-page border-2 border-border rounded-xl px-3.5 py-2.5 text-sm font-semibold text-heading outline-none focus:border-success"
+            />
+            {dateValue !== todayStr && <input type="hidden" name="date" value={dateValue} />}
+            <button
+              type="button"
+              onClick={() => {
+                setShowDate(false);
+                setDateValue(todayStr);
+              }}
+              className="text-muted-2 text-xs font-bold hover:text-danger"
+            >
+              Бугунга қайтариш
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowDate(true)}
+            className="text-primary text-xs font-extrabold hover:underline self-start"
+          >
+            Ўтган кун учун киритиш
+          </button>
+        )}
         <div className="grid grid-cols-3 gap-1.5">
           <button
             type="button"
@@ -120,9 +158,8 @@ export function IncomeForm({
               className="bg-page border-2 border-border rounded-xl px-3.5 py-2.5 text-sm font-semibold text-heading outline-none focus:border-success"
             />
             <input
-              name="phone"
-              type="tel"
-              placeholder="Телефон рақами (ихтиёрий)"
+              name="plateNumber"
+              placeholder="Машина рақами (масалан: 40 296 RCA)"
               className="bg-page border-2 border-border rounded-xl px-3.5 py-2.5 text-sm font-semibold text-heading outline-none focus:border-success"
             />
           </>
