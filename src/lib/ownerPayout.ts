@@ -47,6 +47,13 @@ export type CashLedgerSummary = {
   /** null until the accountant sets one — see computeCashBalance for why
    * this matters (without it, the balance is meaningless). */
   openingBalance: { amount: number; setDate: Date } | null;
+  /** Today only, both points combined — the same kirim/chiqim a dispatcher
+   * already sees on their own point/journal page, just summed company-wide.
+   * A quick sanity snapshot alongside the running balance above, not a
+   * component of it (that's opening balance + everything since it was set,
+   * see computeCashBalance). */
+  todaysIncome: number;
+  todaysExpense: number;
   confirmedHistory: ConfirmedHandoverRow[];
   payoutHistory: OwnerPayoutRow[];
 };
@@ -138,6 +145,28 @@ export async function getCashBalance(): Promise<number> {
   return computeCashBalance();
 }
 
+/** Today's combined kirim/chiqim across both points — same definition
+ * dispatcher/actions.ts's createTodaysHandover uses per point, just without
+ * the point filter. See CashLedgerSummary.todaysIncome/todaysExpense. */
+async function computeTodaysCashSummary(): Promise<{ income: number; expense: number }> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const [tripsAgg, otherIncomeAgg, staffExpenseAgg, lunchAgg] = await Promise.all([
+    prisma.trip.aggregate({ _sum: { revenue: true }, where: { tripDate: { gte: today, lt: tomorrow } } }),
+    prisma.otherIncome.aggregate({ _sum: { amount: true }, where: { incomeDate: { gte: today, lt: tomorrow } } }),
+    prisma.staffExpense.aggregate({ _sum: { amount: true }, where: { expenseDate: { gte: today, lt: tomorrow } } }),
+    prisma.lunch.aggregate({ _sum: { amount: true }, where: { lunchDate: { gte: today, lt: tomorrow } } }),
+  ]);
+
+  return {
+    income: Number(tripsAgg._sum.revenue ?? BigInt(0)) + Number(otherIncomeAgg._sum.amount ?? BigInt(0)),
+    expense: Number(staffExpenseAgg._sum.amount ?? BigInt(0)) + Number(lunchAgg._sum.amount ?? BigInt(0)),
+  };
+}
+
 /**
  * Deliberately not scoped to a period/date — unlike the report page's own
  * date picker, this is a running all-time cash-on-hand balance, so
@@ -146,7 +175,7 @@ export async function getCashBalance(): Promise<number> {
 export async function getCashLedgerSummary(): Promise<CashLedgerSummary> {
   const openingBalance = await getLatestOpeningBalance();
 
-  const [pending, confirmed, payouts, balance] = await Promise.all([
+  const [pending, confirmed, payouts, balance, todaysSummary] = await Promise.all([
     prisma.cashHandover.findMany({
       where: { accountantConfirmedAt: null },
       orderBy: { handoverDate: "asc" },
@@ -164,6 +193,7 @@ export async function getCashLedgerSummary(): Promise<CashLedgerSummary> {
       include: { enteredByUser: true },
     }),
     computeCashBalance(openingBalance),
+    computeTodaysCashSummary(),
   ]);
 
   const pointPending: PointPending[] = (["FARGONA", "QUVA"] as const).map((point) => ({
@@ -183,6 +213,8 @@ export async function getCashLedgerSummary(): Promise<CashLedgerSummary> {
     pointPending,
     balance,
     openingBalance,
+    todaysIncome: todaysSummary.income,
+    todaysExpense: todaysSummary.expense,
     confirmedHistory: confirmed.map((h) => ({
       id: h.id,
       handoverDate: h.handoverDate,

@@ -334,6 +334,20 @@ export function FleetDashboard({
                 )}
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-page rounded-xl p-3">
+                <div className="text-[11px] text-muted-2 font-bold uppercase">Умумий кунлик тушум</div>
+                <div className="font-heading font-extrabold text-lg text-success">
+                  {formatSom(cashLedger.todaysIncome)}
+                </div>
+              </div>
+              <div className="bg-page rounded-xl p-3">
+                <div className="text-[11px] text-muted-2 font-bold uppercase">Умумий кунлик расход</div>
+                <div className="font-heading font-extrabold text-lg text-danger">
+                  {formatSom(cashLedger.todaysExpense)}
+                </div>
+              </div>
+            </div>
             <CashHistorySection
               confirmedHistory={cashLedger.confirmedHistory}
               payoutHistory={cashLedger.payoutHistory}
