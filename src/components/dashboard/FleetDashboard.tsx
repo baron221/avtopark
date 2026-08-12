@@ -27,6 +27,7 @@ export function FleetDashboard({
   embedded = false,
   date,
   exportHref,
+  cashExportHref,
   cashLedger,
   confirmReceiptAction,
   revertReceiptAction,
@@ -45,6 +46,8 @@ export function FleetDashboard({
   date?: string;
   /** When set, shows an Excel download link pointed at this route (query-string-compatible with period/date). */
   exportHref?: string;
+  /** When set, shows an Excel download link on the cash-on-hand card, exporting the full kirim/chiqim drill-down (every row behind the CashBreakdown accordions), not just the totals shown on screen. */
+  cashExportHref?: string;
   /** Accountant-only cash data (pending confirmations per point + a combined running balance/history). Passed only by /accountant/report — Owner/Admin omit it entirely, so this whole section renders nothing for them. */
   cashLedger?: CashLedgerSummary;
   confirmReceiptAction?: (formData: FormData) => Promise<void>;
@@ -346,6 +349,14 @@ export function FleetDashboard({
                 )}
               </div>
               <div className="flex flex-col items-end gap-2">
+                {cashExportHref && (
+                  <a
+                    href={cashExportHref}
+                    className="bg-card border border-border text-body text-xs font-extrabold px-3 py-1.5 rounded-lg hover:border-primary hover:text-primary transition-colors whitespace-nowrap"
+                  >
+                    ⬇ Excel
+                  </a>
+                )}
                 {recordPayoutAction && cashLedger.balance > 0 && (
                   <OwnerPayoutForm balance={cashLedger.balance} action={recordPayoutAction} />
                 )}

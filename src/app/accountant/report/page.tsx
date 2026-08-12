@@ -51,6 +51,7 @@ export default async function AccountantReportPage({
       embedded
       date={dateStr}
       exportHref={`/accountant/report/export/excel?period=${period}&date=${dateStr}`}
+      cashExportHref={`/accountant/report/export/cash-excel?period=${period}&date=${dateStr}`}
       cashLedger={cashLedger}
       confirmReceiptAction={confirmCashReceiptAction}
       revertReceiptAction={revertCashReceiptAction}
