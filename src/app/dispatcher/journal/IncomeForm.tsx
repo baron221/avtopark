@@ -17,21 +17,30 @@ export function IncomeForm({
   point,
   todayStr,
   monthStartStr,
+  defaultDateStr,
   externalVehiclePlates,
 }: {
   vehicles: VehicleOption[];
   baseFare: number;
   /** Set only for a granted non-Dispatcher visitor, who has no point of their own. */
   point?: Point;
-  /** ISO yyyy-mm-dd — bounds for the optional backdate picker below. */
+  /** ISO yyyy-mm-dd — bounds for the backdate picker below. */
   todayStr: string;
   monthStartStr: string;
+  /** ISO yyyy-mm-dd — the day new entries should land on, i.e. whichever
+   * day the page itself is currently showing (see its own date picker).
+   * Defaults to todayStr when the page is on today, same as before this
+   * prop existed. When it differs from todayStr, the date picker below
+   * starts already expanded, so it's obvious at a glance which day a new
+   * entry will be recorded under. */
+  defaultDateStr?: string;
   /** Known non-fleet payers (see ExternalVehicleManager) — offered as
    * autocomplete suggestions, not a closed list: a one-off payer never
    * added there must still be typeable. */
   externalVehiclePlates: string[];
 }) {
   const router = useRouter();
+  const initialDate = defaultDateStr ?? todayStr;
   const [kind, setKind] = useState<Kind>("TRIP");
   const [category, setCategory] = useState<OtherIncomeCategory>("BOSHQA");
   const [passengerCountText, setPassengerCountText] = useState("");
@@ -40,8 +49,8 @@ export function IncomeForm({
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
   const [resetKey, setResetKey] = useState(0);
-  const [showDate, setShowDate] = useState(false);
-  const [dateValue, setDateValue] = useState(todayStr);
+  const [showDate, setShowDate] = useState(initialDate !== todayStr);
+  const [dateValue, setDateValue] = useState(initialDate);
   const formRef = useRef<HTMLFormElement>(null);
   const savedTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -85,11 +94,11 @@ export function IncomeForm({
               type="button"
               onClick={() => {
                 setShowDate(false);
-                setDateValue(todayStr);
+                setDateValue(initialDate);
               }}
               className="text-muted-2 text-xs font-bold hover:text-danger"
             >
-              Бугунга қайтариш
+              {initialDate === todayStr ? "Бугунга қайтариш" : "Аслига қайтариш"}
             </button>
           </div>
         ) : (
@@ -98,7 +107,7 @@ export function IncomeForm({
             onClick={() => setShowDate(true)}
             className="text-primary text-xs font-extrabold hover:underline self-start"
           >
-            Ўтган кун учун киритиш
+            Санани ўзгартириш
           </button>
         )}
         <div className="grid grid-cols-3 gap-1.5">

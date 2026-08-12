@@ -14,7 +14,10 @@ import { addExternalVehicleAction, deleteExternalVehicleAction } from "@/app/act
 import { OTHER_INCOME_CATEGORY_LABELS } from "@/lib/otherIncome";
 import { getExternalVehicles } from "@/lib/externalVehicle";
 import { ExternalVehicleManager } from "@/components/ExternalVehicleManager";
+import { DatePicker } from "@/components/ui/DatePicker";
 import type { Point } from "@prisma/client";
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function startOfDay(d: Date) {
   const x = new Date(d);
@@ -36,7 +39,7 @@ const EXPENSE_CATEGORY_LABELS: Record<string, string> = {
 export default async function DispatcherJournalPage({
   searchParams,
 }: {
-  searchParams: Promise<{ point?: string }>;
+  searchParams: Promise<{ point?: string; date?: string }>;
 }) {
   const session = await auth();
   if (!session) redirect("/login");
@@ -47,18 +50,31 @@ export default async function DispatcherJournalPage({
       (await hasModuleAccess(session.user.role, "INCOME_EXPENSE_LOG")));
   if (!isDispatcher && !guestAllowed) redirect("/coming-soon");
 
-  const { point: pointParam } = await searchParams;
+  const { point: pointParam, date: dateParam } = await searchParams;
   const point: Point = isDispatcher
     ? await getActivePoint(session.user.point!)
     : pointParam === "QUVA"
       ? "QUVA"
       : "FARGONA";
   const staffExpensePoint = point === "FARGONA" ? "FARGONA" : "QUVA";
-  const today = new Date();
-  const from = startOfDay(today);
-  const to = endOfDay(today);
-  const todayStr = today.toISOString().slice(0, 10);
-  const monthStartStr = monthStart(today).toISOString().slice(0, 10);
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  const monthStartDate = monthStart(now);
+  const monthStartStr = monthStartDate.toISOString().slice(0, 10);
+
+  // Same "which day am I looking at" picker as point/page.tsx — see its
+  // comment for why.
+  let viewDate = now;
+  if (dateParam && DATE_RE.test(dateParam)) {
+    const parsed = new Date(`${dateParam}T12:00:00Z`);
+    if (!Number.isNaN(parsed.getTime()) && parsed >= monthStartDate && parsed <= endOfDay(now)) {
+      viewDate = parsed;
+    }
+  }
+  const from = startOfDay(viewDate);
+  const to = endOfDay(viewDate);
+  const viewDateStr = from.toISOString().slice(0, 10);
+  const isToday = from.getTime() === startOfDay(now).getTime();
 
   const [trips, otherIncomes, expenses, lunches, drivers, dispatchers, externalVehicles] = await Promise.all([
     prisma.trip.findMany({
@@ -170,7 +186,8 @@ export default async function DispatcherJournalPage({
       <div className="flex justify-between items-center flex-wrap gap-3">
         <div>
           <div className="font-heading font-bold text-xl text-heading">
-            Кирим-чиқим · {today.toLocaleDateString("uz-UZ", { day: "numeric", month: "long" })}
+            Кирим-чиқим · {viewDate.toLocaleDateString("uz-UZ", { day: "numeric", month: "long" })}
+            {!isToday && <span className="text-primary"> (ўтган кун)</span>}
           </div>
           <div className="text-[13px] text-muted-2 font-semibold">{session.user.name}</div>
         </div>
@@ -178,10 +195,16 @@ export default async function DispatcherJournalPage({
           <span className="text-success">Кирим: +{formatSom(kirim)}</span>
           <span className="text-danger">Чиқим: −{formatSom(chiqim)}</span>
           <span className="text-heading">Қолдиқ: {formatSom(qoldiq)}</span>
+          <DatePicker
+            basePath="/dispatcher/journal"
+            value={viewDateStr}
+            min={monthStartStr}
+            extraParams={!isDispatcher ? { point } : undefined}
+          />
           {!isDispatcher && (
             <div className="flex gap-2">
               <Link
-                href="/dispatcher/journal?point=FARGONA"
+                href={`/dispatcher/journal?point=FARGONA&date=${viewDateStr}`}
                 className={`rounded-full px-3 py-1 text-xs font-extrabold ${
                   point === "FARGONA" ? "bg-primary text-white" : "bg-card border border-border text-muted"
                 }`}
@@ -189,7 +212,7 @@ export default async function DispatcherJournalPage({
                 Фарғона
               </Link>
               <Link
-                href="/dispatcher/journal?point=QUVA"
+                href={`/dispatcher/journal?point=QUVA&date=${viewDateStr}`}
                 className={`rounded-full px-3 py-1 text-xs font-extrabold ${
                   point === "QUVA" ? "bg-primary text-white" : "bg-card border border-border text-muted"
                 }`}
@@ -209,6 +232,7 @@ export default async function DispatcherJournalPage({
               people={lunchPeople}
               todayStr={todayStr}
               monthStartStr={monthStartStr}
+              defaultDateStr={viewDateStr}
             />
           )}
           {canIncomeExpense && (
@@ -221,7 +245,7 @@ export default async function DispatcherJournalPage({
         </div>
 
         <Card className="overflow-hidden hidden lg:block">
-          <div className="px-5 py-3.5 font-heading font-bold text-[15px] text-heading">Бугунги журнал</div>
+          <div className="px-5 py-3.5 font-heading font-bold text-[15px] text-heading">{isToday ? "Бугунги журнал" : "Журнал"}</div>
           {log.map((l) => (
             <div
               key={l.id}
@@ -251,11 +275,11 @@ export default async function DispatcherJournalPage({
               </div>
             </div>
           ))}
-          {log.length === 0 && <p className="text-[13px] text-muted-2 px-5 py-4">Бугун ҳали ёзув йўқ</p>}
+          {log.length === 0 && <p className="text-[13px] text-muted-2 px-5 py-4">{isToday ? "Бугун" : "Бу кунда"} ҳали ёзув йўқ</p>}
         </Card>
 
         <Card className="overflow-hidden lg:hidden">
-          <div className="px-5 py-3.5 font-heading font-bold text-[15px] text-heading">Бугунги журнал</div>
+          <div className="px-5 py-3.5 font-heading font-bold text-[15px] text-heading">{isToday ? "Бугунги журнал" : "Журнал"}</div>
           {log.map((l) => (
             <div key={l.id} className="flex flex-col gap-1.5 px-5 py-3 border-t border-row-divider text-[13px]">
               <div className="flex justify-between items-center gap-2">
@@ -286,7 +310,7 @@ export default async function DispatcherJournalPage({
               </div>
             </div>
           ))}
-          {log.length === 0 && <p className="text-[13px] text-muted-2 px-5 py-4">Бугун ҳали ёзув йўқ</p>}
+          {log.length === 0 && <p className="text-[13px] text-muted-2 px-5 py-4">{isToday ? "Бугун" : "Бу кунда"} ҳали ёзув йўқ</p>}
         </Card>
       </div>
     </div>

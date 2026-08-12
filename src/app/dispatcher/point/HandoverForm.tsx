@@ -8,11 +8,16 @@ const initialState: ConfirmHandoverState = { error: "" };
 
 export function HandoverForm({
   point,
+  date,
   computedAmount,
   action,
   adjustAction,
 }: {
   point?: string;
+  /** ISO yyyy-mm-dd — set only when the dispatcher is viewing a day other
+   * than today (see point/page.tsx's date picker), so the handover lands
+   * on the day actually being viewed instead of defaulting to today. */
+  date?: string;
   computedAmount: number;
   action: (formData: FormData) => Promise<void>;
   adjustAction: (prevState: ConfirmHandoverState, formData: FormData) => Promise<ConfirmHandoverState>;
@@ -24,6 +29,7 @@ export function HandoverForm({
     return (
       <form action={formAction} className="flex flex-col gap-1.5 bg-page border border-border rounded-xl p-3 w-full sm:w-64">
         {point && <input type="hidden" name="point" value={point} />}
+        {date && <input type="hidden" name="date" value={date} />}
         <label className="text-[11px] font-bold text-muted-2 uppercase">Ҳақиқий сумма</label>
         <MoneyInput
           name="amount"
@@ -67,6 +73,7 @@ export function HandoverForm({
       </button>
       <form action={action}>
         {point && <input type="hidden" name="point" value={point} />}
+        {date && <input type="hidden" name="date" value={date} />}
         <button type="submit" className="bg-success text-white rounded-[10px] px-5 py-2.5 font-extrabold text-[13px]">
           Топшириш ✓
         </button>

@@ -20,7 +20,10 @@ import {
 } from "../actions";
 import { HandoverForm } from "./HandoverForm";
 import { CancelHandoverButton } from "./CancelHandoverButton";
+import { DatePicker } from "@/components/ui/DatePicker";
 import type { Point } from "@prisma/client";
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function startOfDay(d: Date) {
   const x = new Date(d);
@@ -36,7 +39,7 @@ function endOfDay(d: Date) {
 export default async function DispatcherPointPage({
   searchParams,
 }: {
-  searchParams: Promise<{ point?: string }>;
+  searchParams: Promise<{ point?: string; date?: string }>;
 }) {
   const session = await auth();
   if (!session) redirect("/login");
@@ -44,17 +47,33 @@ export default async function DispatcherPointPage({
   const guestAllowed = !isDispatcher && (await hasModuleAccess(session.user.role, "COLLECT_PAYMENT"));
   if (!isDispatcher && !guestAllowed) redirect("/coming-soon");
 
-  const { point: pointParam } = await searchParams;
+  const { point: pointParam, date: dateParam } = await searchParams;
   const point: Point = isDispatcher
     ? await getActivePoint(session.user.point!)
     : pointParam === "QUVA"
       ? "QUVA"
       : "FARGONA";
-  const today = new Date();
-  const from = startOfDay(today);
-  const to = endOfDay(today);
-  const todayStr = today.toISOString().slice(0, 10);
-  const monthStartStr = monthStart(today).toISOString().slice(0, 10);
+  const now = new Date();
+  const todayStart = startOfDay(now);
+  const todayStr = now.toISOString().slice(0, 10);
+  const monthStartDate = monthStart(now);
+  const monthStartStr = monthStartDate.toISOString().slice(0, 10);
+
+  // A dispatcher isn't only ever looking at today — they might be catching
+  // up on a day they missed (see "Топшириш" below), so this whole page can
+  // show any day back to the start of the current month instead of always
+  // today. Falls back to today for anything missing/invalid/out of range.
+  let viewDate = now;
+  if (dateParam && DATE_RE.test(dateParam)) {
+    const parsed = new Date(`${dateParam}T12:00:00Z`);
+    if (!Number.isNaN(parsed.getTime()) && parsed >= monthStartDate && parsed <= endOfDay(now)) {
+      viewDate = parsed;
+    }
+  }
+  const from = startOfDay(viewDate);
+  const to = endOfDay(viewDate);
+  const viewDateStr = from.toISOString().slice(0, 10);
+  const isToday = from.getTime() === todayStart.getTime();
 
   const staffExpensePoint = point === "FARGONA" ? "FARGONA" : "QUVA";
 
@@ -153,32 +172,41 @@ export default async function DispatcherPointPage({
       <div className="flex justify-between items-center flex-wrap gap-3">
         <div>
           <div className="font-heading font-bold text-xl text-heading">
-            {pointLabel} пункти · {today.toLocaleDateString("uz-UZ", { day: "numeric", month: "long" })}
+            {pointLabel} пункти · {viewDate.toLocaleDateString("uz-UZ", { day: "numeric", month: "long" })}
+            {!isToday && <span className="text-primary"> (ўтган кун)</span>}
           </div>
           <div className="text-[13px] text-muted-2 font-semibold">
             {session.user.name} · келган ҳар машинадан пул қабул қилинади
           </div>
         </div>
-        {!isDispatcher && (
-          <div className="flex gap-2">
-            <Link
-              href="/dispatcher/point?point=FARGONA"
-              className={`rounded-full px-4 py-1.5 text-[13px] font-extrabold ${
-                point === "FARGONA" ? "bg-primary text-white" : "bg-card border border-border text-muted"
-              }`}
-            >
-              Фарғона
-            </Link>
-            <Link
-              href="/dispatcher/point?point=QUVA"
-              className={`rounded-full px-4 py-1.5 text-[13px] font-extrabold ${
-                point === "QUVA" ? "bg-primary text-white" : "bg-card border border-border text-muted"
-              }`}
-            >
-              Қува
-            </Link>
-          </div>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          <DatePicker
+            basePath="/dispatcher/point"
+            value={viewDateStr}
+            min={monthStartStr}
+            extraParams={!isDispatcher ? { point } : undefined}
+          />
+          {!isDispatcher && (
+            <div className="flex gap-2">
+              <Link
+                href={`/dispatcher/point?point=FARGONA&date=${viewDateStr}`}
+                className={`rounded-full px-4 py-1.5 text-[13px] font-extrabold ${
+                  point === "FARGONA" ? "bg-primary text-white" : "bg-card border border-border text-muted"
+                }`}
+              >
+                Фарғона
+              </Link>
+              <Link
+                href={`/dispatcher/point?point=QUVA&date=${viewDateStr}`}
+                className={`rounded-full px-4 py-1.5 text-[13px] font-extrabold ${
+                  point === "QUVA" ? "bg-primary text-white" : "bg-card border border-border text-muted"
+                }`}
+              >
+                Қува
+              </Link>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="max-w-[420px] w-full">
@@ -188,6 +216,7 @@ export default async function DispatcherPointPage({
           point={isDispatcher ? undefined : point}
           todayStr={todayStr}
           monthStartStr={monthStartStr}
+          defaultDateStr={viewDateStr}
           externalVehiclePlates={externalVehicles.map((v) => v.plate)}
         />
         <p className="text-xs text-muted-2 font-semibold text-center pt-3">
@@ -204,21 +233,30 @@ export default async function DispatcherPointPage({
       </Card>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard variant="primary" label="Бугун йиғилди" value={formatSom(collectedToday)} />
+        <KpiCard variant="primary" label={isToday ? "Бугун йиғилди" : "Йиғилди"} value={formatSom(collectedToday)} />
         <KpiCard label="Қабул қилинган машина" value={`${vehiclesWithMoney.size} / ${vehicles.length}`} />
-        <KpiCard label="Менинг расходим (бугун)" value={`−${formatSom(myExpenseToday)}`} hintColor="danger" />
-        <KpiCard label="Обед (бугун, пункт)" value={pointLunchToday ? `−${formatSom(pointLunchToday)}` : "—"} />
+        <KpiCard
+          label={isToday ? "Менинг расходим (бугун)" : "Менинг расходим"}
+          value={`−${formatSom(myExpenseToday)}`}
+          hintColor="danger"
+        />
+        <KpiCard
+          label={isToday ? "Обед (бугун, пункт)" : "Обед (пункт)"}
+          value={pointLunchToday ? `−${formatSom(pointLunchToday)}` : "—"}
+        />
       </div>
 
       <Card className="p-5 flex items-center justify-between flex-wrap gap-3">
         <div>
-          <div className="font-heading font-bold text-[15px] text-heading">Кунлик пул топшириш</div>
+          <div className="font-heading font-bold text-[15px] text-heading">
+            Кунлик пул топшириш{!isToday && ` · ${viewDateStr}`}
+          </div>
           <div className="text-[13px] text-muted-2 font-semibold">
             {todaysHandover
               ? `Топширилган сумма: ${formatSom(Number(todaysHandover.amount))}`
               : pointChiqimToday > 0
                 ? `Йиғилди ${formatSom(collectedToday)} − расход ${formatSom(pointChiqimToday)} = ${formatSom(netToHandover)}`
-                : `Бугун йиғилган: ${formatSom(netToHandover)}`}
+                : `Йиғилган: ${formatSom(netToHandover)}`}
           </div>
           {todaysHandover?.note && (
             <div className="text-[12px] text-danger font-semibold mt-0.5">Сабаб: {todaysHandover.note}</div>
@@ -227,6 +265,7 @@ export default async function DispatcherPointPage({
         {!todaysHandover && netToHandover > 0 && (
           <HandoverForm
             point={!isDispatcher ? point : undefined}
+            date={viewDateStr}
             computedAmount={netToHandover}
             action={confirmCashHandoverAction}
             adjustAction={confirmCashHandoverWithAdjustmentAction}
@@ -237,7 +276,7 @@ export default async function DispatcherPointPage({
             <span className="bg-primary-tint text-primary text-xs font-extrabold px-3 py-1.5 rounded-full whitespace-nowrap">
               Буxгалтер тасдиғини кутмоқда
             </span>
-            <CancelHandoverButton action={cancelCashHandoverAction} point={!isDispatcher ? point : undefined} />
+            <CancelHandoverButton action={cancelCashHandoverAction} point={!isDispatcher ? point : undefined} date={viewDateStr} />
           </div>
         )}
         {todaysHandover?.accountantConfirmedAt && (

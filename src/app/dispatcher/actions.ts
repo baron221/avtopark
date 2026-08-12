@@ -32,7 +32,13 @@ function parseBackdate(formData: FormData, now: Date): Date | null {
 
   const picked = new Date(`${raw}T12:00:00Z`);
   if (Number.isNaN(picked.getTime())) return null;
-  if (picked > now) return null;
+  // Compared at day granularity, not the exact instant — picked is always
+  // noon UTC, so an instant-level "picked > now" would wrongly reject
+  // *today's own date* whenever "now" happens to be before noon UTC (i.e.
+  // most of the working day in Tashkent, UTC+5).
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
+  if (picked > endOfToday) return null;
   if (picked < monthStart(now)) return null;
   return picked;
 }
@@ -213,28 +219,35 @@ export async function addOtherIncomeAction(formData: FormData) {
   revalidatePath("/dispatcher/point");
 }
 
-// The dispatcher hands over today's cash-in-hand to the accountant once a
+// The dispatcher hands over a day's cash-in-hand to the accountant once a
 // day, in person — this just records that confirmation. amount is trip
 // revenue plus other-vehicle income (tax/fuel/parking-lot payments from
-// vehicles outside the company's own fleet — see OtherIncome) minus today's
-// point-level expenses/lunches (see journal/page.tsx's identical
+// vehicles outside the company's own fleet — see OtherIncome) minus that
+// day's point-level expenses/lunches (see journal/page.tsx's identical
 // kirim/chiqim/qoldiq math) — real cash actually counted and handed over,
 // not the raw collected total, since that's already spent down by whatever
-// was paid out of it today. A snapshot at confirm time, not a live figure
-// that could drift if a trip gets entered afterward. Idempotent: a second
-// confirm the same day is a silent no-op rather than duplicating.
+// was paid out of it that day. targetDate is normally today (the common
+// case — see the two exported actions below), but the dispatcher can also
+// be viewing a past day (see point/page.tsx's date picker) and submit a
+// handover they missed at the time; the balance formula stays correct
+// either way since it keys off accountantConfirmedAt (always "right now"
+// when the accountant acts), not this date. A snapshot at confirm time, not
+// a live figure that could drift if a trip gets entered afterward.
+// Idempotent: a second confirm the same day is a silent no-op rather than
+// duplicating.
 //
 // overrideAmount/note cover the case where the computed figure doesn't match
 // what was actually counted (a missed expense, a rounding difference, ...) —
 // the dispatcher can hand over a different amount, but only with a reason on
 // record, since that's real cash silently diverging from the log.
-async function createTodaysHandover(
+async function createHandoverForDate(
   userId: string,
   point: Point,
+  targetDate: Date,
   overrideAmount?: bigint,
   note?: string
 ): Promise<{ error: string }> {
-  const today = startOfDay(new Date());
+  const today = startOfDay(targetDate);
   const existing = await prisma.cashHandover.findUnique({
     where: { point_handoverDate: { point, handoverDate: today } },
   });
@@ -258,7 +271,7 @@ async function createTodaysHandover(
     trips.reduce((s, t) => s + t.revenue, BigInt(0)) + otherIncomes.reduce((s, i) => s + i.amount, BigInt(0));
   const chiqim =
     expenses.reduce((s, e) => s + e.amount, BigInt(0)) + lunches.reduce((s, l) => s + l.amount, BigInt(0));
-  // What the dispatcher physically has left to hand over — today's local
+  // What the dispatcher physically has left to hand over — that day's local
   // expenses/lunches already came out of this same cash, so counting the
   // raw trip total (the old behaviour) overstated it by exactly that much.
   const computed = kirim - chiqim > BigInt(0) ? kirim - chiqim : BigInt(0);
@@ -282,7 +295,8 @@ async function createTodaysHandover(
 
 export async function confirmCashHandoverAction(formData: FormData) {
   const { userId, point } = await requireDispatcherOrGranted(formData, ["TRIP_ENTRY", "COLLECT_PAYMENT"]);
-  await createTodaysHandover(userId, point);
+  const now = new Date();
+  await createHandoverForDate(userId, point, parseBackdate(formData, now) ?? now);
 }
 
 export type ConfirmHandoverState = { error: string };
@@ -301,7 +315,8 @@ export async function confirmCashHandoverWithAdjustmentAction(
   if (!Number.isFinite(rawAmount) || rawAmount < 0) return { error: "Суммани тўғри киритинг" };
   if (!note) return { error: "Сабабини киритинг" };
 
-  return createTodaysHandover(userId, point, BigInt(Math.round(rawAmount)), note);
+  const now = new Date();
+  return createHandoverForDate(userId, point, parseBackdate(formData, now) ?? now, BigInt(Math.round(rawAmount)), note);
 }
 
 /** Undoes an accidental "Топшириш" click — only while the accountant hasn't
@@ -311,9 +326,10 @@ export async function confirmCashHandoverWithAdjustmentAction(
 export async function cancelCashHandoverAction(formData: FormData) {
   const { userId, point } = await requireDispatcherOrGranted(formData, ["TRIP_ENTRY", "COLLECT_PAYMENT"]);
 
-  const today = startOfDay(new Date());
+  const now = new Date();
+  const targetDate = startOfDay(parseBackdate(formData, now) ?? now);
   const handover = await prisma.cashHandover.findUnique({
-    where: { point_handoverDate: { point, handoverDate: today } },
+    where: { point_handoverDate: { point, handoverDate: targetDate } },
   });
   if (!handover || handover.accountantConfirmedAt) return;
 
