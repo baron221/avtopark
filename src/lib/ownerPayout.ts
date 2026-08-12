@@ -71,7 +71,10 @@ export type PointExpenseDetailRow = {
 export type OutsideExpenseDetailRow = {
   id: string;
   time: Date;
-  vehiclePlate: string;
+  /** Vehicle plate for a vehicle Expense, person name for an Advance/Salary
+   * payout, station name for a StationPayment — whichever identifies the
+   * source, since these come from four different models. */
+  subtitle: string;
   category: string;
   amount: number;
   note: string | null;
@@ -229,7 +232,18 @@ async function computeTodaysCashDetail(): Promise<TodayCashDetail> {
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const [trips, drivers, vehicles, otherIncomes, staffExpenses, lunches, expenses] = await Promise.all([
+  const [
+    trips,
+    drivers,
+    vehicles,
+    otherIncomes,
+    staffExpenses,
+    lunches,
+    expenses,
+    advances,
+    salaries,
+    stationPayments,
+  ] = await Promise.all([
     prisma.trip.findMany({
       where: { tripDate: { gte: today, lt: tomorrow } },
       select: {
@@ -264,6 +278,25 @@ async function computeTodaysCashDetail(): Promise<TodayCashDetail> {
       where: { expenseDate: { gte: today, lt: tomorrow } },
       include: { vehicle: true },
       orderBy: { expenseDate: "desc" },
+    }),
+    // Not point-attributable (tied to an employee, not Farg'ona/Quva), but
+    // still real cash leaving the company today — folded into "outside"
+    // alongside the generic vehicle Expense above so "Умумий кунлик расход"
+    // reflects everything, not just what a dispatcher physically hands over.
+    prisma.advance.findMany({
+      where: { givenDate: { gte: today, lt: tomorrow } },
+      include: { user: true },
+      orderBy: { givenDate: "desc" },
+    }),
+    prisma.salary.findMany({
+      where: { status: "PAID", paidAt: { gte: today, lt: tomorrow } },
+      include: { user: true },
+      orderBy: { paidAt: "desc" },
+    }),
+    prisma.stationPayment.findMany({
+      where: { paidAt: { gte: today, lt: tomorrow } },
+      include: { station: true },
+      orderBy: { paidAt: "desc" },
     }),
   ]);
 
@@ -341,14 +374,40 @@ async function computeTodaysCashDetail(): Promise<TodayCashDetail> {
       })),
   ].sort((a, b) => b.time.getTime() - a.time.getTime());
 
-  const outsideExpenseRows: OutsideExpenseDetailRow[] = expenses.map((e) => ({
-    id: e.id,
-    time: e.expenseDate,
-    vehiclePlate: e.vehicle.plate,
-    category: OUTSIDE_EXPENSE_CATEGORY_LABELS[e.category] ?? e.category,
-    amount: Number(e.amount),
-    note: e.note,
-  }));
+  const outsideExpenseRows: OutsideExpenseDetailRow[] = [
+    ...expenses.map((e) => ({
+      id: e.id,
+      time: e.expenseDate,
+      subtitle: e.vehicle.plate,
+      category: OUTSIDE_EXPENSE_CATEGORY_LABELS[e.category] ?? e.category,
+      amount: Number(e.amount),
+      note: e.note,
+    })),
+    ...advances.map((a) => ({
+      id: a.id,
+      time: a.givenDate,
+      subtitle: a.user.fullName,
+      category: "Аванс",
+      amount: Number(a.amount),
+      note: null,
+    })),
+    ...salaries.map((s) => ({
+      id: s.id,
+      time: s.paidAt as Date,
+      subtitle: s.user.fullName,
+      category: "Ойлик",
+      amount: Number(s.netPay),
+      note: null,
+    })),
+    ...stationPayments.map((p) => ({
+      id: p.id,
+      time: p.paidAt as Date,
+      subtitle: p.station.name,
+      category: "Ёқилғи станцияси тўлови",
+      amount: Number(p.paidAmount),
+      note: null,
+    })),
+  ].sort((a, b) => b.time.getTime() - a.time.getTime());
 
   const sum = (arr: { amount: number }[]) => arr.reduce((s, r) => s + r.amount, 0);
   const fargonaIncomeTotal = sum(fargonaTripRows);

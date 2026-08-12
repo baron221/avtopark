@@ -115,7 +115,7 @@ function OutsideExpenseRow({ r }: { r: OutsideExpenseDetailRow }) {
           {formatDayMonth(r.time)} · {formatTime(r.time)}
         </div>
         <div className="text-body font-semibold">
-          {r.category} · {r.vehiclePlate}
+          {r.category} · {r.subtitle}
           {r.note && <span className="text-muted-2"> · {r.note}</span>}
         </div>
       </div>
