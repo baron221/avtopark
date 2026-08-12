@@ -77,7 +77,7 @@ async function requireDispatcherOrGranted(formData: FormData, moduleKey: ModuleK
 
   if (session.user.role === "DISPATCHER") {
     if (!session.user.point) throw new Error("Ruxsat yo'q");
-    const point = await getActivePoint(session.user.point);
+    const point = await getActivePoint(session.user.id, session.user.point);
     return { userId: session.user.id, point };
   }
 
@@ -99,7 +99,7 @@ export async function setActivePointAction(formData: FormData) {
 
   const point: Point = formData.get("point") === "QUVA" ? "QUVA" : "FARGONA";
   const store = await cookies();
-  store.set(ACTIVE_POINT_COOKIE, point, {
+  store.set(ACTIVE_POINT_COOKIE, `${session.user.id}:${point}`, {
     path: "/",
     maxAge: 60 * 60 * 24 * 180,
     sameSite: "lax",

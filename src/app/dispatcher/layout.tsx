@@ -22,7 +22,7 @@ export default async function DispatcherLayout({ children }: { children: React.R
     redirect("/coming-soon");
   }
 
-  const activePoint = isDispatcher ? await getActivePoint(session.user.point!) : null;
+  const activePoint = isDispatcher ? await getActivePoint(session.user.id, session.user.point!) : null;
   const pointLabel = activePoint ? (POINT_LABELS[activePoint] ?? activePoint) : null;
   const extra = isDispatcher
     ? await getGrantedNavLinks(session.user.role, ["COLLECT_PAYMENT", "INCOME_EXPENSE_LOG", "TRIP_ENTRY"])

@@ -30,7 +30,7 @@ export default async function EditExpensePage({
   const { from, point: pointParam } = await searchParams;
 
   const point: Point = isDispatcher
-    ? await getActivePoint(session.user.point!)
+    ? await getActivePoint(session.user.id, session.user.point!)
     : pointParam === "QUVA"
       ? "QUVA"
       : "FARGONA";
