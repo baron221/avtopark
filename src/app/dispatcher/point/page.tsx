@@ -63,7 +63,6 @@ export default async function DispatcherPointPage({
     tripsToday,
     otherIncomeToday,
     myExpenseAgg,
-    myLunch,
     baseFareRoute,
     todaysHandover,
     pointExpenseAgg,
@@ -88,7 +87,6 @@ export default async function DispatcherPointPage({
       _sum: { amount: true },
       where: { userId: session.user.id, expenseDate: { gte: from, lte: to } },
     }),
-    prisma.lunch.findUnique({ where: { userId_lunchDate: { userId: session.user.id, lunchDate: from } } }),
     prisma.route.findFirst({ where: { isActive: true } }),
     prisma.cashHandover.findUnique({ where: { point_handoverDate: { point, handoverDate: from } } }),
     // Point-wide (not just this dispatcher's own) — matches exactly what
@@ -106,8 +104,8 @@ export default async function DispatcherPointPage({
   const collectedToday = tripsToday.reduce((s, t) => s + Number(t.revenue), 0) + otherIncomeTotal;
   const vehiclesWithMoney = new Set(tripsToday.map((t) => t.vehicleId));
   const myExpenseToday = Number(myExpenseAgg._sum.amount ?? BigInt(0));
-  const myLunchToday = myLunch ? Number(myLunch.amount) : 0;
-  const pointChiqimToday = Number(pointExpenseAgg._sum.amount ?? BigInt(0)) + Number(pointLunchAgg._sum.amount ?? BigInt(0));
+  const pointLunchToday = Number(pointLunchAgg._sum.amount ?? BigInt(0));
+  const pointChiqimToday = Number(pointExpenseAgg._sum.amount ?? BigInt(0)) + pointLunchToday;
   const netToHandover = Math.max(0, collectedToday - pointChiqimToday);
 
   const deletePoint = isDispatcher ? undefined : point;
@@ -209,7 +207,7 @@ export default async function DispatcherPointPage({
         <KpiCard variant="primary" label="Бугун йиғилди" value={formatSom(collectedToday)} />
         <KpiCard label="Қабул қилинган машина" value={`${vehiclesWithMoney.size} / ${vehicles.length}`} />
         <KpiCard label="Менинг расходим (бугун)" value={`−${formatSom(myExpenseToday)}`} hintColor="danger" />
-        <KpiCard label="Обед" value={myLunchToday ? `−${formatSom(myLunchToday)}` : "—"} />
+        <KpiCard label="Обед (бугун, пункт)" value={pointLunchToday ? `−${formatSom(pointLunchToday)}` : "—"} />
       </div>
 
       <Card className="p-5 flex items-center justify-between flex-wrap gap-3">

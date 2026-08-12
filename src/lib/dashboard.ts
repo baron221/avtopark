@@ -258,6 +258,7 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
     expensesFlat,
     dailyChart,
     staffExpensesFlat,
+    lunchesFlat,
   ] = await Promise.all([
     computeTotals(from, to),
     computeTotals(prev.from, prev.to),
@@ -297,6 +298,14 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
     prisma.staffExpense.findMany({
       where: { expenseDate: { gte: from, lte: to }, point: { in: ["FARGONA", "QUVA"] } },
       select: { point: true, category: true, amount: true },
+    }),
+    // Lunch is its own model (not a StaffExpense row, despite the dispatcher
+    // form presenting "Обед" as one of the same category buttons — see
+    // ExpenseForm.tsx), so pointBreakdown below needs it fetched separately
+    // to show a point's true "Чиқим" count/total.
+    prisma.lunch.findMany({
+      where: { lunchDate: { gte: from, lte: to }, point: { in: ["FARGONA", "QUVA"] } },
+      select: { point: true, amount: true },
     }),
   ]);
 
@@ -445,12 +454,17 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
     const trips = pointTrips.filter((t) => t.kind === "TRIP");
     const orders = pointTrips.filter((t) => t.kind === "ORDER");
     const pointExpenses = staffExpensesFlat.filter((e) => e.point === point);
+    const pointLunches = lunchesFlat.filter((l) => l.point === point);
 
     const byCategory = new Map<string, number>();
     for (const e of pointExpenses) {
       const label = staffExpenseCategoryLabels[e.category] ?? e.category;
       byCategory.set(label, (byCategory.get(label) ?? 0) + Number(e.amount));
     }
+    // Lunch is a separate model (see the query above), so it's merged in
+    // here rather than already being part of pointExpenses.
+    const pointLunchTotal = pointLunches.reduce((s, l) => s + Number(l.amount), 0);
+    if (pointLunchTotal > 0) byCategory.set("Обед", (byCategory.get("Обед") ?? 0) + pointLunchTotal);
 
     return {
       point,
@@ -458,8 +472,8 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
       tripIncome: trips.reduce((s, t) => s + Number(t.revenue), 0),
       orderCount: orders.length,
       orderIncome: orders.reduce((s, t) => s + Number(t.revenue), 0),
-      expenseCount: pointExpenses.length,
-      expenseTotal: pointExpenses.reduce((s, e) => s + Number(e.amount), 0),
+      expenseCount: pointExpenses.length + pointLunches.length,
+      expenseTotal: pointExpenses.reduce((s, e) => s + Number(e.amount), 0) + pointLunchTotal,
       expenseByCategory: Array.from(byCategory.entries())
         .map(([category, amount]) => ({ category, amount }))
         .sort((a, b) => b.amount - a.amount),
