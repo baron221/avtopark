@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { formatSom, formatDayMonth, formatTime } from "@/lib/format";
 import type {
-  TodayCashDetail,
+  CashDetail,
   TripIncomeDetailRow,
   OtherIncomeDetailRow,
   PointExpenseDetailRow,
@@ -126,11 +126,13 @@ function OutsideExpenseRow({ r }: { r: OutsideExpenseDetailRow }) {
 
 function Tile({
   label,
+  rangeLabel,
   total,
   color,
   children,
 }: {
   label: string;
+  rangeLabel: string;
   total: number;
   color: "success" | "danger";
   children: ReactNode;
@@ -141,7 +143,10 @@ function Tile({
       <button type="button" onClick={() => setOpen((v) => !v)} className="w-full text-left">
         <div className="flex items-center justify-between gap-2">
           <div className="text-[11px] text-muted-2 font-bold uppercase">{label}</div>
-          <span className={`text-muted-2 text-xs transition-transform ${open ? "rotate-90" : ""}`}>▶</span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[11px] text-muted-2 font-bold whitespace-nowrap">{rangeLabel}</span>
+            <span className={`text-muted-2 text-xs transition-transform ${open ? "rotate-90" : ""}`}>▶</span>
+          </div>
         </div>
         <div
           className={`font-heading font-extrabold text-lg ${color === "success" ? "text-success" : "text-danger"}`}
@@ -155,17 +160,24 @@ function Tile({
 }
 
 /**
- * The cash card's two "today" KPI tiles, made clickable — each opens into a
- * Fargona/Quva/"other" breakdown, and each of those into the individual
- * trip/expense records behind it. Two levels deep, both collapsed by
- * default: neither level's text (locale-formatted dates/times included) is
- * ever part of the initial SSR/hydration pass, so it can't cause the kind
- * of hydration mismatch DailyBreakdownAccordion's date label hit earlier.
+ * The cash card's two kirim/chiqim KPI tiles, made clickable — each opens
+ * into a Fargona/Quva/"other" breakdown, and each of those into the
+ * individual trip/expense records behind it. Two levels deep, both
+ * collapsed by default: neither level's text (locale-formatted dates/times
+ * included) is ever part of the initial SSR/hydration pass, so it can't
+ * cause the kind of hydration mismatch DailyBreakdownAccordion's date label
+ * hit earlier. Labels/range follow the page's own period toggle (see
+ * CashDetail.periodWord/rangeLabel) rather than always saying "кунлик".
  */
-export function TodayCashBreakdown({ detail }: { detail: TodayCashDetail }) {
+export function CashBreakdown({ detail }: { detail: CashDetail }) {
   return (
     <div className="grid grid-cols-2 gap-3">
-      <Tile label="Умумий кунлик тушум" total={detail.income.total} color="success">
+      <Tile
+        label={`Умумий ${detail.periodWord.toLowerCase()} тушум`}
+        rangeLabel={detail.rangeLabel}
+        total={detail.income.total}
+        color="success"
+      >
         <Bucket
           label="Фарғона"
           total={detail.income.fargona.total}
@@ -204,7 +216,12 @@ export function TodayCashBreakdown({ detail }: { detail: TodayCashDetail }) {
         </Bucket>
       </Tile>
 
-      <Tile label="Умумий кунлик расход" total={detail.expense.total} color="danger">
+      <Tile
+        label={`Умумий ${detail.periodWord.toLowerCase()} расход`}
+        rangeLabel={detail.rangeLabel}
+        total={detail.expense.total}
+        color="danger"
+      >
         <Bucket
           label="Фарғона"
           total={detail.expense.fargona.total}

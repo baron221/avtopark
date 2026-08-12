@@ -7,7 +7,7 @@ import { StatusPill } from "@/components/ui/StatusPill";
 import { WeeklyBarChart } from "@/components/charts/WeeklyBarChart";
 import { OwnerPayoutForm } from "@/components/dashboard/OwnerPayoutForm";
 import { DailyBreakdownAccordion } from "@/components/dashboard/DailyBreakdownAccordion";
-import { TodayCashBreakdown } from "@/components/dashboard/TodayCashBreakdown";
+import { CashBreakdown } from "@/components/dashboard/CashBreakdown";
 import { CashOpeningBalanceForm } from "@/components/dashboard/CashOpeningBalanceForm";
 import { CashHistorySection } from "@/components/dashboard/CashHistorySection";
 import type { OwnerDashboardVM, Period } from "@/lib/dashboard";
@@ -357,7 +357,7 @@ export function FleetDashboard({
                 )}
               </div>
             </div>
-            <TodayCashBreakdown detail={cashLedger.todaysDetail} />
+            <CashBreakdown detail={cashLedger.cashDetail} />
             <CashHistorySection
               confirmedHistory={cashLedger.confirmedHistory}
               payoutHistory={cashLedger.payoutHistory}

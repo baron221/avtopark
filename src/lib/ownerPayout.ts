@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { monthStart, monthEnd } from "@/lib/month";
-import { uzMonthName } from "@/lib/format";
+import { uzMonthName, formatDayMonth } from "@/lib/format";
 import { OTHER_INCOME_CATEGORY_LABELS } from "@/lib/otherIncome";
+import { rangeForPeriod, type Period } from "@/lib/dashboard";
 import type { Point } from "@prisma/client";
 
 export type PendingHandoverRow = {
@@ -80,7 +81,17 @@ export type OutsideExpenseDetailRow = {
   note: string | null;
 };
 
-export type TodayCashDetail = {
+export type CashDetail = {
+  /** "Кунлик" / "Ҳафталик" / "Ойлик" — matches the page's own period toggle,
+   * so the two tiles' headings ("Умумий {periodWord} тушум/расход") always
+   * describe the range they actually cover. */
+  periodWord: string;
+  /** The concrete range as text — a single date for DAY, "dd.mm – dd.mm"
+   * for WEEK, the month name for MONTH. Pre-formatted server-side (see
+   * format.ts's comment on why: a "use client" component must not format
+   * dates itself in its always-visible markup, or Node/browser ICU
+   * differences can break hydration). */
+  rangeLabel: string;
   income: {
     total: number;
     fargona: { total: number; rows: TripIncomeDetailRow[] };
@@ -105,13 +116,14 @@ export type CashLedgerSummary = {
   /** null until the accountant sets one — see computeCashBalance for why
    * this matters (without it, the balance is meaningless). */
   openingBalance: { amount: number; setDate: Date } | null;
-  /** Today only, both points combined, with a full drill-down: which point
+  /** Scoped to the report page's own period/date (unlike everything else in
+   * this type), both points combined, with a full drill-down: which point
    * it came from/went to, and the individual trip/expense records behind
    * each figure. Unlike computeCashBalance below, expense here also counts
-   * today's vehicle repair/fuel/salary bills (not just what dispatchers
-   * hand over) — a fuller "where did today's money go" picture than the
-   * cash-handover-only balance tracks. */
-  todaysDetail: TodayCashDetail;
+   * vehicle repair/fuel/salary bills (not just what dispatchers hand over)
+   * — a fuller "where did the money go" picture than the cash-handover-only
+   * balance tracks. */
+  cashDetail: CashDetail;
   confirmedHistory: ConfirmedHandoverRow[];
   payoutHistory: OwnerPayoutRow[];
 };
@@ -219,18 +231,24 @@ const POINT_EXPENSE_CATEGORY_LABELS: Record<string, string> = {
   BOSHQA: "Бошқа расход",
 };
 
-/** Today's combined kirim/chiqim across both points, with a full drill-down
- * — same headline definition dispatcher/actions.ts's createHandoverForDate
- * uses per point (trip+otherIncome vs staffExpense+lunch), just without the
- * point filter, PLUS today's outside-point vehicle expense (repair/fuel/
- * salary/...) folded into the expense total too — unlike the dispatcher-
- * facing figure, this is meant to answer "where did today's money actually
- * go", not just what a dispatcher physically hands over. */
-async function computeTodaysCashDetail(): Promise<TodayCashDetail> {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+const PERIOD_WORDS: Record<Period, string> = { DAY: "Кунлик", WEEK: "Ҳафталик", MONTH: "Ойлик" };
+
+function cashDetailRangeLabel(period: Period, from: Date, to: Date): string {
+  if (period === "WEEK") return `${formatDayMonth(from)} – ${formatDayMonth(to)}`;
+  if (period === "MONTH") return uzMonthName(from);
+  return formatDayMonth(from);
+}
+
+/** The selected period's combined kirim/chiqim across both points, with a
+ * full drill-down — same headline definition dispatcher/actions.ts's
+ * createHandoverForDate uses per point (trip+otherIncome vs staffExpense+
+ * lunch), just without the point filter, PLUS outside-point vehicle expense
+ * (repair/fuel/salary/...) folded into the expense total too — unlike the
+ * dispatcher-facing figure, this is meant to answer "where did the money
+ * actually go" for whatever range the page has selected, not just what a
+ * dispatcher physically hands over on a single day. */
+async function computeCashDetail(period: Period, referenceDate: Date): Promise<CashDetail> {
+  const { from, to } = rangeForPeriod(period, referenceDate);
 
   const [
     trips,
@@ -245,7 +263,7 @@ async function computeTodaysCashDetail(): Promise<TodayCashDetail> {
     stationPayments,
   ] = await Promise.all([
     prisma.trip.findMany({
-      where: { tripDate: { gte: today, lt: tomorrow } },
+      where: { tripDate: { gte: from, lte: to } },
       select: {
         id: true,
         createdAt: true,
@@ -260,22 +278,22 @@ async function computeTodaysCashDetail(): Promise<TodayCashDetail> {
     prisma.driver.findMany({ include: { user: true } }),
     prisma.vehicle.findMany({ select: { id: true, plate: true } }),
     prisma.otherIncome.findMany({
-      where: { incomeDate: { gte: today, lt: tomorrow } },
+      where: { incomeDate: { gte: from, lte: to } },
       include: { enteredByUser: true },
       orderBy: { createdAt: "desc" },
     }),
     prisma.staffExpense.findMany({
-      where: { expenseDate: { gte: today, lt: tomorrow }, category: { not: "OBED" } },
+      where: { expenseDate: { gte: from, lte: to }, category: { not: "OBED" } },
       include: { enteredByUser: true },
       orderBy: { expenseDate: "desc" },
     }),
     prisma.lunch.findMany({
-      where: { lunchDate: { gte: today, lt: tomorrow } },
+      where: { lunchDate: { gte: from, lte: to } },
       include: { user: true },
       orderBy: { lunchDate: "desc" },
     }),
     prisma.expense.findMany({
-      where: { expenseDate: { gte: today, lt: tomorrow } },
+      where: { expenseDate: { gte: from, lte: to } },
       include: { vehicle: true },
       orderBy: { expenseDate: "desc" },
     }),
@@ -284,17 +302,17 @@ async function computeTodaysCashDetail(): Promise<TodayCashDetail> {
     // alongside the generic vehicle Expense above so "Умумий кунлик расход"
     // reflects everything, not just what a dispatcher physically hands over.
     prisma.advance.findMany({
-      where: { givenDate: { gte: today, lt: tomorrow } },
+      where: { givenDate: { gte: from, lte: to } },
       include: { user: true },
       orderBy: { givenDate: "desc" },
     }),
     prisma.salary.findMany({
-      where: { status: "PAID", paidAt: { gte: today, lt: tomorrow } },
+      where: { status: "PAID", paidAt: { gte: from, lte: to } },
       include: { user: true },
       orderBy: { paidAt: "desc" },
     }),
     prisma.stationPayment.findMany({
-      where: { paidAt: { gte: today, lt: tomorrow } },
+      where: { paidAt: { gte: from, lte: to } },
       include: { station: true },
       orderBy: { paidAt: "desc" },
     }),
@@ -418,6 +436,8 @@ async function computeTodaysCashDetail(): Promise<TodayCashDetail> {
   const outsideExpenseTotal = sum(outsideExpenseRows);
 
   return {
+    periodWord: PERIOD_WORDS[period],
+    rangeLabel: cashDetailRangeLabel(period, from, to),
     income: {
       total: fargonaIncomeTotal + quvaIncomeTotal + otherIncomeTotal,
       fargona: { total: fargonaIncomeTotal, rows: fargonaTripRows },
@@ -434,14 +454,15 @@ async function computeTodaysCashDetail(): Promise<TodayCashDetail> {
 }
 
 /**
- * Deliberately not scoped to a period/date — unlike the report page's own
- * date picker, this is a running all-time cash-on-hand balance, so
- * switching the date picker must not change it.
+ * balance/pointPending/confirmedHistory/payoutHistory are deliberately not
+ * scoped to a period/date — a running all-time cash-on-hand balance, so
+ * switching the date picker must not change them. cashDetail is the one
+ * exception (see its own doc comment) — period/referenceDate only affect it.
  */
-export async function getCashLedgerSummary(): Promise<CashLedgerSummary> {
+export async function getCashLedgerSummary(period: Period, referenceDate: Date): Promise<CashLedgerSummary> {
   const openingBalance = await getLatestOpeningBalance();
 
-  const [pending, confirmed, payouts, balance, todaysDetail] = await Promise.all([
+  const [pending, confirmed, payouts, balance, cashDetail] = await Promise.all([
     prisma.cashHandover.findMany({
       where: { accountantConfirmedAt: null },
       orderBy: { handoverDate: "asc" },
@@ -459,7 +480,7 @@ export async function getCashLedgerSummary(): Promise<CashLedgerSummary> {
       include: { enteredByUser: true },
     }),
     computeCashBalance(openingBalance),
-    computeTodaysCashDetail(),
+    computeCashDetail(period, referenceDate),
   ]);
 
   const pointPending: PointPending[] = (["FARGONA", "QUVA"] as const).map((point) => ({
@@ -479,7 +500,7 @@ export async function getCashLedgerSummary(): Promise<CashLedgerSummary> {
     pointPending,
     balance,
     openingBalance,
-    todaysDetail,
+    cashDetail,
     confirmedHistory: confirmed.map((h) => ({
       id: h.id,
       handoverDate: h.handoverDate,

@@ -40,7 +40,7 @@ export default async function AccountantReportPage({
   const { period: periodParam, date: dateParam } = await searchParams;
   const period: Period = isPeriod(periodParam) ? periodParam : "MONTH";
   const { date, dateStr } = parseDateParam(dateParam);
-  const [vm, cashLedger] = await Promise.all([getOwnerDashboardVM(period, date), getCashLedgerSummary()]);
+  const [vm, cashLedger] = await Promise.all([getOwnerDashboardVM(period, date), getCashLedgerSummary(period, date)]);
 
   return (
     <FleetDashboard
