@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { monthStart, monthEnd } from "@/lib/month";
 import { uzMonthName } from "@/lib/format";
+import { OTHER_INCOME_CATEGORY_LABELS } from "@/lib/otherIncome";
 import type { Point } from "@prisma/client";
 
 export type PendingHandoverRow = {
@@ -37,6 +38,60 @@ export type OwnerPayoutRow = {
   enteredByName: string;
 };
 
+export type TripIncomeDetailRow = {
+  id: string;
+  time: Date;
+  kind: "TRIP" | "ORDER";
+  vehiclePlate: string;
+  driverName: string;
+  amount: number;
+  note: string | null;
+};
+
+export type OtherIncomeDetailRow = {
+  id: string;
+  time: Date;
+  point: Point;
+  category: string;
+  amount: number;
+  plateNumber: string | null;
+  note: string | null;
+  enteredByName: string;
+};
+
+export type PointExpenseDetailRow = {
+  id: string;
+  time: Date;
+  category: string;
+  amount: number;
+  personName: string;
+  note: string | null;
+};
+
+export type OutsideExpenseDetailRow = {
+  id: string;
+  time: Date;
+  vehiclePlate: string;
+  category: string;
+  amount: number;
+  note: string | null;
+};
+
+export type TodayCashDetail = {
+  income: {
+    total: number;
+    fargona: { total: number; rows: TripIncomeDetailRow[] };
+    quva: { total: number; rows: TripIncomeDetailRow[] };
+    other: { total: number; rows: OtherIncomeDetailRow[] };
+  };
+  expense: {
+    total: number;
+    fargona: { total: number; rows: PointExpenseDetailRow[] };
+    quva: { total: number; rows: PointExpenseDetailRow[] };
+    outside: { total: number; rows: OutsideExpenseDetailRow[] };
+  };
+};
+
 export type CashLedgerSummary = {
   pointPending: PointPending[];
   /** Confirmed cash on hand, all expenses paid out of that same physical
@@ -47,13 +102,13 @@ export type CashLedgerSummary = {
   /** null until the accountant sets one — see computeCashBalance for why
    * this matters (without it, the balance is meaningless). */
   openingBalance: { amount: number; setDate: Date } | null;
-  /** Today only, both points combined — the same kirim/chiqim a dispatcher
-   * already sees on their own point/journal page, just summed company-wide.
-   * A quick sanity snapshot alongside the running balance above, not a
-   * component of it (that's opening balance + everything since it was set,
-   * see computeCashBalance). */
-  todaysIncome: number;
-  todaysExpense: number;
+  /** Today only, both points combined, with a full drill-down: which point
+   * it came from/went to, and the individual trip/expense records behind
+   * each figure. Unlike computeCashBalance below, expense here also counts
+   * today's vehicle repair/fuel/salary bills (not just what dispatchers
+   * hand over) — a fuller "where did today's money go" picture than the
+   * cash-handover-only balance tracks. */
+  todaysDetail: TodayCashDetail;
   confirmedHistory: ConfirmedHandoverRow[];
   payoutHistory: OwnerPayoutRow[];
 };
@@ -145,25 +200,177 @@ export async function getCashBalance(): Promise<number> {
   return computeCashBalance();
 }
 
-/** Today's combined kirim/chiqim across both points — same definition
- * dispatcher/actions.ts's createTodaysHandover uses per point, just without
- * the point filter. See CashLedgerSummary.todaysIncome/todaysExpense. */
-async function computeTodaysCashSummary(): Promise<{ income: number; expense: number }> {
+const OUTSIDE_EXPENSE_CATEGORY_LABELS: Record<string, string> = {
+  FUEL: "Ёқилғи",
+  REPAIR: "Таъмирлаш",
+  SALARY: "Маош",
+  INSURANCE: "Суғурта",
+  TAX: "Солиқ",
+  TOLL: "Йўл ҳақи",
+  OTHER: "Бошқа",
+};
+
+const POINT_EXPENSE_CATEGORY_LABELS: Record<string, string> = {
+  STOYANKA: "Стоянка",
+  OZIQ_OVQAT: "Шахсий озиқ-овқат",
+  BOSHQA: "Бошқа расход",
+};
+
+/** Today's combined kirim/chiqim across both points, with a full drill-down
+ * — same headline definition dispatcher/actions.ts's createHandoverForDate
+ * uses per point (trip+otherIncome vs staffExpense+lunch), just without the
+ * point filter, PLUS today's outside-point vehicle expense (repair/fuel/
+ * salary/...) folded into the expense total too — unlike the dispatcher-
+ * facing figure, this is meant to answer "where did today's money actually
+ * go", not just what a dispatcher physically hands over. */
+async function computeTodaysCashDetail(): Promise<TodayCashDetail> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const [tripsAgg, otherIncomeAgg, staffExpenseAgg, lunchAgg] = await Promise.all([
-    prisma.trip.aggregate({ _sum: { revenue: true }, where: { tripDate: { gte: today, lt: tomorrow } } }),
-    prisma.otherIncome.aggregate({ _sum: { amount: true }, where: { incomeDate: { gte: today, lt: tomorrow } } }),
-    prisma.staffExpense.aggregate({ _sum: { amount: true }, where: { expenseDate: { gte: today, lt: tomorrow } } }),
-    prisma.lunch.aggregate({ _sum: { amount: true }, where: { lunchDate: { gte: today, lt: tomorrow } } }),
+  const [trips, drivers, vehicles, otherIncomes, staffExpenses, lunches, expenses] = await Promise.all([
+    prisma.trip.findMany({
+      where: { tripDate: { gte: today, lt: tomorrow } },
+      select: {
+        id: true,
+        createdAt: true,
+        kind: true,
+        point: true,
+        vehicleId: true,
+        driverId: true,
+        revenue: true,
+        note: true,
+      },
+    }),
+    prisma.driver.findMany({ include: { user: true } }),
+    prisma.vehicle.findMany({ select: { id: true, plate: true } }),
+    prisma.otherIncome.findMany({
+      where: { incomeDate: { gte: today, lt: tomorrow } },
+      include: { enteredByUser: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.staffExpense.findMany({
+      where: { expenseDate: { gte: today, lt: tomorrow }, category: { not: "OBED" } },
+      include: { enteredByUser: true },
+      orderBy: { expenseDate: "desc" },
+    }),
+    prisma.lunch.findMany({
+      where: { lunchDate: { gte: today, lt: tomorrow } },
+      include: { user: true },
+      orderBy: { lunchDate: "desc" },
+    }),
+    prisma.expense.findMany({
+      where: { expenseDate: { gte: today, lt: tomorrow } },
+      include: { vehicle: true },
+      orderBy: { expenseDate: "desc" },
+    }),
   ]);
 
+  const driverById = new Map(drivers.map((d) => [d.id, d]));
+  const vehicleById = new Map(vehicles.map((v) => [v.id, v]));
+
+  const tripRows: (TripIncomeDetailRow & { point: Point })[] = trips
+    .map((t) => ({
+      id: t.id,
+      time: t.createdAt,
+      point: t.point,
+      kind: t.kind,
+      vehiclePlate: vehicleById.get(t.vehicleId)?.plate ?? "—",
+      driverName: driverById.get(t.driverId)?.user.fullName ?? "—",
+      amount: Number(t.revenue),
+      note: t.note,
+    }))
+    .sort((a, b) => b.time.getTime() - a.time.getTime());
+  const fargonaTripRows = tripRows.filter((t) => t.point === "FARGONA");
+  const quvaTripRows = tripRows.filter((t) => t.point === "QUVA");
+
+  const otherIncomeRows: OtherIncomeDetailRow[] = otherIncomes.map((i) => ({
+    id: i.id,
+    time: i.createdAt,
+    point: i.point,
+    category: OTHER_INCOME_CATEGORY_LABELS[i.category] ?? i.category,
+    amount: Number(i.amount),
+    plateNumber: i.plateNumber,
+    note: i.note,
+    enteredByName: i.enteredByUser.fullName,
+  }));
+
+  const fargonaExpenseRows: PointExpenseDetailRow[] = [
+    ...staffExpenses
+      .filter((e) => e.point === "FARGONA")
+      .map((e) => ({
+        id: e.id,
+        time: e.expenseDate,
+        category: POINT_EXPENSE_CATEGORY_LABELS[e.category] ?? e.category,
+        amount: Number(e.amount),
+        personName: e.enteredByUser.fullName,
+        note: e.note,
+      })),
+    ...lunches
+      .filter((l) => l.point === "FARGONA")
+      .map((l) => ({
+        id: l.id,
+        time: l.lunchDate,
+        category: "Обед",
+        amount: Number(l.amount),
+        personName: l.user.fullName,
+        note: null,
+      })),
+  ].sort((a, b) => b.time.getTime() - a.time.getTime());
+  const quvaExpenseRows: PointExpenseDetailRow[] = [
+    ...staffExpenses
+      .filter((e) => e.point === "QUVA")
+      .map((e) => ({
+        id: e.id,
+        time: e.expenseDate,
+        category: POINT_EXPENSE_CATEGORY_LABELS[e.category] ?? e.category,
+        amount: Number(e.amount),
+        personName: e.enteredByUser.fullName,
+        note: e.note,
+      })),
+    ...lunches
+      .filter((l) => l.point === "QUVA")
+      .map((l) => ({
+        id: l.id,
+        time: l.lunchDate,
+        category: "Обед",
+        amount: Number(l.amount),
+        personName: l.user.fullName,
+        note: null,
+      })),
+  ].sort((a, b) => b.time.getTime() - a.time.getTime());
+
+  const outsideExpenseRows: OutsideExpenseDetailRow[] = expenses.map((e) => ({
+    id: e.id,
+    time: e.expenseDate,
+    vehiclePlate: e.vehicle.plate,
+    category: OUTSIDE_EXPENSE_CATEGORY_LABELS[e.category] ?? e.category,
+    amount: Number(e.amount),
+    note: e.note,
+  }));
+
+  const sum = (arr: { amount: number }[]) => arr.reduce((s, r) => s + r.amount, 0);
+  const fargonaIncomeTotal = sum(fargonaTripRows);
+  const quvaIncomeTotal = sum(quvaTripRows);
+  const otherIncomeTotal = sum(otherIncomeRows);
+  const fargonaExpenseTotal = sum(fargonaExpenseRows);
+  const quvaExpenseTotal = sum(quvaExpenseRows);
+  const outsideExpenseTotal = sum(outsideExpenseRows);
+
   return {
-    income: Number(tripsAgg._sum.revenue ?? BigInt(0)) + Number(otherIncomeAgg._sum.amount ?? BigInt(0)),
-    expense: Number(staffExpenseAgg._sum.amount ?? BigInt(0)) + Number(lunchAgg._sum.amount ?? BigInt(0)),
+    income: {
+      total: fargonaIncomeTotal + quvaIncomeTotal + otherIncomeTotal,
+      fargona: { total: fargonaIncomeTotal, rows: fargonaTripRows },
+      quva: { total: quvaIncomeTotal, rows: quvaTripRows },
+      other: { total: otherIncomeTotal, rows: otherIncomeRows },
+    },
+    expense: {
+      total: fargonaExpenseTotal + quvaExpenseTotal + outsideExpenseTotal,
+      fargona: { total: fargonaExpenseTotal, rows: fargonaExpenseRows },
+      quva: { total: quvaExpenseTotal, rows: quvaExpenseRows },
+      outside: { total: outsideExpenseTotal, rows: outsideExpenseRows },
+    },
   };
 }
 
@@ -175,7 +382,7 @@ async function computeTodaysCashSummary(): Promise<{ income: number; expense: nu
 export async function getCashLedgerSummary(): Promise<CashLedgerSummary> {
   const openingBalance = await getLatestOpeningBalance();
 
-  const [pending, confirmed, payouts, balance, todaysSummary] = await Promise.all([
+  const [pending, confirmed, payouts, balance, todaysDetail] = await Promise.all([
     prisma.cashHandover.findMany({
       where: { accountantConfirmedAt: null },
       orderBy: { handoverDate: "asc" },
@@ -193,7 +400,7 @@ export async function getCashLedgerSummary(): Promise<CashLedgerSummary> {
       include: { enteredByUser: true },
     }),
     computeCashBalance(openingBalance),
-    computeTodaysCashSummary(),
+    computeTodaysCashDetail(),
   ]);
 
   const pointPending: PointPending[] = (["FARGONA", "QUVA"] as const).map((point) => ({
@@ -213,8 +420,7 @@ export async function getCashLedgerSummary(): Promise<CashLedgerSummary> {
     pointPending,
     balance,
     openingBalance,
-    todaysIncome: todaysSummary.income,
-    todaysExpense: todaysSummary.expense,
+    todaysDetail,
     confirmedHistory: confirmed.map((h) => ({
       id: h.id,
       handoverDate: h.handoverDate,

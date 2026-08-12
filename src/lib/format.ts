@@ -8,6 +8,17 @@ export function formatTime(date: Date): string {
   return date.toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit", timeZone: TASHKENT_TZ });
 }
 
+// Deliberately not toLocaleDateString: Node's bundled ICU and a browser's
+// formats the same "uz-UZ" day/month differently (e.g. "12/08" vs "08-12"),
+// which is harmless in a server component (renders once, server-side only)
+// but breaks hydration in a "use client" component whose unconditionally-
+// visible markup includes it — confirmed via a local repro this session.
+export function formatDayMonth(date: Date): string {
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${day}.${month}`;
+}
+
 export function formatSom(amount: number | bigint): string {
   const n = typeof amount === "bigint" ? Number(amount) : Math.round(amount);
   const negative = n < 0;

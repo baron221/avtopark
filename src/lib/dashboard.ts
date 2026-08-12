@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { uzMonthName, uzWeekdayShort } from "@/lib/format";
 import { monthStart as monthStartUTC } from "@/lib/month";
+import { OTHER_INCOME_CATEGORY_LABELS } from "@/lib/otherIncome";
 import type { VehicleType } from "@prisma/client";
 
 export type Period = "DAY" | "WEEK" | "MONTH";
@@ -13,6 +14,8 @@ export type PointBreakdownRow = {
   tripIncome: number;
   orderCount: number;
   orderIncome: number;
+  otherIncomeCount: number;
+  otherIncome: number;
   expenseCount: number;
   expenseTotal: number;
   expenseByCategory: { category: string; amount: number }[];
@@ -37,6 +40,30 @@ export type OrderRow = {
   driverName: string;
   amount: number;
   note: string | null;
+};
+
+export type OtherIncomeRow = {
+  id: string;
+  time: Date;
+  point: "FARGONA" | "QUVA";
+  category: string;
+  amount: number;
+  plateNumber: string | null;
+  note: string | null;
+  enteredByName: string;
+};
+
+export type DailyBreakdownRow = {
+  date: Date;
+  quvaIncome: number;
+  quvaExpense: number;
+  fargonaIncome: number;
+  fargonaExpense: number;
+  totalIncome: number;
+  totalExpense: number;
+  advance: number;
+  fine: number;
+  outsideExpense: number;
 };
 
 export type VehicleProfitRow = {
@@ -70,6 +97,9 @@ export type OwnerDashboardVM = {
   pointBreakdown: PointBreakdownRow[];
   pointVehicles: { point: "FARGONA" | "QUVA"; rows: PointVehicleRow[] }[];
   orders: OrderRow[];
+  otherIncomes: OtherIncomeRow[];
+  otherIncomeTotal: number;
+  dailyBreakdown: DailyBreakdownRow[];
 };
 
 function startOfDay(d: Date) {
@@ -128,10 +158,14 @@ function dayIndex(date: Date, rangeStart: Date) {
 }
 
 async function computeDailyChart(chartFrom: Date, chartTo: Date, days: number) {
-  const [trips, expenses, lunches, staffExpenses, plans, rentals] = await Promise.all([
+  const [trips, otherIncomes, expenses, lunches, staffExpenses, plans, rentals] = await Promise.all([
     prisma.trip.findMany({
       where: { tripDate: { gte: chartFrom, lte: chartTo } },
       select: { tripDate: true, revenue: true },
+    }),
+    prisma.otherIncome.findMany({
+      where: { incomeDate: { gte: chartFrom, lte: chartTo } },
+      select: { incomeDate: true, amount: true },
     }),
     prisma.expense.findMany({
       where: { expenseDate: { gte: chartFrom, lte: chartTo } },
@@ -161,6 +195,10 @@ async function computeDailyChart(chartFrom: Date, chartTo: Date, days: number) {
   for (const t of trips) {
     const i = dayIndex(t.tripDate, chartFrom);
     if (i >= 0 && i < days) income[i] += Number(t.revenue);
+  }
+  for (const oi of otherIncomes) {
+    const i = dayIndex(oi.incomeDate, chartFrom);
+    if (i >= 0 && i < days) income[i] += Number(oi.amount);
   }
   for (const p of plans) {
     const i = dayIndex(p.planDate, chartFrom);
@@ -195,9 +233,87 @@ async function computeDailyChart(chartFrom: Date, chartTo: Date, days: number) {
   }));
 }
 
+// Accountant-only per-day ledger (see FleetDashboard's daily breakdown
+// accordion) — reuses the same period-scoped flat arrays getOwnerDashboardVM
+// already fetched for pointBreakdown/etc, so this adds no extra queries
+// beyond advance/fine. Advance and Fine aren't point-scoped (they're tied to
+// an employee, not FARGONA/QUVA), so they're shown as company-wide daily
+// totals rather than split per point.
+function computeDailyBreakdown(
+  from: Date,
+  days: number,
+  trips: { point: "FARGONA" | "QUVA"; tripDate: Date; revenue: bigint | number }[],
+  otherIncomes: { point: "FARGONA" | "QUVA"; incomeDate: Date; amount: bigint | number }[],
+  staffExpenses: { point: string; expenseDate: Date; amount: bigint | number }[],
+  lunches: { point: "FARGONA" | "QUVA"; lunchDate: Date; amount: bigint | number }[],
+  expenses: { expenseDate: Date; amount: bigint | number }[],
+  advances: { givenDate: Date; amount: bigint | number }[],
+  fines: { fineDate: Date; amount: bigint | number }[]
+): DailyBreakdownRow[] {
+  const rows: DailyBreakdownRow[] = Array.from({ length: days }).map((_, i) => ({
+    date: addDays(from, i),
+    quvaIncome: 0,
+    quvaExpense: 0,
+    fargonaIncome: 0,
+    fargonaExpense: 0,
+    totalIncome: 0,
+    totalExpense: 0,
+    advance: 0,
+    fine: 0,
+    outsideExpense: 0,
+  }));
+
+  for (const t of trips) {
+    const i = dayIndex(t.tripDate, from);
+    if (i < 0 || i >= days) continue;
+    if (t.point === "QUVA") rows[i].quvaIncome += Number(t.revenue);
+    else rows[i].fargonaIncome += Number(t.revenue);
+  }
+  for (const oi of otherIncomes) {
+    const i = dayIndex(oi.incomeDate, from);
+    if (i < 0 || i >= days) continue;
+    if (oi.point === "QUVA") rows[i].quvaIncome += Number(oi.amount);
+    else rows[i].fargonaIncome += Number(oi.amount);
+  }
+  for (const e of staffExpenses) {
+    const i = dayIndex(e.expenseDate, from);
+    if (i < 0 || i >= days) continue;
+    if (e.point === "QUVA") rows[i].quvaExpense += Number(e.amount);
+    else rows[i].fargonaExpense += Number(e.amount);
+  }
+  for (const l of lunches) {
+    const i = dayIndex(l.lunchDate, from);
+    if (i < 0 || i >= days) continue;
+    if (l.point === "QUVA") rows[i].quvaExpense += Number(l.amount);
+    else rows[i].fargonaExpense += Number(l.amount);
+  }
+  for (const e of expenses) {
+    const i = dayIndex(e.expenseDate, from);
+    if (i >= 0 && i < days) rows[i].outsideExpense += Number(e.amount);
+  }
+  for (const a of advances) {
+    const i = dayIndex(a.givenDate, from);
+    if (i >= 0 && i < days) rows[i].advance += Number(a.amount);
+  }
+  for (const f of fines) {
+    const i = dayIndex(f.fineDate, from);
+    if (i >= 0 && i < days) rows[i].fine += Number(f.amount);
+  }
+
+  for (const r of rows) {
+    r.totalIncome = r.quvaIncome + r.fargonaIncome;
+    r.totalExpense = r.quvaExpense + r.fargonaExpense;
+  }
+
+  return rows.reverse();
+}
+
 async function computeTotals(from: Date, to: Date) {
-  const [tripsAgg, plansAgg, expensesAgg, lunchAgg, staffExpenseAgg, rentals] = await Promise.all([
+  const [tripsAgg, otherIncomeAgg, plansAgg, expensesAgg, lunchAgg, staffExpenseAgg, rentals] = await Promise.all([
     prisma.trip.aggregate({ _sum: { revenue: true }, where: { tripDate: { gte: from, lte: to } } }),
+    // Cash collected from non-fleet vehicles (tax/fuel/parking payments) —
+    // real income, was missing from every total here, understating profit.
+    prisma.otherIncome.aggregate({ _sum: { amount: true }, where: { incomeDate: { gte: from, lte: to } } }),
     prisma.dailyPlan.aggregate({ _sum: { paidAmount: true }, where: { planDate: { gte: from, lte: to } } }),
     prisma.expense.aggregate({ _sum: { amount: true }, where: { expenseDate: { gte: from, lte: to } } }),
     // Lunch is a general company expense, not an individual payroll
@@ -218,6 +334,7 @@ async function computeTotals(from: Date, to: Date) {
   ]);
 
   const tripIncome = Number(tripsAgg._sum.revenue ?? BigInt(0));
+  const otherIncome = Number(otherIncomeAgg._sum.amount ?? BigInt(0));
   const planIncome = Number(plansAgg._sum.paidAmount ?? BigInt(0));
   const rentalIncome = rentals.reduce((sum, r) => {
     const days = overlapDays(from, to, r.startDate, r.endDate);
@@ -225,7 +342,7 @@ async function computeTotals(from: Date, to: Date) {
     return sum + (Number(r.monthlyAmount) * days) / month;
   }, 0);
 
-  const totalIncome = tripIncome + planIncome + rentalIncome;
+  const totalIncome = tripIncome + otherIncome + planIncome + rentalIncome;
   const totalExpense =
     Number(expensesAgg._sum.amount ?? BigInt(0)) +
     Number(lunchAgg._sum.amount ?? BigInt(0)) +
@@ -259,6 +376,9 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
     dailyChart,
     staffExpensesFlat,
     lunchesFlat,
+    otherIncomeFlat,
+    advancesFlat,
+    finesFlat,
   ] = await Promise.all([
     computeTotals(from, to),
     computeTotals(prev.from, prev.to),
@@ -278,7 +398,16 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
     prisma.driver.findMany({ include: { user: true } }),
     prisma.trip.findMany({
       where: { tripDate: { gte: from, lte: to } },
-      select: { id: true, vehicleId: true, revenue: true, kind: true, point: true, note: true, createdAt: true },
+      select: {
+        id: true,
+        vehicleId: true,
+        revenue: true,
+        kind: true,
+        point: true,
+        note: true,
+        createdAt: true,
+        tripDate: true,
+      },
     }),
     prisma.dailyPlan.findMany({
       where: { planDate: { gte: from, lte: to } },
@@ -289,7 +418,7 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
     }),
     prisma.expense.findMany({
       where: { expenseDate: { gte: from, lte: to } },
-      select: { vehicleId: true, amount: true },
+      select: { vehicleId: true, amount: true, expenseDate: true },
     }),
     computeDailyChart(chartFrom, chartTo, 7),
     // Point-scoped daily expenses (Стоянка/Обед/...) entered by dispatchers —
@@ -297,7 +426,7 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
     // point since the fleet is shared between both.
     prisma.staffExpense.findMany({
       where: { expenseDate: { gte: from, lte: to }, point: { in: ["FARGONA", "QUVA"] } },
-      select: { point: true, category: true, amount: true },
+      select: { point: true, category: true, amount: true, expenseDate: true },
     }),
     // Lunch is its own model (not a StaffExpense row, despite the dispatcher
     // form presenting "Обед" as one of the same category buttons — see
@@ -305,7 +434,23 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
     // to show a point's true "Чиқим" count/total.
     prisma.lunch.findMany({
       where: { lunchDate: { gte: from, lte: to }, point: { in: ["FARGONA", "QUVA"] } },
-      select: { point: true, amount: true },
+      select: { point: true, amount: true, lunchDate: true },
+    }),
+    // Cash collected from non-fleet vehicles (see OtherIncome's schema
+    // comment) — a real, point-attributed income source that was invisible
+    // everywhere on this dashboard before (see computeTotals above).
+    prisma.otherIncome.findMany({
+      where: { incomeDate: { gte: from, lte: to } },
+      include: { enteredByUser: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.advance.findMany({
+      where: { givenDate: { gte: from, lte: to } },
+      select: { givenDate: true, amount: true },
+    }),
+    prisma.fine.findMany({
+      where: { fineDate: { gte: from, lte: to } },
+      select: { fineDate: true, amount: true },
     }),
   ]);
 
@@ -455,6 +600,7 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
     const orders = pointTrips.filter((t) => t.kind === "ORDER");
     const pointExpenses = staffExpensesFlat.filter((e) => e.point === point);
     const pointLunches = lunchesFlat.filter((l) => l.point === point);
+    const pointOtherIncome = otherIncomeFlat.filter((i) => i.point === point);
 
     const byCategory = new Map<string, number>();
     for (const e of pointExpenses) {
@@ -472,6 +618,8 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
       tripIncome: trips.reduce((s, t) => s + Number(t.revenue), 0),
       orderCount: orders.length,
       orderIncome: orders.reduce((s, t) => s + Number(t.revenue), 0),
+      otherIncomeCount: pointOtherIncome.length,
+      otherIncome: pointOtherIncome.reduce((s, i) => s + Number(i.amount), 0),
       expenseCount: pointExpenses.length + pointLunches.length,
       expenseTotal: pointExpenses.reduce((s, e) => s + Number(e.amount), 0) + pointLunchTotal,
       expenseByCategory: Array.from(byCategory.entries())
@@ -525,6 +673,31 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
     }))
     .sort((a, b) => b.time.getTime() - a.time.getTime());
 
+  const otherIncomeRows: OtherIncomeRow[] = otherIncomeFlat.map((i) => ({
+    id: i.id,
+    time: i.createdAt,
+    point: i.point,
+    category: OTHER_INCOME_CATEGORY_LABELS[i.category] ?? i.category,
+    amount: Number(i.amount),
+    plateNumber: i.plateNumber,
+    note: i.note,
+    enteredByName: i.enteredByUser.fullName,
+  }));
+  const otherIncomeTotal = otherIncomeRows.reduce((s, i) => s + i.amount, 0);
+
+  const periodDays = overlapDays(from, to, from, to);
+  const dailyBreakdown = computeDailyBreakdown(
+    from,
+    periodDays,
+    tripsFlat,
+    otherIncomeFlat,
+    staffExpensesFlat,
+    lunchesFlat,
+    expensesFlat,
+    advancesFlat,
+    finesFlat
+  );
+
   return {
     period,
     periodLabel: periodLabel(period, now),
@@ -541,6 +714,9 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
     pointBreakdown,
     pointVehicles,
     orders: orderRows,
+    otherIncomes: otherIncomeRows,
+    otherIncomeTotal,
+    dailyBreakdown,
   };
 }
 

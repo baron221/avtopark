@@ -14,6 +14,7 @@ const INCOME_LABELS: Record<string, string> = {
   TRIPS: "Рейс тушуми",
   RENTAL: "Ойлик ижара",
   PLAN: "Кунлик план",
+  OTHER: "Бошқа кирим",
 };
 
 function isPeriod(value: string | undefined): value is Period {
@@ -54,7 +55,7 @@ export default async function OwnerReportPage({
 
   const [vm, trend] = await Promise.all([getOwnerDashboardVM(period, date), getMonthlyTrend(6)]);
 
-  const incomeByCategory: Record<string, number> = { TRIPS: 0, RENTAL: 0, PLAN: 0 };
+  const incomeByCategory: Record<string, number> = { TRIPS: 0, RENTAL: 0, PLAN: 0, OTHER: vm.otherIncomeTotal };
   for (const v of vm.vehicles) incomeByCategory[v.incomeSource] += v.income;
   const incomeSplit = Object.entries(incomeByCategory)
     .filter(([, amount]) => amount > 0)

@@ -6,6 +6,8 @@ import { DatePicker } from "@/components/ui/DatePicker";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { WeeklyBarChart } from "@/components/charts/WeeklyBarChart";
 import { OwnerPayoutForm } from "@/components/dashboard/OwnerPayoutForm";
+import { DailyBreakdownAccordion } from "@/components/dashboard/DailyBreakdownAccordion";
+import { TodayCashBreakdown } from "@/components/dashboard/TodayCashBreakdown";
 import { CashOpeningBalanceForm } from "@/components/dashboard/CashOpeningBalanceForm";
 import { CashHistorySection } from "@/components/dashboard/CashHistorySection";
 import type { OwnerDashboardVM, Period } from "@/lib/dashboard";
@@ -206,14 +208,14 @@ export function FleetDashboard({
         {vm.pointBreakdown.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {vm.pointBreakdown.map((p) => {
-              const totalIncome = p.tripIncome + p.orderIncome;
+              const totalIncome = p.tripIncome + p.orderIncome + p.otherIncome;
               return (
                 <Card key={p.point} className="p-6 flex flex-col gap-3.5">
                   <div className="font-heading font-bold text-base text-heading">
                     {POINT_LABELS[p.point]} пункти · {vm.periodLabel}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className={`grid gap-3 ${p.otherIncome > 0 ? "grid-cols-3" : "grid-cols-2"}`}>
                     <div className="bg-page rounded-xl p-3.5">
                       <div className="text-[11px] text-muted-2 font-bold uppercase">Рейс тушуми</div>
                       <div className="font-heading font-extrabold text-lg text-success">
@@ -228,6 +230,15 @@ export function FleetDashboard({
                       </div>
                       <div className="text-xs text-muted-2 font-semibold">{p.orderCount} та заказ</div>
                     </div>
+                    {p.otherIncome > 0 && (
+                      <div className="bg-page rounded-xl p-3.5">
+                        <div className="text-[11px] text-muted-2 font-bold uppercase">Бошқа кирим</div>
+                        <div className="font-heading font-extrabold text-lg text-success">
+                          {formatSom(p.otherIncome)}
+                        </div>
+                        <div className="text-xs text-muted-2 font-semibold">{p.otherIncomeCount} та ёзув</div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex justify-between items-center text-[13px] font-extrabold pt-1">
@@ -293,6 +304,18 @@ export function FleetDashboard({
           </div>
         )}
 
+        {/* Daily ledger — one collapsible row per day in the selected
+            period, Quva/Fargona kirim-chiqim plus avans/jarima/outside-point
+            expense. Accountant-only, same gate as the cash section below. */}
+        {cashLedger && vm.dailyBreakdown.length > 0 && (
+          <Card className="overflow-hidden">
+            <div className="px-6 py-[18px] font-heading font-bold text-base text-heading">
+              Кунлик ҳисобот · {vm.periodLabel}
+            </div>
+            <DailyBreakdownAccordion rows={vm.dailyBreakdown} />
+          </Card>
+        )}
+
         {/* Combined cash-on-hand — not split by point since most of what
             it's spent on (salary, repairs, fuel-station bills, ...) isn't
             point-attributable either. Accountant-only. */}
@@ -334,20 +357,7 @@ export function FleetDashboard({
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-page rounded-xl p-3">
-                <div className="text-[11px] text-muted-2 font-bold uppercase">Умумий кунлик тушум</div>
-                <div className="font-heading font-extrabold text-lg text-success">
-                  {formatSom(cashLedger.todaysIncome)}
-                </div>
-              </div>
-              <div className="bg-page rounded-xl p-3">
-                <div className="text-[11px] text-muted-2 font-bold uppercase">Умумий кунлик расход</div>
-                <div className="font-heading font-extrabold text-lg text-danger">
-                  {formatSom(cashLedger.todaysExpense)}
-                </div>
-              </div>
-            </div>
+            <TodayCashBreakdown detail={cashLedger.todaysDetail} />
             <CashHistorySection
               confirmedHistory={cashLedger.confirmedHistory}
               payoutHistory={cashLedger.payoutHistory}
@@ -636,6 +646,82 @@ export function FleetDashboard({
             </Card>
           )}
         </div>
+
+        {/* Other income — cash collected from non-fleet vehicles (tax/fuel/
+            parking payments, see OtherIncome's schema comment), separate
+            from a fleet vehicle's own trip revenue above. */}
+        {vm.otherIncomes.length > 0 && (
+          <Card className="overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-[18px]">
+              <div className="font-heading font-bold text-base text-heading">
+                Бошқа кирим · {vm.periodLabel}
+              </div>
+              <div className="text-[13px] font-extrabold text-success">{formatSom(vm.otherIncomeTotal)}</div>
+            </div>
+
+            {/* Desktop */}
+            <div className="hidden lg:grid grid-cols-[0.9fr_0.7fr_0.9fr_0.9fr_1.1fr_1.4fr] px-6 py-2.5 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
+              <div>Вақт</div>
+              <div>Пункт</div>
+              <div>Тоифа</div>
+              <div>Сумма</div>
+              <div>Ким киритди</div>
+              <div>Изоҳ</div>
+            </div>
+            {vm.otherIncomes.map((i) => (
+              <div
+                key={i.id}
+                className="hidden lg:grid grid-cols-[0.9fr_0.7fr_0.9fr_0.9fr_1.1fr_1.4fr] gap-x-2 px-6 py-3 border-t border-row-divider items-center text-sm"
+              >
+                <div className="text-muted-2 font-bold">
+                  {i.time.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" })} · {formatTime(i.time)}
+                </div>
+                <div>
+                  <span className="bg-primary-tint text-primary text-xs font-extrabold px-2.5 py-1 rounded-full">
+                    {POINT_LABELS[i.point]}
+                  </span>
+                </div>
+                <div className="font-extrabold text-heading">{i.category}</div>
+                <div className="font-extrabold text-success">{formatSom(i.amount)}</div>
+                <div className="text-body font-semibold">{i.enteredByName}</div>
+                <div className="text-muted-2 font-semibold break-words">
+                  {[i.plateNumber, i.note].filter(Boolean).join(" · ") || "—"}
+                </div>
+              </div>
+            ))}
+
+            {/* Mobile */}
+            <div className="lg:hidden">
+              {vm.otherIncomes.map((i) => (
+                <div key={i.id} className="flex flex-col gap-1.5 px-5 py-3 border-t border-row-divider text-sm">
+                  <div className="flex justify-between items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-2 font-bold text-xs">
+                        {i.time.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" })} ·{" "}
+                        {formatTime(i.time)}
+                      </span>
+                      <span className="bg-primary-tint text-primary text-xs font-extrabold px-2 py-0.5 rounded-full">
+                        {POINT_LABELS[i.point]}
+                      </span>
+                    </div>
+                    <span className="font-extrabold text-success">{formatSom(i.amount)}</span>
+                  </div>
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="min-w-0">
+                      <div className="font-extrabold text-heading text-xs">{i.category}</div>
+                      <div className="text-body font-semibold text-xs">{i.enteredByName}</div>
+                    </div>
+                    {(i.plateNumber || i.note) && (
+                      <div className="text-muted-2 text-xs font-semibold text-right">
+                        {[i.plateNumber, i.note].filter(Boolean).join(" · ")}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
       </div>
     </div>
   );
