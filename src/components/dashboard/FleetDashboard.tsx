@@ -10,6 +10,7 @@ import { DailyBreakdownAccordion } from "@/components/dashboard/DailyBreakdownAc
 import { CashBreakdown } from "@/components/dashboard/CashBreakdown";
 import { CashOpeningBalanceForm } from "@/components/dashboard/CashOpeningBalanceForm";
 import { CashHistorySection } from "@/components/dashboard/CashHistorySection";
+import { BalanceLedgerSection } from "@/components/dashboard/BalanceLedgerSection";
 import type { OwnerDashboardVM, Period } from "@/lib/dashboard";
 import type { CashLedgerSummary, OwnerPayoutState, MonthlyPayoutPoint } from "@/lib/ownerPayout";
 import { formatMillions, formatSom, formatTime } from "@/lib/format";
@@ -374,6 +375,7 @@ export function FleetDashboard({
               payoutHistory={cashLedger.payoutHistory}
               revertReceiptAction={revertReceiptAction}
             />
+            <BalanceLedgerSection rows={cashLedger.balanceLedger} />
           </Card>
         )}
 

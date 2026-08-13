@@ -54,10 +54,18 @@ const POINT_LABELS: Record<Point, string> = {
   QUVA: "Қува",
 };
 
+// UTC-pinned, not local-timezone: parseBackdate anchors a picked date at
+// exactly noon UTC, so extracting the day via local getFullYear/getMonth/
+// getDate (the previous implementation) only gave the right midnight when
+// the running process's own local timezone happened to be UTC. On a
+// Tashkent-local process (UTC+5) it silently shifted backdated handovers/
+// expenses back a calendar day — confirmed against a real production
+// handover whose handoverDate landed on 19:00 UTC the day before instead of
+// midnight UTC of the picked day. See month.ts's monthStart for the same
+// bug class (still present there — this fixes only the instance that
+// produced a real, verified-wrong stored date).
 function startOfDay(d: Date) {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 }
 
 function toStaffExpensePoint(point: Point): StaffExpensePoint {

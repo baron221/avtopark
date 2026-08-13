@@ -106,6 +106,21 @@ export type CashDetail = {
   };
 };
 
+export type BalanceLedgerRow = {
+  id: string;
+  /** When this actually happened — accountantConfirmedAt for a handover
+   * (real cash-in-hand moment), the category's own date field otherwise. */
+  time: Date;
+  /** Only set for handover rows: the day the money is FOR (handoverDate),
+   * which can differ from `time` by days when a dispatcher's handover
+   * isn't confirmed until later — see computeBalanceLedger's comment. */
+  forDate?: Date;
+  sign: "IN" | "OUT";
+  category: string;
+  subtitle: string;
+  amount: number;
+};
+
 export type CashLedgerSummary = {
   pointPending: PointPending[];
   /** Confirmed cash on hand, all expenses paid out of that same physical
@@ -116,6 +131,10 @@ export type CashLedgerSummary = {
   /** null until the accountant sets one — see computeCashBalance for why
    * this matters (without it, the balance is meaningless). */
   openingBalance: { amount: number; setDate: Date } | null;
+  /** Every individual addition/deduction behind `balance`, since the
+   * opening balance was set, most recent first — see computeBalanceLedger.
+   * Empty when openingBalance is null (balance is meaningless then too). */
+  balanceLedger: BalanceLedgerRow[];
   /** Scoped to the report page's own period/date (unlike everything else in
    * this type), both points combined, with a full drill-down: which point
    * it came from/went to, and the individual trip/expense records behind
@@ -213,6 +232,115 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
 
 export async function getCashBalance(): Promise<number> {
   return computeCashBalance();
+}
+
+const BALANCE_POINT_LABELS: Record<string, string> = {
+  FARGONA: "Фарғона",
+  QUVA: "Қува",
+  YOLDA: "Йўлда",
+  ISHXONA: "Ишхона",
+};
+
+/**
+ * Every individual row behind computeCashBalance's arithmetic, since the
+ * same opening-balance cutoff, most recent first — a full reconciliation
+ * ledger so a discrepancy against a physical cash count can be tracked down
+ * entry by entry instead of only seeing the final total. Mirrors
+ * computeCashBalance's categories exactly (same FUEL exclusion on Expense,
+ * same paidAt-based Salary/StationPayment cutoffs) so the rows here always
+ * sum to (balance − openingBalance.amount).
+ */
+async function computeBalanceLedger(since: Date): Promise<BalanceLedgerRow[]> {
+  const [confirmed, payouts, expenses, lunches, staffExpenses, advances, salaries, stationPayments] =
+    await Promise.all([
+      prisma.cashHandover.findMany({
+        where: { accountantConfirmedAt: { gte: since } },
+        include: { dispatcherConfirmedByUser: true },
+      }),
+      prisma.ownerPayout.findMany({ where: { payoutDate: { gte: since } }, include: { enteredByUser: true } }),
+      prisma.expense.findMany({
+        where: { category: { not: "FUEL" }, expenseDate: { gte: since } },
+        include: { vehicle: true },
+      }),
+      prisma.lunch.findMany({ where: { lunchDate: { gte: since } }, include: { user: true } }),
+      prisma.staffExpense.findMany({ where: { expenseDate: { gte: since } }, include: { enteredByUser: true } }),
+      prisma.advance.findMany({ where: { givenDate: { gte: since } }, include: { user: true } }),
+      prisma.salary.findMany({
+        where: { status: "PAID", paidAt: { gte: since } },
+        include: { user: true },
+      }),
+      prisma.stationPayment.findMany({ where: { paidAt: { gte: since } }, include: { station: true } }),
+    ]);
+
+  const rows: BalanceLedgerRow[] = [
+    ...confirmed.map((h) => ({
+      id: h.id,
+      time: h.accountantConfirmedAt as Date,
+      forDate: h.handoverDate,
+      sign: "IN" as const,
+      category: "Топширилган",
+      subtitle: `${BALANCE_POINT_LABELS[h.point] ?? h.point} · ${h.dispatcherConfirmedByUser.fullName}`,
+      amount: Number(h.amount),
+    })),
+    ...payouts.map((p) => ({
+      id: p.id,
+      time: p.payoutDate,
+      sign: "OUT" as const,
+      category: "Эгасига тўланган",
+      subtitle: p.note ? `${p.enteredByUser.fullName} · ${p.note}` : p.enteredByUser.fullName,
+      amount: Number(p.amount),
+    })),
+    ...expenses.map((e) => ({
+      id: e.id,
+      time: e.expenseDate,
+      sign: "OUT" as const,
+      category: OUTSIDE_EXPENSE_CATEGORY_LABELS[e.category] ?? e.category,
+      subtitle: e.note ? `${e.vehicle.plate} · ${e.note}` : e.vehicle.plate,
+      amount: Number(e.amount),
+    })),
+    ...lunches.map((l) => ({
+      id: l.id,
+      time: l.lunchDate,
+      sign: "OUT" as const,
+      category: "Обед",
+      subtitle: l.user.fullName,
+      amount: Number(l.amount),
+    })),
+    ...staffExpenses.map((e) => ({
+      id: e.id,
+      time: e.expenseDate,
+      sign: "OUT" as const,
+      category: `${BALANCE_POINT_LABELS[e.point] ?? e.point} · ${POINT_EXPENSE_CATEGORY_LABELS[e.category] ?? e.category}`,
+      subtitle: e.note ? `${e.enteredByUser.fullName} · ${e.note}` : e.enteredByUser.fullName,
+      amount: Number(e.amount),
+    })),
+    ...advances.map((a) => ({
+      id: a.id,
+      time: a.givenDate,
+      sign: "OUT" as const,
+      category: "Аванс",
+      subtitle: a.user.fullName,
+      amount: Number(a.amount),
+    })),
+    ...salaries.map((s) => ({
+      id: s.id,
+      time: s.paidAt as Date,
+      sign: "OUT" as const,
+      category: "Ойлик",
+      subtitle: s.user.fullName,
+      amount: Number(s.netPay),
+    })),
+    ...stationPayments.map((p) => ({
+      id: p.id,
+      time: p.paidAt as Date,
+      sign: "OUT" as const,
+      category: "Ёқилғи станцияси тўлови",
+      subtitle: p.station.name,
+      amount: Number(p.paidAmount),
+    })),
+  ];
+
+  return rows.sort((a, b) => b.time.getTime() - a.time.getTime());
 }
 
 const OUTSIDE_EXPENSE_CATEGORY_LABELS: Record<string, string> = {
@@ -482,7 +610,7 @@ async function computeCashDetail(period: Period, referenceDate: Date): Promise<C
 export async function getCashLedgerSummary(period: Period, referenceDate: Date): Promise<CashLedgerSummary> {
   const openingBalance = await getLatestOpeningBalance();
 
-  const [pending, confirmed, payouts, balance, cashDetail] = await Promise.all([
+  const [pending, confirmed, payouts, balance, balanceLedger, cashDetail] = await Promise.all([
     prisma.cashHandover.findMany({
       where: { accountantConfirmedAt: null },
       orderBy: { handoverDate: "asc" },
@@ -500,6 +628,7 @@ export async function getCashLedgerSummary(period: Period, referenceDate: Date):
       include: { enteredByUser: true },
     }),
     computeCashBalance(openingBalance),
+    openingBalance ? computeBalanceLedger(openingBalance.setDate) : Promise.resolve([]),
     computeCashDetail(period, referenceDate),
   ]);
 
@@ -520,6 +649,7 @@ export async function getCashLedgerSummary(period: Period, referenceDate: Date):
     pointPending,
     balance,
     openingBalance,
+    balanceLedger,
     cashDetail,
     confirmedHistory: confirmed.map((h) => ({
       id: h.id,
