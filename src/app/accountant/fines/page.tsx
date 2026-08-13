@@ -66,32 +66,44 @@ export default async function FinesPage({
       </div>
 
       <Card className="overflow-hidden">
+        {/* Desktop table */}
+        <div className="hidden lg:grid grid-cols-[1.6fr_0.9fr_0.9fr_1fr_0.8fr] px-6 py-2 bg-page text-[11px] font-extrabold text-muted-2 uppercase tracking-wide">
+          <div>Ходим</div>
+          <div>Рол</div>
+          <div>Сумма</div>
+          <div>Ҳолат</div>
+          <div>Амаллар</div>
+        </div>
         {fines.map((f) => (
           <div
             key={f.id}
-            className="flex justify-between items-center px-6 py-3.5 border-t border-row-divider first:border-t-0 text-sm gap-3 flex-wrap"
+            className="hidden lg:grid grid-cols-[1.6fr_0.9fr_0.9fr_1fr_0.8fr] gap-x-2 px-6 py-3 border-t border-row-divider items-center text-sm"
           >
             <div className="min-w-0">
-              <div className="font-extrabold text-heading">{f.user.fullName}</div>
-              <div className="text-xs text-muted-2 font-semibold mt-0.5 break-words">
+              <div className="font-extrabold text-heading truncate">{f.user.fullName}</div>
+              <div className="text-xs text-muted-2 font-semibold mt-0.5 truncate">
                 {f.reason}
                 {f.vehicle ? ` · ${f.vehicle.plate}` : ""} ·{" "}
                 {f.fineDate.toLocaleDateString("uz-UZ", { day: "numeric", month: "long" })}
               </div>
             </div>
-            <RoleBadge role={f.user.role} point={f.user.point} />
+            <div>
+              <RoleBadge role={f.user.role} point={f.user.point} />
+            </div>
             <div className="font-extrabold text-danger">−{formatSom(Number(f.amount))}</div>
-            <form action={toggleFineDeductedAction}>
-              <input type="hidden" name="fineId" value={f.id} />
-              <button
-                type="submit"
-                className={`text-xs font-extrabold px-3 py-1.5 rounded-lg ${
-                  f.deducted ? "bg-danger-tint text-danger" : "bg-success-tint text-success"
-                }`}
-              >
-                {f.deducted ? "Ушланмоқда" : "Бекор қилинган"}
-              </button>
-            </form>
+            <div>
+              <form action={toggleFineDeductedAction}>
+                <input type="hidden" name="fineId" value={f.id} />
+                <button
+                  type="submit"
+                  className={`text-xs font-extrabold px-3 py-1.5 rounded-lg whitespace-nowrap ${
+                    f.deducted ? "bg-danger-tint text-danger" : "bg-success-tint text-success"
+                  }`}
+                >
+                  {f.deducted ? "Ушланмоқда" : "Бекор қилинган"}
+                </button>
+              </form>
+            </div>
             <div className="flex items-center gap-1.5">
               <Link
                 href={`/accountant/fines/${f.id}/edit`}
@@ -109,6 +121,57 @@ export default async function FinesPage({
             </div>
           </div>
         ))}
+
+        {/* Mobile cards */}
+        <div className="lg:hidden">
+          {fines.map((f) => (
+            <div key={f.id} className="flex flex-col gap-1.5 px-6 py-3 border-t border-row-divider first:border-t-0">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="font-extrabold text-heading truncate">{f.user.fullName}</div>
+                  <div className="text-xs text-muted-2 font-semibold mt-0.5 break-words">
+                    {f.reason}
+                    {f.vehicle ? ` · ${f.vehicle.plate}` : ""} ·{" "}
+                    {f.fineDate.toLocaleDateString("uz-UZ", { day: "numeric", month: "long" })}
+                  </div>
+                </div>
+                <div className="font-extrabold text-danger whitespace-nowrap">−{formatSom(Number(f.amount))}</div>
+              </div>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <RoleBadge role={f.user.role} point={f.user.point} />
+                  <form action={toggleFineDeductedAction}>
+                    <input type="hidden" name="fineId" value={f.id} />
+                    <button
+                      type="submit"
+                      className={`text-xs font-extrabold px-3 py-1.5 rounded-lg whitespace-nowrap ${
+                        f.deducted ? "bg-danger-tint text-danger" : "bg-success-tint text-success"
+                      }`}
+                    >
+                      {f.deducted ? "Ушланмоқда" : "Бекор қилинган"}
+                    </button>
+                  </form>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Link
+                    href={`/accountant/fines/${f.id}/edit`}
+                    title="Таҳрирлаш"
+                    className="text-muted-2 hover:text-primary text-base leading-none px-1"
+                  >
+                    ✎
+                  </Link>
+                  <ConfirmDeleteButton
+                    action={deleteFineAction}
+                    id={f.id}
+                    confirmText="Бу жаримани ўчиришни тасдиқлайсизми?"
+                    className="text-muted-2 hover:text-danger font-extrabold text-base leading-none px-1.5 py-1"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
         {fines.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Бу ой ҳали жарима йўқ</p>}
         <Pagination page={page} totalPages={pages} basePath="/accountant/fines" />
       </Card>

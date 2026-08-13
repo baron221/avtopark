@@ -230,23 +230,35 @@ export default async function AccountantExpensesPage({
       </div>
 
       <Card className="overflow-hidden">
+        {/* Desktop table */}
+        <div className="hidden lg:grid grid-cols-[1.7fr_0.8fr_1fr_0.9fr_1fr] px-5 py-2 bg-page text-[11px] font-extrabold text-muted-2 uppercase tracking-wide">
+          <div>Ходим</div>
+          <div>Пункт</div>
+          <div>Тоифа</div>
+          <div>Сумма</div>
+          <div>Амаллар</div>
+        </div>
         {pageRows.map((r) => (
           <div
             key={r.id}
-            className="flex justify-between items-center gap-3 px-5 py-3.5 border-t border-row-divider first:border-t-0 text-sm flex-wrap"
+            className="hidden lg:grid grid-cols-[1.7fr_0.8fr_1fr_0.9fr_1fr] gap-x-2 px-5 py-3 border-t border-row-divider items-center text-sm"
           >
-            <div>
-              <div className="font-extrabold text-heading">{r.personName}</div>
-              <div className="text-xs text-muted-2 font-semibold mt-0.5">
+            <div className="min-w-0">
+              <div className="font-extrabold text-heading truncate">{r.personName}</div>
+              <div className="text-xs text-muted-2 font-semibold mt-0.5 truncate">
                 {r.time.toLocaleDateString("uz-UZ", { day: "numeric", month: "short" })} · {r.note ?? "—"}
               </div>
             </div>
-            <span className="bg-primary-tint text-primary text-xs font-extrabold px-2.5 py-1 rounded-full whitespace-nowrap">
-              {POINT_LABELS[r.point] ?? r.point}
-            </span>
-            <span className="bg-page border border-border text-muted text-xs font-extrabold px-2.5 py-1 rounded-full whitespace-nowrap">
-              {r.category}
-            </span>
+            <div>
+              <span className="bg-primary-tint text-primary text-xs font-extrabold px-2.5 py-1 rounded-full whitespace-nowrap">
+                {POINT_LABELS[r.point] ?? r.point}
+              </span>
+            </div>
+            <div>
+              <span className="bg-page border border-border text-muted text-xs font-extrabold px-2.5 py-1 rounded-full whitespace-nowrap">
+                {r.category}
+              </span>
+            </div>
             <div className="font-extrabold text-danger">−{formatSom(r.amount)}</div>
             <div className="flex items-center gap-1.5">
               {r.editable ? (
@@ -271,6 +283,53 @@ export default async function AccountantExpensesPage({
             </div>
           </div>
         ))}
+
+        {/* Mobile cards */}
+        <div className="lg:hidden">
+          {pageRows.map((r) => (
+            <div key={r.id} className="flex flex-col gap-1.5 px-5 py-3 border-t border-row-divider first:border-t-0">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="font-extrabold text-heading truncate">{r.personName}</div>
+                  <div className="text-xs text-muted-2 font-semibold mt-0.5">
+                    {r.time.toLocaleDateString("uz-UZ", { day: "numeric", month: "short" })} · {r.note ?? "—"}
+                  </div>
+                </div>
+                <div className="font-extrabold text-danger whitespace-nowrap">−{formatSom(r.amount)}</div>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="bg-primary-tint text-primary text-xs font-extrabold px-2.5 py-1 rounded-full whitespace-nowrap">
+                    {POINT_LABELS[r.point] ?? r.point}
+                  </span>
+                  <span className="bg-page border border-border text-muted text-xs font-extrabold px-2.5 py-1 rounded-full whitespace-nowrap">
+                    {r.category}
+                  </span>
+                </div>
+                {r.editable ? (
+                  <div className="flex items-center gap-1.5">
+                    <Link
+                      href={`/accountant/expenses/${r.id}/edit`}
+                      title="Таҳрирлаш"
+                      className="text-muted-2 hover:text-primary text-base leading-none px-1"
+                    >
+                      ✎
+                    </Link>
+                    <ConfirmDeleteButton
+                      action={deleteExpenseAction}
+                      id={r.id}
+                      confirmText="Бу расходни ўчиришни тасдиқлайсизми?"
+                      className="text-muted-2 hover:text-danger font-extrabold text-base leading-none px-1.5 py-1"
+                    />
+                  </div>
+                ) : (
+                  <span className="text-[11px] text-muted-2 font-semibold px-1">Диспетчер журналида</span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
         {pageRows.length === 0 && <p className="text-[13px] text-muted-2 px-5 py-4">Бу даврда расход йўқ</p>}
         <Pagination page={page} totalPages={pages} basePath="/accountant/expenses" params={pageParams} />
       </Card>
