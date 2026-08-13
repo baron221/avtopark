@@ -12,7 +12,7 @@ import { hasModuleAccess } from "@/lib/access";
 import { rangeForPeriod, type Period } from "@/lib/dashboard";
 import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
 import { deleteExpenseAction } from "./actions";
-import type { StaffExpensePoint } from "@prisma/client";
+import type { Point, StaffExpensePoint } from "@prisma/client";
 
 const POINT_LABELS: Record<string, string> = {
   FARGONA: "Фарғона",
@@ -32,6 +32,8 @@ const POINT_FILTERS: { value?: StaffExpensePoint; label: string }[] = [
   { value: undefined, label: "Барчаси" },
   { value: "FARGONA", label: "Фарғона" },
   { value: "QUVA", label: "Қува" },
+  { value: "YOLDA", label: "Йўлда" },
+  { value: "ISHXONA", label: "Ишхона" },
 ];
 
 function isPeriod(value: string | undefined): value is Period {
@@ -50,7 +52,7 @@ function parseDateParam(value: string | undefined): { date: Date; dateStr: strin
 }
 
 function isStaffExpensePoint(value: string | undefined): value is StaffExpensePoint {
-  return value === "FARGONA" || value === "QUVA";
+  return value === "FARGONA" || value === "QUVA" || value === "YOLDA" || value === "ISHXONA";
 }
 
 function rangeLabel(period: Period, from: Date, to: Date): string {
@@ -78,28 +80,81 @@ export default async function AccountantExpensesPage({
   const point = isStaffExpensePoint(pointParam) ? pointParam : undefined;
   const { from, to } = rangeForPeriod(period, date);
 
-  const [expenses, totalCount, byPoint, enteredByUsers] = await Promise.all([
+  // Lunch (Обед) is its own model, not a StaffExpense row (see ExpenseForm.tsx
+  // — dispatchers' "Обед" button routes there instead), so it has to be
+  // fetched and merged in separately or it silently vanishes from this page
+  // despite "Обед" being one of the category badges shown below. Its point
+  // column only ever holds FARGONA/QUVA, so a Йўлда/Ишхона filter can't
+  // match any lunch row.
+  const lunchPoint: Point | undefined = point === "FARGONA" || point === "QUVA" ? point : undefined;
+  const includeLunch = point !== "YOLDA" && point !== "ISHXONA";
+
+  const [staffExpenses, lunches, staffByPoint, lunchByPoint, users] = await Promise.all([
     prisma.staffExpense.findMany({
       where: { expenseDate: { gte: from, lte: to }, ...(point ? { point } : {}) },
       orderBy: { expenseDate: "desc" },
-      skip: paginationSkip(page),
-      take: DEFAULT_PAGE_SIZE,
     }),
-    prisma.staffExpense.count({ where: { expenseDate: { gte: from, lte: to }, ...(point ? { point } : {}) } }),
+    includeLunch
+      ? prisma.lunch.findMany({
+          where: { lunchDate: { gte: from, lte: to }, ...(lunchPoint ? { point: lunchPoint } : {}) },
+          include: { user: true },
+          orderBy: { lunchDate: "desc" },
+        })
+      : Promise.resolve([]),
     prisma.staffExpense.groupBy({
       by: ["point"],
       where: { expenseDate: { gte: from, lte: to } },
       _sum: { amount: true },
     }),
+    prisma.lunch.groupBy({
+      by: ["point"],
+      where: { lunchDate: { gte: from, lte: to } },
+      _sum: { amount: true },
+    }),
     prisma.user.findMany({ select: { id: true, fullName: true } }),
   ]);
 
-  const nameById = new Map(enteredByUsers.map((u) => [u.id, u.fullName]));
+  const nameById = new Map(users.map((u) => [u.id, u.fullName]));
   const pointTotal: Record<string, number> = { FARGONA: 0, QUVA: 0, YOLDA: 0, ISHXONA: 0 };
-  for (const row of byPoint) pointTotal[row.point] = Number(row._sum.amount ?? BigInt(0));
+  for (const row of staffByPoint) pointTotal[row.point] += Number(row._sum.amount ?? BigInt(0));
+  for (const row of lunchByPoint) pointTotal[row.point] += Number(row._sum.amount ?? BigInt(0));
   const grandTotal = Object.values(pointTotal).reduce((s, v) => s + v, 0);
 
-  const pages = totalPages(totalCount);
+  type ExpenseRow = {
+    id: string;
+    editable: boolean;
+    time: Date;
+    personName: string;
+    note: string | null;
+    point: string;
+    category: string;
+    amount: number;
+  };
+  const rows: ExpenseRow[] = [
+    ...staffExpenses.map((e) => ({
+      id: e.id,
+      editable: true,
+      time: e.expenseDate,
+      personName: nameById.get(e.userId) ?? "—",
+      note: e.note,
+      point: e.point,
+      category: CATEGORY_LABELS[e.category] ?? e.category,
+      amount: Number(e.amount),
+    })),
+    ...lunches.map((l) => ({
+      id: l.id,
+      editable: false,
+      time: l.lunchDate,
+      personName: l.user.fullName,
+      note: "Тушлик",
+      point: l.point,
+      category: "Обед",
+      amount: Number(l.amount),
+    })),
+  ].sort((a, b) => b.time.getTime() - a.time.getTime());
+
+  const pages = totalPages(rows.length);
+  const pageRows = rows.slice(paginationSkip(page), paginationSkip(page) + DEFAULT_PAGE_SIZE);
   const extraParams = point ? { point } : undefined;
   const pageParams = { period, date: dateStr, ...(point ? { point } : {}) };
 
@@ -109,7 +164,7 @@ export default async function AccountantExpensesPage({
         <div>
           <div className="font-heading font-bold text-xl text-heading">Расходлар · {rangeLabel(period, from, to)}</div>
           <div className="text-[13px] text-muted-2 font-semibold">
-            Диспетчерлар (Фарғона, Қува) киритган кунлик расходлар
+            Диспетчерлар (Фарғона, Қува) ва бухгалтер (Йўлда, Ишхона) киритган кунлик расходлар
           </div>
         </div>
         <div className="flex gap-2 flex-wrap items-center">
@@ -145,7 +200,7 @@ export default async function AccountantExpensesPage({
         ))}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         <Card className="p-4">
           <div className="text-xs font-bold text-muted-2 uppercase">Фарғона</div>
           <div className="font-heading font-extrabold text-xl text-danger mt-1">−{formatSom(pointTotal.FARGONA)}</div>
@@ -154,49 +209,69 @@ export default async function AccountantExpensesPage({
           <div className="text-xs font-bold text-muted-2 uppercase">Қува</div>
           <div className="font-heading font-extrabold text-xl text-danger mt-1">−{formatSom(pointTotal.QUVA)}</div>
         </Card>
+        {pointTotal.YOLDA > 0 && (
+          <Card className="p-4">
+            <div className="text-xs font-bold text-muted-2 uppercase">Йўлда</div>
+            <div className="font-heading font-extrabold text-xl text-danger mt-1">−{formatSom(pointTotal.YOLDA)}</div>
+          </Card>
+        )}
+        {pointTotal.ISHXONA > 0 && (
+          <Card className="p-4">
+            <div className="text-xs font-bold text-muted-2 uppercase">Ишхона</div>
+            <div className="font-heading font-extrabold text-xl text-danger mt-1">
+              −{formatSom(pointTotal.ISHXONA)}
+            </div>
+          </Card>
+        )}
         <Card className="p-4">
-          <div className="text-xs font-bold text-muted-2 uppercase">Жами (Йўлда, Ишхона билан)</div>
+          <div className="text-xs font-bold text-muted-2 uppercase">Жами</div>
           <div className="font-heading font-extrabold text-xl text-heading mt-1">−{formatSom(grandTotal)}</div>
         </Card>
       </div>
 
       <Card className="overflow-hidden">
-        {expenses.map((e) => (
+        {pageRows.map((r) => (
           <div
-            key={e.id}
+            key={r.id}
             className="flex justify-between items-center gap-3 px-5 py-3.5 border-t border-row-divider first:border-t-0 text-sm flex-wrap"
           >
             <div>
-              <div className="font-extrabold text-heading">{nameById.get(e.userId) ?? "—"}</div>
+              <div className="font-extrabold text-heading">{r.personName}</div>
               <div className="text-xs text-muted-2 font-semibold mt-0.5">
-                {e.expenseDate.toLocaleDateString("uz-UZ", { day: "numeric", month: "short" })} · {e.note ?? "—"}
+                {r.time.toLocaleDateString("uz-UZ", { day: "numeric", month: "short" })} · {r.note ?? "—"}
               </div>
             </div>
             <span className="bg-primary-tint text-primary text-xs font-extrabold px-2.5 py-1 rounded-full whitespace-nowrap">
-              {POINT_LABELS[e.point] ?? e.point}
+              {POINT_LABELS[r.point] ?? r.point}
             </span>
             <span className="bg-page border border-border text-muted text-xs font-extrabold px-2.5 py-1 rounded-full whitespace-nowrap">
-              {CATEGORY_LABELS[e.category] ?? e.category}
+              {r.category}
             </span>
-            <div className="font-extrabold text-danger">−{formatSom(Number(e.amount))}</div>
+            <div className="font-extrabold text-danger">−{formatSom(r.amount)}</div>
             <div className="flex items-center gap-1.5">
-              <Link
-                href={`/accountant/expenses/${e.id}/edit`}
-                title="Таҳрирлаш"
-                className="text-muted-2 hover:text-primary text-base leading-none px-1"
-              >
-                ✎
-              </Link>
-              <ConfirmDeleteButton
-                action={deleteExpenseAction}
-                id={e.id}
-                confirmText="Бу расходни ўчиришни тасдиқлайсизми?"
-                className="text-muted-2 hover:text-danger font-extrabold text-base leading-none px-1.5 py-1"
-              />
+              {r.editable ? (
+                <>
+                  <Link
+                    href={`/accountant/expenses/${r.id}/edit`}
+                    title="Таҳрирлаш"
+                    className="text-muted-2 hover:text-primary text-base leading-none px-1"
+                  >
+                    ✎
+                  </Link>
+                  <ConfirmDeleteButton
+                    action={deleteExpenseAction}
+                    id={r.id}
+                    confirmText="Бу расходни ўчиришни тасдиқлайсизми?"
+                    className="text-muted-2 hover:text-danger font-extrabold text-base leading-none px-1.5 py-1"
+                  />
+                </>
+              ) : (
+                <span className="text-[11px] text-muted-2 font-semibold px-1">Диспетчер журналида</span>
+              )}
             </div>
           </div>
         ))}
-        {expenses.length === 0 && <p className="text-[13px] text-muted-2 px-5 py-4">Бу даврда расход йўқ</p>}
+        {pageRows.length === 0 && <p className="text-[13px] text-muted-2 px-5 py-4">Бу даврда расход йўқ</p>}
         <Pagination page={page} totalPages={pages} basePath="/accountant/expenses" params={pageParams} />
       </Card>
     </div>

@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hasModuleAccess } from "@/lib/access";
 import { rangeForPeriod, type Period } from "@/lib/dashboard";
-import type { StaffExpensePoint } from "@prisma/client";
+import type { Point, StaffExpensePoint } from "@prisma/client";
 
 const POINT_LABELS: Record<string, string> = {
   FARGONA: "Фарғона",
@@ -27,7 +27,7 @@ function isPeriod(value: string | null): value is Period {
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function isStaffExpensePoint(value: string | null): value is StaffExpensePoint {
-  return value === "FARGONA" || value === "QUVA";
+  return value === "FARGONA" || value === "QUVA" || value === "YOLDA" || value === "ISHXONA";
 }
 
 export async function GET(request: Request) {
@@ -46,14 +46,45 @@ export async function GET(request: Request) {
   const point = isStaffExpensePoint(pointParam) ? pointParam : undefined;
   const { from, to } = rangeForPeriod(period, date);
 
-  const [expenses, users] = await Promise.all([
+  // See page.tsx's comment: Lunch (Обед) is a separate model from
+  // StaffExpense, so it has to be fetched and merged in separately.
+  const lunchPoint: Point | undefined = point === "FARGONA" || point === "QUVA" ? point : undefined;
+  const includeLunch = point !== "YOLDA" && point !== "ISHXONA";
+
+  const [staffExpenses, lunches, users] = await Promise.all([
     prisma.staffExpense.findMany({
       where: { expenseDate: { gte: from, lte: to }, ...(point ? { point } : {}) },
       orderBy: { expenseDate: "asc" },
     }),
+    includeLunch
+      ? prisma.lunch.findMany({
+          where: { lunchDate: { gte: from, lte: to }, ...(lunchPoint ? { point: lunchPoint } : {}) },
+          include: { user: true },
+          orderBy: { lunchDate: "asc" },
+        })
+      : Promise.resolve([]),
     prisma.user.findMany({ select: { id: true, fullName: true } }),
   ]);
   const nameById = new Map(users.map((u) => [u.id, u.fullName]));
+
+  const rows = [
+    ...staffExpenses.map((e) => ({
+      time: e.expenseDate,
+      name: nameById.get(e.userId) ?? "—",
+      point: e.point as string,
+      category: CATEGORY_LABELS[e.category] ?? e.category,
+      note: e.note,
+      amount: Number(e.amount),
+    })),
+    ...lunches.map((l) => ({
+      time: l.lunchDate,
+      name: l.user.fullName,
+      point: l.point as string,
+      category: "Обед",
+      note: "Тушлик",
+      amount: Number(l.amount),
+    })),
+  ].sort((a, b) => a.time.getTime() - b.time.getTime());
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Avtopark Foyda Tizimi";
@@ -72,17 +103,17 @@ export async function GET(request: Request) {
   sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
   sheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4F46E5" } };
 
-  for (const e of expenses) {
+  for (const r of rows) {
     sheet.addRow({
-      date: e.expenseDate.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit", year: "numeric" }),
-      name: nameById.get(e.userId) ?? "—",
-      point: POINT_LABELS[e.point] ?? e.point,
-      category: CATEGORY_LABELS[e.category] ?? e.category,
-      note: e.note ?? "",
-      amount: Number(e.amount),
+      date: r.time.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit", year: "numeric" }),
+      name: r.name,
+      point: POINT_LABELS[r.point] ?? r.point,
+      category: r.category,
+      note: r.note ?? "",
+      amount: r.amount,
     });
   }
-  const totalsRow = sheet.addRow({ name: "ЖАМИ", amount: expenses.reduce((s, e) => s + Number(e.amount), 0) });
+  const totalsRow = sheet.addRow({ name: "ЖАМИ", amount: rows.reduce((s, r) => s + r.amount, 0) });
   totalsRow.font = { bold: true };
   sheet.getColumn("amount").numFmt = "#,##0";
 
