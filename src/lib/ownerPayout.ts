@@ -231,6 +231,16 @@ const POINT_EXPENSE_CATEGORY_LABELS: Record<string, string> = {
   BOSHQA: "Бошқа расход",
 };
 
+// StaffExpensePoint has two more values than Point (FARGONA/QUVA) — a
+// dispatcher never picks these (see toStaffExpensePoint in
+// dispatcher/actions.ts), but the accountant's own "+ Бошқа расход" form
+// does (see AddExpenseForm.tsx), so real rows can carry them. They aren't
+// Farg'ona/Quva, so they belong in the "outside" bucket alongside vehicle
+// expense/advance/salary/station payments — omitting them here silently
+// understated the кунлик/ҳафталик/ойлик расход total by however much
+// Йўлда/Ишхона expense a period had.
+const OFF_POINT_LABELS: Record<string, string> = { YOLDA: "Йўлда", ISHXONA: "Ишхона" };
+
 const PERIOD_WORDS: Record<Period, string> = { DAY: "Кунлик", WEEK: "Ҳафталик", MONTH: "Ойлик" };
 
 function cashDetailRangeLabel(period: Period, from: Date, to: Date): string {
@@ -401,6 +411,16 @@ async function computeCashDetail(period: Period, referenceDate: Date): Promise<C
       amount: Number(e.amount),
       note: e.note,
     })),
+    ...staffExpenses
+      .filter((e) => e.point === "YOLDA" || e.point === "ISHXONA")
+      .map((e) => ({
+        id: e.id,
+        time: e.expenseDate,
+        subtitle: `${OFF_POINT_LABELS[e.point]} · ${e.enteredByUser.fullName}`,
+        category: POINT_EXPENSE_CATEGORY_LABELS[e.category] ?? e.category,
+        amount: Number(e.amount),
+        note: e.note,
+      })),
     ...advances.map((a) => ({
       id: a.id,
       time: a.givenDate,

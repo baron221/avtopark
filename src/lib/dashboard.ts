@@ -278,8 +278,12 @@ function computeDailyBreakdown(
   for (const e of staffExpenses) {
     const i = dayIndex(e.expenseDate, from);
     if (i < 0 || i >= days) continue;
+    // StaffExpensePoint also has YOLDA/ISHXONA (see AddExpenseForm.tsx) —
+    // neither Farg'ona nor Quva, so they belong in outsideExpense; an
+    // unconditional else here would wrongly dump them into Farg'ona.
     if (e.point === "QUVA") rows[i].quvaExpense += Number(e.amount);
-    else rows[i].fargonaExpense += Number(e.amount);
+    else if (e.point === "FARGONA") rows[i].fargonaExpense += Number(e.amount);
+    else rows[i].outsideExpense += Number(e.amount);
   }
   for (const l of lunches) {
     const i = dayIndex(l.lunchDate, from);
@@ -423,9 +427,14 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
     computeDailyChart(chartFrom, chartTo, 7),
     // Point-scoped daily expenses (Стоянка/Обед/...) entered by dispatchers —
     // separate from Expense above, which is per-vehicle and not tied to a
-    // point since the fleet is shared between both.
+    // point since the fleet is shared between both. Not filtered to
+    // FARGONA/QUVA: the accountant's own "+ Бошқа расход" form can also
+    // write YOLDA/ISHXONA rows (see AddExpenseForm.tsx) — pointBreakdown
+    // below only reads FARGONA/QUVA out of this array so it's unaffected,
+    // but computeDailyBreakdown needs the full set to route those into
+    // outsideExpense instead of silently dropping them.
     prisma.staffExpense.findMany({
-      where: { expenseDate: { gte: from, lte: to }, point: { in: ["FARGONA", "QUVA"] } },
+      where: { expenseDate: { gte: from, lte: to } },
       select: { point: true, category: true, amount: true, expenseDate: true },
     }),
     // Lunch is its own model (not a StaffExpense row, despite the dispatcher
