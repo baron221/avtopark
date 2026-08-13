@@ -119,6 +119,11 @@ export type BalanceLedgerRow = {
   category: string;
   subtitle: string;
   amount: number;
+  /** Running balance right after this entry was applied — openingBalance
+   * plus/minus every entry up to and including this one, in chronological
+   * order. The most recent row's balanceAfter always equals
+   * CashLedgerSummary.balance (see computeBalanceLedger). */
+  balanceAfter: number;
 };
 
 export type CashLedgerSummary = {
@@ -250,7 +255,7 @@ const BALANCE_POINT_LABELS: Record<string, string> = {
  * same paidAt-based Salary/StationPayment cutoffs) so the rows here always
  * sum to (balance − openingBalance.amount).
  */
-async function computeBalanceLedger(since: Date): Promise<BalanceLedgerRow[]> {
+async function computeBalanceLedger(since: Date, openingAmount: number): Promise<BalanceLedgerRow[]> {
   const [confirmed, payouts, expenses, lunches, staffExpenses, advances, salaries, stationPayments] =
     await Promise.all([
       prisma.cashHandover.findMany({
@@ -272,7 +277,7 @@ async function computeBalanceLedger(since: Date): Promise<BalanceLedgerRow[]> {
       prisma.stationPayment.findMany({ where: { paidAt: { gte: since } }, include: { station: true } }),
     ]);
 
-  const rows: BalanceLedgerRow[] = [
+  const rows: Omit<BalanceLedgerRow, "balanceAfter">[] = [
     ...confirmed.map((h) => ({
       id: h.id,
       time: h.accountantConfirmedAt as Date,
@@ -340,7 +345,17 @@ async function computeBalanceLedger(since: Date): Promise<BalanceLedgerRow[]> {
     })),
   ];
 
-  return rows.sort((a, b) => b.time.getTime() - a.time.getTime());
+  // Walk chronologically (oldest first) to build up the running balance,
+  // then reverse for display — most recent first, matching every other
+  // history list in this app.
+  const chronological = rows.sort((a, b) => a.time.getTime() - b.time.getTime());
+  let running = openingAmount;
+  const withBalance: BalanceLedgerRow[] = chronological.map((r) => {
+    running += r.sign === "IN" ? r.amount : -r.amount;
+    return { ...r, balanceAfter: running };
+  });
+
+  return withBalance.reverse();
 }
 
 const OUTSIDE_EXPENSE_CATEGORY_LABELS: Record<string, string> = {
@@ -628,7 +643,9 @@ export async function getCashLedgerSummary(period: Period, referenceDate: Date):
       include: { enteredByUser: true },
     }),
     computeCashBalance(openingBalance),
-    openingBalance ? computeBalanceLedger(openingBalance.setDate) : Promise.resolve([]),
+    openingBalance
+      ? computeBalanceLedger(openingBalance.setDate, openingBalance.amount)
+      : Promise.resolve([]),
     computeCashDetail(period, referenceDate),
   ]);
 

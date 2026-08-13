@@ -19,6 +19,7 @@ const POINT_LABELS: Record<string, string> = {
   QUVA: "Қува",
   YOLDA: "Йўлда",
   ISHXONA: "Ишхона",
+  VEHICLE: "Машина",
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -28,12 +29,27 @@ const CATEGORY_LABELS: Record<string, string> = {
   BOSHQA: "Бошқа",
 };
 
-const POINT_FILTERS: { value?: StaffExpensePoint; label: string }[] = [
+// Generic vehicle Expense (mechanic-entered — repair/fuel/salary/...) has
+// its own category enum, separate from StaffExpenseCategory above.
+const VEHICLE_CATEGORY_LABELS: Record<string, string> = {
+  FUEL: "Ёқилғи",
+  REPAIR: "Таъмирлаш",
+  SALARY: "Маош",
+  INSURANCE: "Суғурта",
+  TAX: "Солиқ",
+  TOLL: "Йўл ҳақи",
+  OTHER: "Бошқа",
+};
+
+type ExpenseFilter = StaffExpensePoint | "VEHICLE";
+
+const POINT_FILTERS: { value?: ExpenseFilter; label: string }[] = [
   { value: undefined, label: "Барчаси" },
   { value: "FARGONA", label: "Фарғона" },
   { value: "QUVA", label: "Қува" },
   { value: "YOLDA", label: "Йўлда" },
   { value: "ISHXONA", label: "Ишхона" },
+  { value: "VEHICLE", label: "Машина" },
 ];
 
 function isPeriod(value: string | undefined): value is Period {
@@ -51,8 +67,8 @@ function parseDateParam(value: string | undefined): { date: Date; dateStr: strin
   return { date: today, dateStr: today.toISOString().slice(0, 10) };
 }
 
-function isStaffExpensePoint(value: string | undefined): value is StaffExpensePoint {
-  return value === "FARGONA" || value === "QUVA" || value === "YOLDA" || value === "ISHXONA";
+function isExpenseFilter(value: string | undefined): value is ExpenseFilter {
+  return value === "FARGONA" || value === "QUVA" || value === "YOLDA" || value === "ISHXONA" || value === "VEHICLE";
 }
 
 function rangeLabel(period: Period, from: Date, to: Date): string {
@@ -77,47 +93,65 @@ export default async function AccountantExpensesPage({
   const page = parsePage(pageParam);
   const period: Period = isPeriod(periodParam) ? periodParam : "MONTH";
   const { date, dateStr } = parseDateParam(dateParam);
-  const point = isStaffExpensePoint(pointParam) ? pointParam : undefined;
+  const point = isExpenseFilter(pointParam) ? pointParam : undefined;
   const { from, to } = rangeForPeriod(period, date);
 
-  // Lunch (Обед) is its own model, not a StaffExpense row (see ExpenseForm.tsx
-  // — dispatchers' "Обед" button routes there instead), so it has to be
-  // fetched and merged in separately or it silently vanishes from this page
-  // despite "Обед" being one of the category badges shown below. Its point
-  // column only ever holds FARGONA/QUVA, so a Йўлда/Ишхона filter can't
-  // match any lunch row.
+  // Three separate models feed this one page, none of which alone matches
+  // the report page's "Жами харажат": StaffExpense (dispatcher/accountant
+  // point expenses), Lunch (Обед routes here instead of StaffExpense — see
+  // ExpenseForm.tsx), and the generic vehicle Expense (mechanic-entered
+  // repair/fuel/salary/... — see mechanic/vehicles/[id]/actions.ts). Filter
+  // semantics: FARGONA/QUVA show StaffExpense+Lunch for that point; YOLDA/
+  // ISHXONA show StaffExpense only (Lunch/vehicle Expense can't have those
+  // points); VEHICLE shows only the generic Expense; "Барчаси" shows
+  // everything, so its total matches the report page exactly.
+  const staffPoint: StaffExpensePoint | undefined = point && point !== "VEHICLE" ? point : undefined;
   const lunchPoint: Point | undefined = point === "FARGONA" || point === "QUVA" ? point : undefined;
-  const includeLunch = point !== "YOLDA" && point !== "ISHXONA";
+  const includeLunch = point === undefined || point === "FARGONA" || point === "QUVA";
+  const includeVehicleExpense = point === undefined || point === "VEHICLE";
+  const includeStaffExpense = point !== "VEHICLE";
 
-  const [staffExpenses, lunches, staffByPoint, lunchByPoint, users] = await Promise.all([
-    prisma.staffExpense.findMany({
-      where: { expenseDate: { gte: from, lte: to }, ...(point ? { point } : {}) },
-      orderBy: { expenseDate: "desc" },
-    }),
-    includeLunch
-      ? prisma.lunch.findMany({
-          where: { lunchDate: { gte: from, lte: to }, ...(lunchPoint ? { point: lunchPoint } : {}) },
-          include: { user: true },
-          orderBy: { lunchDate: "desc" },
-        })
-      : Promise.resolve([]),
-    prisma.staffExpense.groupBy({
-      by: ["point"],
-      where: { expenseDate: { gte: from, lte: to } },
-      _sum: { amount: true },
-    }),
-    prisma.lunch.groupBy({
-      by: ["point"],
-      where: { lunchDate: { gte: from, lte: to } },
-      _sum: { amount: true },
-    }),
-    prisma.user.findMany({ select: { id: true, fullName: true } }),
-  ]);
+  const [staffExpenses, lunches, vehicleExpenses, staffByPoint, lunchByPoint, vehicleExpenseAgg, users] =
+    await Promise.all([
+      includeStaffExpense
+        ? prisma.staffExpense.findMany({
+            where: { expenseDate: { gte: from, lte: to }, ...(staffPoint ? { point: staffPoint } : {}) },
+            orderBy: { expenseDate: "desc" },
+          })
+        : Promise.resolve([]),
+      includeLunch
+        ? prisma.lunch.findMany({
+            where: { lunchDate: { gte: from, lte: to }, ...(lunchPoint ? { point: lunchPoint } : {}) },
+            include: { user: true },
+            orderBy: { lunchDate: "desc" },
+          })
+        : Promise.resolve([]),
+      includeVehicleExpense
+        ? prisma.expense.findMany({
+            where: { expenseDate: { gte: from, lte: to } },
+            include: { vehicle: true },
+            orderBy: { expenseDate: "desc" },
+          })
+        : Promise.resolve([]),
+      prisma.staffExpense.groupBy({
+        by: ["point"],
+        where: { expenseDate: { gte: from, lte: to } },
+        _sum: { amount: true },
+      }),
+      prisma.lunch.groupBy({
+        by: ["point"],
+        where: { lunchDate: { gte: from, lte: to } },
+        _sum: { amount: true },
+      }),
+      prisma.expense.aggregate({ _sum: { amount: true }, where: { expenseDate: { gte: from, lte: to } } }),
+      prisma.user.findMany({ select: { id: true, fullName: true } }),
+    ]);
 
   const nameById = new Map(users.map((u) => [u.id, u.fullName]));
-  const pointTotal: Record<string, number> = { FARGONA: 0, QUVA: 0, YOLDA: 0, ISHXONA: 0 };
+  const pointTotal: Record<string, number> = { FARGONA: 0, QUVA: 0, YOLDA: 0, ISHXONA: 0, VEHICLE: 0 };
   for (const row of staffByPoint) pointTotal[row.point] += Number(row._sum.amount ?? BigInt(0));
   for (const row of lunchByPoint) pointTotal[row.point] += Number(row._sum.amount ?? BigInt(0));
+  pointTotal.VEHICLE = Number(vehicleExpenseAgg._sum.amount ?? BigInt(0));
   const grandTotal = Object.values(pointTotal).reduce((s, v) => s + v, 0);
 
   type ExpenseRow = {
@@ -139,6 +173,16 @@ export default async function AccountantExpensesPage({
       note: e.note,
       point: e.point,
       category: CATEGORY_LABELS[e.category] ?? e.category,
+      amount: Number(e.amount),
+    })),
+    ...vehicleExpenses.map((e) => ({
+      id: e.id,
+      editable: false,
+      time: e.expenseDate,
+      personName: e.vehicle.plate,
+      note: e.note,
+      point: "VEHICLE",
+      category: VEHICLE_CATEGORY_LABELS[e.category] ?? e.category,
       amount: Number(e.amount),
     })),
     ...lunches.map((l) => ({
@@ -164,7 +208,7 @@ export default async function AccountantExpensesPage({
         <div>
           <div className="font-heading font-bold text-xl text-heading">Расходлар · {rangeLabel(period, from, to)}</div>
           <div className="text-[13px] text-muted-2 font-semibold">
-            Диспетчерлар (Фарғона, Қува) ва бухгалтер (Йўлда, Ишхона) киритган кунлик расходлар
+            Диспетчерлар (Фарғона, Қува), бухгалтер (Йўлда, Ишхона) ва механик (Машина) киритган расходлар
           </div>
         </div>
         <div className="flex gap-2 flex-wrap items-center">
@@ -223,6 +267,14 @@ export default async function AccountantExpensesPage({
             </div>
           </Card>
         )}
+        {pointTotal.VEHICLE > 0 && (
+          <Card className="p-4">
+            <div className="text-xs font-bold text-muted-2 uppercase">Машина</div>
+            <div className="font-heading font-extrabold text-xl text-danger mt-1">
+              −{formatSom(pointTotal.VEHICLE)}
+            </div>
+          </Card>
+        )}
         <Card className="p-4">
           <div className="text-xs font-bold text-muted-2 uppercase">Жами</div>
           <div className="font-heading font-extrabold text-xl text-heading mt-1">−{formatSom(grandTotal)}</div>
@@ -278,7 +330,7 @@ export default async function AccountantExpensesPage({
                   />
                 </>
               ) : (
-                <span className="text-[11px] text-muted-2 font-semibold px-1">Диспетчер журналида</span>
+                <span className="text-[11px] text-muted-2 font-semibold px-1">{r.point === "VEHICLE" ? "Механикда" : "Диспетчер журналида"}</span>
               )}
             </div>
           </div>
@@ -323,7 +375,7 @@ export default async function AccountantExpensesPage({
                     />
                   </div>
                 ) : (
-                  <span className="text-[11px] text-muted-2 font-semibold px-1">Диспетчер журналида</span>
+                  <span className="text-[11px] text-muted-2 font-semibold px-1">{r.point === "VEHICLE" ? "Механикда" : "Диспетчер журналида"}</span>
                 )}
               </div>
             </div>

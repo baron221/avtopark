@@ -375,7 +375,9 @@ export function FleetDashboard({
               payoutHistory={cashLedger.payoutHistory}
               revertReceiptAction={revertReceiptAction}
             />
-            <BalanceLedgerSection rows={cashLedger.balanceLedger} />
+            {cashLedger.openingBalance && (
+              <BalanceLedgerSection rows={cashLedger.balanceLedger} openingBalance={cashLedger.openingBalance} />
+            )}
           </Card>
         )}
 

@@ -11,6 +11,7 @@ const POINT_LABELS: Record<string, string> = {
   QUVA: "Қува",
   YOLDA: "Йўлда",
   ISHXONA: "Ишхона",
+  VEHICLE: "Машина",
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -20,14 +21,26 @@ const CATEGORY_LABELS: Record<string, string> = {
   BOSHQA: "Бошқа",
 };
 
+const VEHICLE_CATEGORY_LABELS: Record<string, string> = {
+  FUEL: "Ёқилғи",
+  REPAIR: "Таъмирлаш",
+  SALARY: "Маош",
+  INSURANCE: "Суғурта",
+  TAX: "Солиқ",
+  TOLL: "Йўл ҳақи",
+  OTHER: "Бошқа",
+};
+
+type ExpenseFilter = StaffExpensePoint | "VEHICLE";
+
 function isPeriod(value: string | null): value is Period {
   return value === "DAY" || value === "WEEK" || value === "MONTH";
 }
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-function isStaffExpensePoint(value: string | null): value is StaffExpensePoint {
-  return value === "FARGONA" || value === "QUVA" || value === "YOLDA" || value === "ISHXONA";
+function isExpenseFilter(value: string | null): value is ExpenseFilter {
+  return value === "FARGONA" || value === "QUVA" || value === "YOLDA" || value === "ISHXONA" || value === "VEHICLE";
 }
 
 export async function GET(request: Request) {
@@ -43,24 +56,38 @@ export async function GET(request: Request) {
 
   const period: Period = isPeriod(periodParam) ? periodParam : "MONTH";
   const date = dateParam && DATE_RE.test(dateParam) ? new Date(`${dateParam}T00:00:00Z`) : new Date();
-  const point = isStaffExpensePoint(pointParam) ? pointParam : undefined;
+  const point = isExpenseFilter(pointParam) ? pointParam : undefined;
   const { from, to } = rangeForPeriod(period, date);
 
-  // See page.tsx's comment: Lunch (Обед) is a separate model from
-  // StaffExpense, so it has to be fetched and merged in separately.
+  // See page.tsx's comment: Lunch (Обед) and the generic vehicle Expense
+  // (mechanic-entered) are separate models from StaffExpense, so they have
+  // to be fetched and merged in separately or the export total would be
+  // missing whatever this page shows on screen for "Барчаси".
+  const staffPoint: StaffExpensePoint | undefined = point && point !== "VEHICLE" ? point : undefined;
   const lunchPoint: Point | undefined = point === "FARGONA" || point === "QUVA" ? point : undefined;
-  const includeLunch = point !== "YOLDA" && point !== "ISHXONA";
+  const includeLunch = point === undefined || point === "FARGONA" || point === "QUVA";
+  const includeVehicleExpense = point === undefined || point === "VEHICLE";
+  const includeStaffExpense = point !== "VEHICLE";
 
-  const [staffExpenses, lunches, users] = await Promise.all([
-    prisma.staffExpense.findMany({
-      where: { expenseDate: { gte: from, lte: to }, ...(point ? { point } : {}) },
-      orderBy: { expenseDate: "asc" },
-    }),
+  const [staffExpenses, lunches, vehicleExpenses, users] = await Promise.all([
+    includeStaffExpense
+      ? prisma.staffExpense.findMany({
+          where: { expenseDate: { gte: from, lte: to }, ...(staffPoint ? { point: staffPoint } : {}) },
+          orderBy: { expenseDate: "asc" },
+        })
+      : Promise.resolve([]),
     includeLunch
       ? prisma.lunch.findMany({
           where: { lunchDate: { gte: from, lte: to }, ...(lunchPoint ? { point: lunchPoint } : {}) },
           include: { user: true },
           orderBy: { lunchDate: "asc" },
+        })
+      : Promise.resolve([]),
+    includeVehicleExpense
+      ? prisma.expense.findMany({
+          where: { expenseDate: { gte: from, lte: to } },
+          include: { vehicle: true },
+          orderBy: { expenseDate: "asc" },
         })
       : Promise.resolve([]),
     prisma.user.findMany({ select: { id: true, fullName: true } }),
@@ -73,6 +100,14 @@ export async function GET(request: Request) {
       name: nameById.get(e.userId) ?? "—",
       point: e.point as string,
       category: CATEGORY_LABELS[e.category] ?? e.category,
+      note: e.note,
+      amount: Number(e.amount),
+    })),
+    ...vehicleExpenses.map((e) => ({
+      time: e.expenseDate,
+      name: e.vehicle.plate,
+      point: "VEHICLE",
+      category: VEHICLE_CATEGORY_LABELS[e.category] ?? e.category,
       note: e.note,
       amount: Number(e.amount),
     })),

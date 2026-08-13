@@ -12,7 +12,13 @@ import type { BalanceLedgerRow } from "@/lib/ownerPayout";
  * Collapsed by default: this can run to dozens of rows once the opening
  * balance has been standing a while.
  */
-export function BalanceLedgerSection({ rows }: { rows: BalanceLedgerRow[] }) {
+export function BalanceLedgerSection({
+  rows,
+  openingBalance,
+}: {
+  rows: BalanceLedgerRow[];
+  openingBalance: { amount: number; setDate: Date };
+}) {
   const [open, setOpen] = useState(false);
   if (rows.length === 0) return null;
 
@@ -48,12 +54,23 @@ export function BalanceLedgerSection({ rows }: { rows: BalanceLedgerRow[] }) {
                 </div>
                 <div className="text-body font-semibold">{r.subtitle}</div>
               </div>
-              <span className={`font-bold whitespace-nowrap ${r.sign === "IN" ? "text-success" : "text-danger"}`}>
-                {r.sign === "IN" ? "+" : "−"}
-                {formatSom(r.amount)}
-              </span>
+              <div className="text-right shrink-0">
+                <div className={`font-bold whitespace-nowrap ${r.sign === "IN" ? "text-success" : "text-danger"}`}>
+                  {r.sign === "IN" ? "+" : "−"}
+                  {formatSom(r.amount)}
+                </div>
+                <div className="text-[11px] text-muted-2 font-semibold whitespace-nowrap">
+                  қолдиқ: {formatSom(r.balanceAfter)}
+                </div>
+              </div>
             </div>
           ))}
+          <div className="flex items-center justify-between gap-2 py-1.5 border-t border-row-divider text-xs">
+            <div className="text-muted-2 font-semibold">
+              {formatDayMonth(openingBalance.setDate)} · Бошланғич қолдиқ
+            </div>
+            <div className="font-bold text-heading whitespace-nowrap">{formatSom(openingBalance.amount)}</div>
+          </div>
         </div>
       )}
     </div>
