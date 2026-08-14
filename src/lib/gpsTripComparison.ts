@@ -5,6 +5,11 @@ export type GpsTripComparisonDay = {
   date: Date;
   gpsCount: number;
   dispatcherCount: number;
+  // True when the vehicle had a private-charter Order that day — it then
+  // legitimately drives off the Farg'ona<->Quva route for part of the day,
+  // so a GPS/dispatcher mismatch on this day isn't a real discrepancy and
+  // shouldn't count toward the row's totals/flagging.
+  hasOrder: boolean;
 };
 
 export type GpsTripComparisonRow = {
@@ -25,7 +30,8 @@ const COMPARISON_DAYS = 7;
  * not the fixed vokzal-to-vokzal shuttle route this compares), per vehicle
  * per day over the last COMPARISON_DAYS days. Purely a discrepancy signal —
  * never used to create/modify Trip rows, only to flag when the two sources
- * disagree so someone can look into why.
+ * disagree so someone can look into why. Days with an Order are excluded
+ * from the totals a mismatch is judged against (see hasOrder above).
  */
 export async function getGpsTripComparisonRows(): Promise<GpsTripComparisonRow[]> {
   const now = new Date();
@@ -39,13 +45,17 @@ export async function getGpsTripComparisonRows(): Promise<GpsTripComparisonRow[]
   });
   const vehicleIds = vehicles.map((v) => v.id);
 
-  const [gpsTransits, trips] = await Promise.all([
+  const [gpsTransits, trips, orders] = await Promise.all([
     prisma.gpsDetectedTrip.findMany({
       where: { vehicleId: { in: vehicleIds }, detectedAt: { gte: rangeStart } },
       select: { vehicleId: true, detectedAt: true },
     }),
     prisma.trip.findMany({
       where: { vehicleId: { in: vehicleIds }, kind: "TRIP", tripDate: { gte: rangeStart } },
+      select: { vehicleId: true, tripDate: true },
+    }),
+    prisma.trip.findMany({
+      where: { vehicleId: { in: vehicleIds }, kind: "ORDER", tripDate: { gte: rangeStart } },
       select: { vehicleId: true, tripDate: true },
     }),
   ]);
@@ -65,6 +75,7 @@ export async function getGpsTripComparisonRows(): Promise<GpsTripComparisonRow[]
     const key = dayKey(t.vehicleId, t.tripDate);
     dispatcherCounts.set(key, (dispatcherCounts.get(key) ?? 0) + 1);
   }
+  const orderDayKeys = new Set(orders.map((o) => dayKey(o.vehicleId, o.tripDate)));
 
   const dayList: Date[] = [];
   for (let i = COMPARISON_DAYS; i >= 1; i--) {
@@ -75,14 +86,20 @@ export async function getGpsTripComparisonRows(): Promise<GpsTripComparisonRow[]
     .map((v) => {
       const days = dayList.map((date) => {
         const key = dayKey(v.id, date);
-        return { date, gpsCount: gpsCounts.get(key) ?? 0, dispatcherCount: dispatcherCounts.get(key) ?? 0 };
+        return {
+          date,
+          gpsCount: gpsCounts.get(key) ?? 0,
+          dispatcherCount: dispatcherCounts.get(key) ?? 0,
+          hasOrder: orderDayKeys.has(key),
+        };
       });
+      const comparableDays = days.filter((d) => !d.hasOrder);
       return {
         vehicleId: v.id,
         plate: v.plate,
         driverName: v.driver?.user.fullName ?? null,
-        totalGps: days.reduce((s, d) => s + d.gpsCount, 0),
-        totalDispatcher: days.reduce((s, d) => s + d.dispatcherCount, 0),
+        totalGps: comparableDays.reduce((s, d) => s + d.gpsCount, 0),
+        totalDispatcher: comparableDays.reduce((s, d) => s + d.dispatcherCount, 0),
         days,
       };
     })

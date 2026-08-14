@@ -48,12 +48,20 @@ export default async function OwnerGpsPage() {
             {gpsMap.size} / {vehicles.length} машина уланган
           </div>
         </div>
-        <Link
-          href="/owner"
-          className="inline-flex items-center bg-page border border-border text-muted-2 rounded-lg px-3 py-1.5 text-[13px] font-bold hover:border-primary hover:text-primary hover:bg-primary-tint transition-colors"
-        >
-          ← Панел
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/owner/gps/history"
+            className="inline-flex items-center bg-page border border-border text-muted-2 rounded-lg px-3 py-1.5 text-[13px] font-bold hover:border-primary hover:text-primary hover:bg-primary-tint transition-colors"
+          >
+            Йўл тарихи
+          </Link>
+          <Link
+            href="/owner"
+            className="inline-flex items-center bg-page border border-border text-muted-2 rounded-lg px-3 py-1.5 text-[13px] font-bold hover:border-primary hover:text-primary hover:bg-primary-tint transition-colors"
+          >
+            ← Панел
+          </Link>
+        </div>
       </div>
 
       <GpsList vehicles={vehicles} gpsMap={gpsMap} todayStats={todayStats} gpsError={gpsError} />

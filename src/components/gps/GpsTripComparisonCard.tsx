@@ -65,7 +65,13 @@ function VehicleRow({ row }: { row: GpsTripComparisonRow }) {
               <div className="flex items-center gap-3 font-bold">
                 <span className="text-body">{d.gpsCount} GPS</span>
                 <span className="text-body">{d.dispatcherCount} диспетчер</span>
-                {diffBadge(d.gpsCount, d.dispatcherCount)}
+                {d.hasOrder ? (
+                  <span className="bg-page border border-border text-muted-2 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                    буюртма куни
+                  </span>
+                ) : (
+                  diffBadge(d.gpsCount, d.dispatcherCount)
+                )}
               </div>
             </div>
           ))}
