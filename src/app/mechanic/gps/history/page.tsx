@@ -3,6 +3,8 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { hasModuleAccess } from "@/lib/access";
 import { GpsHistoryView } from "@/components/gps/GpsHistoryView";
+import { GpsTripComparisonCard } from "@/components/gps/GpsTripComparisonCard";
+import { getGpsTripComparisonRows } from "@/lib/gpsTripComparison";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -24,6 +26,7 @@ export default async function MechanicGpsHistoryPage({
 
   const { vehicleId, date } = await searchParams;
   const dateStr = parseDateParam(date);
+  const tripComparisonRows = await getGpsTripComparisonRows();
 
   return (
     <div className="max-w-[1180px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
@@ -38,6 +41,7 @@ export default async function MechanicGpsHistoryPage({
       </div>
 
       <GpsHistoryView basePath="/mechanic/gps/history" vehicleId={vehicleId} dateStr={dateStr} />
+      <GpsTripComparisonCard rows={tripComparisonRows} />
     </div>
   );
 }
