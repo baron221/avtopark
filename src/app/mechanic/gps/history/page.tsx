@@ -41,7 +41,7 @@ export default async function MechanicGpsHistoryPage({
       </div>
 
       <GpsHistoryView basePath="/mechanic/gps/history" vehicleId={vehicleId} dateStr={dateStr} />
-      <GpsTripComparisonCard rows={tripComparisonRows} windowLabel={`${dateStr.slice(8, 10)}.${dateStr.slice(5, 7)}гача 7 кун`} />
+      <GpsTripComparisonCard rows={tripComparisonRows} windowLabel={`${dateStr.slice(8, 10)}.${dateStr.slice(5, 7)} куни`} />
     </div>
   );
 }
