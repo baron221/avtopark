@@ -104,9 +104,10 @@ export async function GpsHistoryView({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-row-divider border-t border-row-divider">
         <div className="p-5">
-          <div className="text-xs font-extrabold text-muted-2 uppercase tracking-wide mb-3">
+          <div className="text-xs font-extrabold text-muted-2 uppercase tracking-wide">
             GPS аниқлаган ({transits.length})
           </div>
+          <div className="text-[11px] text-muted-2 font-semibold mb-3">Вақт — етиб келган вақти</div>
           {transits.length === 0 ? (
             <p className="text-[13px] text-muted-2">Транзит топилмади</p>
           ) : (
@@ -123,9 +124,10 @@ export async function GpsHistoryView({
           )}
         </div>
         <div className="p-5">
-          <div className="text-xs font-extrabold text-muted-2 uppercase tracking-wide mb-3">
+          <div className="text-xs font-extrabold text-muted-2 uppercase tracking-wide">
             Диспетчер киритган ({trips.length})
           </div>
+          <div className="text-[11px] text-muted-2 font-semibold mb-3">Вақт — жўнаш/киритилган вақти</div>
           {trips.length === 0 ? (
             <p className="text-[13px] text-muted-2">Рейс топилмади</p>
           ) : (
