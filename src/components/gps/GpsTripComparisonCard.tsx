@@ -23,7 +23,7 @@ function VehicleRow({ row }: { row: GpsTripComparisonRow }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full hidden lg:grid grid-cols-[auto_1fr_1.2fr_0.9fr_0.9fr_auto] items-center gap-2 px-6 py-3.5 text-left hover:bg-page transition-colors"
+        className="w-full hidden lg:grid grid-cols-[auto_1fr_1.2fr_0.9fr_0.9fr_1.3fr] items-center gap-2 px-6 py-3.5 text-left hover:bg-page transition-colors"
       >
         <span className={`text-muted-2 text-xs transition-transform ${open ? "rotate-90" : ""}`}>▶</span>
         <span className="font-extrabold text-primary font-heading">{row.plate}</span>
@@ -105,7 +105,7 @@ export function GpsTripComparisonCard({
           Вокзаллар оралиғидаги GPS ҳаракатлари диспетчер кирган рейслар билан солиштирилади
         </div>
       </div>
-      <div className="hidden lg:grid grid-cols-[auto_1fr_1.2fr_0.9fr_0.9fr_auto] px-6 py-3 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
+      <div className="hidden lg:grid grid-cols-[auto_1fr_1.2fr_0.9fr_0.9fr_1.3fr] px-6 py-3 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
         <div />
         <div>Машина</div>
         <div>Ҳайдовчи</div>
