@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
+import { getWialonUnits, getWialonTrackForRange, matchVehiclesToWialonUnits } from "@/lib/wialon";
+import { detectStationTransits } from "@/lib/gpsTripDetection";
 
 export type GpsTripComparisonDay = {
   date: Date;
@@ -109,6 +111,95 @@ export async function getGpsTripComparisonRows(uptoDateStr?: string): Promise<Gp
         totalGps: comparableDays.reduce((s, d) => s + d.gpsCount, 0),
         totalDispatcher: comparableDays.reduce((s, d) => s + d.dispatcherCount, 0),
         days,
+      };
+    })
+    .filter((row) => row.totalGps > 0 || row.totalDispatcher > 0);
+}
+
+/**
+ * Whether it's worth computing today's GPS comparison live: only once a
+ * dispatcher has actually handed over cash for today, since that's the
+ * practical real-world signal that a point's vehicle traffic for the day is
+ * done — the daily cron itself only detects *yesterday's* transits, so
+ * without this today would stay blank until midnight.
+ */
+export async function hasTodayCashHandover(): Promise<boolean> {
+  const now = new Date();
+  const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const count = await prisma.cashHandover.count({ where: { handoverDate: todayStart } });
+  return count > 0;
+}
+
+// Same reasoning as wialon.ts's own TODAY_STATS_CONCURRENCY: the self-hosted
+// Wialon instance errors out past ~5 concurrent messages/load_interval
+// calls, and 3 has tested reliably under that.
+const LIVE_FETCH_CONCURRENCY = 3;
+
+/**
+ * Same shape as getGpsTripComparisonRows, but for today, computed live from
+ * Wialon — today's transits aren't in gps_detected_trips yet (the cron only
+ * writes yesterday's data at midnight). Gate calls behind
+ * hasTodayCashHandover() first; this fetches every vehicle's live track and
+ * is comparatively slow/Wialon-load-heavy, not something to run on every
+ * page view before there's any point in doing so.
+ */
+export async function getLiveGpsTripComparisonForToday(): Promise<GpsTripComparisonRow[]> {
+  const now = new Date();
+  const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const todayEnd = new Date(todayStart.getTime() + 86_400_000);
+
+  const vehicles = await prisma.vehicle.findMany({
+    where: { status: { in: DISPATCHABLE_STATUSES } },
+    select: { id: true, plate: true, driver: { select: { user: { select: { fullName: true } } } } },
+    orderBy: { plate: "asc" },
+  });
+
+  const [trips, orders, units] = await Promise.all([
+    prisma.trip.findMany({
+      where: { vehicleId: { in: vehicles.map((v) => v.id) }, kind: "TRIP", tripDate: { gte: todayStart, lt: todayEnd } },
+      select: { vehicleId: true },
+    }),
+    prisma.trip.findMany({
+      where: { vehicleId: { in: vehicles.map((v) => v.id) }, kind: "ORDER", tripDate: { gte: todayStart, lt: todayEnd } },
+      select: { vehicleId: true },
+    }),
+    getWialonUnits(),
+  ]);
+  const gpsMap = matchVehiclesToWialonUnits(vehicles, units);
+
+  const gpsCounts = new Map<string, number>();
+  for (let i = 0; i < vehicles.length; i += LIVE_FETCH_CONCURRENCY) {
+    const batch = vehicles.slice(i, i + LIVE_FETCH_CONCURRENCY);
+    await Promise.all(
+      batch.map(async (v) => {
+        const unit = gpsMap.get(v.id);
+        if (!unit) return;
+        try {
+          const points = await getWialonTrackForRange(unit.id, todayStart, todayEnd);
+          gpsCounts.set(v.id, detectStationTransits(points).length);
+        } catch (err) {
+          console.error(`Wialon бугунги трек хато (${v.plate}):`, err);
+        }
+      })
+    );
+  }
+
+  const dispatcherCounts = new Map<string, number>();
+  for (const t of trips) dispatcherCounts.set(t.vehicleId, (dispatcherCounts.get(t.vehicleId) ?? 0) + 1);
+  const orderVehicleIds = new Set(orders.map((o) => o.vehicleId));
+
+  return vehicles
+    .map((v) => {
+      const gpsCount = gpsCounts.get(v.id) ?? 0;
+      const dispatcherCount = dispatcherCounts.get(v.id) ?? 0;
+      const hasOrder = orderVehicleIds.has(v.id);
+      return {
+        vehicleId: v.id,
+        plate: v.plate,
+        driverName: v.driver?.user.fullName ?? null,
+        totalGps: hasOrder ? 0 : gpsCount,
+        totalDispatcher: hasOrder ? 0 : dispatcherCount,
+        days: [{ date: todayStart, gpsCount, dispatcherCount, hasOrder }],
       };
     })
     .filter((row) => row.totalGps > 0 || row.totalDispatcher > 0);

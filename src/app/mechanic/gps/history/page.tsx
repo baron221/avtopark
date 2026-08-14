@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { hasModuleAccess } from "@/lib/access";
 import { GpsHistoryView } from "@/components/gps/GpsHistoryView";
 import { GpsTripComparisonCard } from "@/components/gps/GpsTripComparisonCard";
-import { getGpsTripComparisonRows } from "@/lib/gpsTripComparison";
+import { getGpsTripComparisonRows, hasTodayCashHandover, getLiveGpsTripComparisonForToday } from "@/lib/gpsTripComparison";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -27,7 +27,18 @@ export default async function MechanicGpsHistoryPage({
   const { vehicleId, date } = await searchParams;
   const dateStr = parseDateParam(date);
   const isToday = dateStr === new Date().toISOString().slice(0, 10);
-  const tripComparisonRows = isToday ? [] : await getGpsTripComparisonRows(dateStr);
+
+  let tripComparisonRows: Awaited<ReturnType<typeof getGpsTripComparisonRows>> = [];
+  let todayNotReadyYet = false;
+  if (isToday) {
+    if (await hasTodayCashHandover()) {
+      tripComparisonRows = await getLiveGpsTripComparisonForToday();
+    } else {
+      todayNotReadyYet = true;
+    }
+  } else {
+    tripComparisonRows = await getGpsTripComparisonRows(dateStr);
+  }
 
   return (
     <div className="max-w-[1180px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
@@ -42,13 +53,16 @@ export default async function MechanicGpsHistoryPage({
       </div>
 
       <GpsHistoryView basePath="/mechanic/gps/history" vehicleId={vehicleId} dateStr={dateStr} />
-      {isToday ? (
+      {todayNotReadyYet ? (
         <div className="bg-page border border-border text-muted-2 text-[13px] font-semibold px-4 py-3 rounded-xl">
-          Бугунги кун учун GPS таққослаши ҳали йўқ — у кечаси, кун тугагандан кейин ҳисобланади. Кечаги ва олдинги
-          кунлар учун санани ўзгартиринг.
+          Бугунги кун учун GPS таққослаши ҳали йўқ — диспетчер бирор пунктда бухгалтерга пул топширгандан кейин
+          пайдо бўлади (шу куннинг қатновлари тугагани белгиси). Кечаги ва олдинги кунлар учун санани ўзгартиринг.
         </div>
       ) : (
-        <GpsTripComparisonCard rows={tripComparisonRows} windowLabel={`${dateStr.slice(8, 10)}.${dateStr.slice(5, 7)} куни`} />
+        <GpsTripComparisonCard
+          rows={tripComparisonRows}
+          windowLabel={`${dateStr.slice(8, 10)}.${dateStr.slice(5, 7)} куни${isToday ? " (жонли)" : ""}`}
+        />
       )}
     </div>
   );
