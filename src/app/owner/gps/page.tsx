@@ -7,6 +7,8 @@ import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 import { getWialonUnits, matchVehiclesToWialonUnits, getWialonTodayStatsForUnits, type WialonUnit } from "@/lib/wialon";
 import { GpsList } from "@/components/gps/GpsList";
 import { FuelEfficiencyCard } from "@/components/gps/FuelEfficiencyCard";
+import { GpsTripComparisonCard } from "@/components/gps/GpsTripComparisonCard";
+import { getGpsTripComparisonRows } from "@/lib/gpsTripComparison";
 
 export default async function OwnerGpsPage() {
   const session = await auth();
@@ -20,6 +22,8 @@ export default async function OwnerGpsPage() {
     include: { driver: { include: { user: true } } },
     orderBy: { plate: "asc" },
   });
+
+  const tripComparisonRows = await getGpsTripComparisonRows();
 
   let gpsMap = new Map<string, WialonUnit>();
   let todayStats = new Map<string, { kmToday: number; maxSpeedKmh: number }>();
@@ -53,6 +57,7 @@ export default async function OwnerGpsPage() {
       </div>
 
       <GpsList vehicles={vehicles} gpsMap={gpsMap} todayStats={todayStats} gpsError={gpsError} />
+      <GpsTripComparisonCard rows={tripComparisonRows} />
       <FuelEfficiencyCard />
     </div>
   );

@@ -4,6 +4,10 @@
     {
       "path": "/api/gps/daily-mileage",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/gps/daily-trips",
+      "schedule": "0 0 * * *"
     }
   ]
 }

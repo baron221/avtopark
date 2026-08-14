@@ -111,15 +111,19 @@ export async function getWialonUnitByPlate(plate: string): Promise<WialonUnit | 
 /**
  * Matches our Vehicle rows to Wialon units by plate — unit names are
  * "{brand} {plate}" (e.g. "JAC 40 056 RCA"), and our plates ("40 056 RCA")
- * appear verbatim inside them, so a substring check is enough.
+ * appear verbatim inside them, so a substring check is enough. A few real
+ * unit names have doubled internal spaces (e.g. "JAC 40 260  RCA") that
+ * silently broke this match, so whitespace is collapsed on both sides first.
  */
 export function matchVehiclesToWialonUnits(
   vehicles: { id: string; plate: string }[],
   units: WialonUnit[]
 ): Map<string, WialonUnit> {
+  const normalize = (s: string) => s.replace(/\s+/g, " ").trim();
   const map = new Map<string, WialonUnit>();
   for (const vehicle of vehicles) {
-    const unit = units.find((u) => u.name.includes(vehicle.plate));
+    const plate = normalize(vehicle.plate);
+    const unit = units.find((u) => normalize(u.name).includes(plate));
     if (unit) map.set(vehicle.id, unit);
   }
   return map;
@@ -165,6 +169,36 @@ export async function getWialonMileageForRange(
   let km = 0;
   for (let i = 1; i < points.length; i++) km += haversineKm(points[i - 1], points[i]);
   return km;
+}
+
+/**
+ * A unit's raw, timestamped GPS track between two instants, in chronological
+ * order — for callers that need the actual points (e.g. station-arrival
+ * detection in gpsTripDetection.ts), not just a summed distance. Same
+ * loadCount ceiling/caveat as getWialonMileageForRange.
+ */
+export async function getWialonTrackForRange(
+  unitId: number,
+  from: Date,
+  to: Date,
+  loadCount = 20000
+): Promise<{ t: Date; lat: number; lon: number }[]> {
+  const data = await callAuthed<{ messages?: { t?: number; pos?: { y: number; x: number } }[] }>(
+    "messages/load_interval",
+    {
+      itemId: unitId,
+      timeFrom: Math.floor(from.getTime() / 1000),
+      timeTo: Math.floor(to.getTime() / 1000),
+      flags: 0,
+      flagsMask: 0,
+      loadCount,
+    }
+  );
+
+  return (data.messages ?? [])
+    .filter((m): m is { t: number; pos: { y: number; x: number } } => !!m.pos && !!m.t)
+    .map((m) => ({ t: new Date(m.t * 1000), lat: m.pos.y, lon: m.pos.x }))
+    .sort((a, b) => a.t.getTime() - b.t.getTime());
 }
 
 /** Sums today's GPS track (midnight so far) into a driven-distance estimate. */

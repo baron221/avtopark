@@ -125,42 +125,42 @@ enum OtherIncomeCategory {
 // ---------- Models ----------
 
 model User {
-  id           String   @id @default(uuid())
-  fullName     String   @map("full_name")
-  phone        String   @unique
-  role         Role
-  point        Point?
-  baseSalary   BigInt?  @map("base_salary")
-  passwordHash String   @map("password_hash")
-  isActive     Boolean  @default(true) @map("is_active")
-  failedLoginAttempts Int @default(0) @map("failed_login_attempts")
-  lockedUntil  DateTime? @map("locked_until")
-  createdAt    DateTime @default(now()) @map("created_at")
+  id                  String    @id @default(uuid())
+  fullName            String    @map("full_name")
+  phone               String    @unique
+  role                Role
+  point               Point?
+  baseSalary          BigInt?   @map("base_salary")
+  passwordHash        String    @map("password_hash")
+  isActive            Boolean   @default(true) @map("is_active")
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until")
+  createdAt           DateTime  @default(now()) @map("created_at")
 
-  driver         Driver?
-  enteredTrips     Trip[]           @relation("TripEnteredBy")
-  enteredOtherIncomes OtherIncome[] @relation("OtherIncomeEnteredBy")
-  externalVehiclesCreated ExternalVehicle[] @relation("ExternalVehicleCreatedBy")
-  enteredExpenses  Expense[]        @relation("ExpenseEnteredBy")
-  finesReceived    Fine[]           @relation("FineUser")
-  finesEntered     Fine[]           @relation("FineEnteredBy")
-  lunches          Lunch[]          @relation("LunchUser")
-  lunchesEntered   Lunch[]          @relation("LunchEnteredBy")
-  fuelLogsEntered  FuelLog[]        @relation("FuelLogEnteredBy")
-  stationPaymentsEntered StationPayment[] @relation("StationPaymentEnteredBy")
-  staffExpenses    StaffExpense[]   @relation("StaffExpenseUser")
-  staffExpensesEntered StaffExpense[] @relation("StaffExpenseEnteredBy")
-  salaries         Salary[]         @relation("SalaryUser")
-  salariesApproved Salary[]         @relation("SalaryApprovedBy")
-  salariesPaid     Salary[]         @relation("SalaryPaidBy")
-  planPaymentsReceived PlanPayment[] @relation("PlanPaymentReceivedBy")
-  advances         Advance[]        @relation("AdvanceUser")
-  advancesEntered  Advance[]        @relation("AdvanceEnteredBy")
-  oilChangesEntered OilChange[]     @relation("OilChangeEnteredBy")
-  deletionsPerformed DeletionLog[]  @relation("DeletionLogDeletedBy")
-  cashHandoversAsDispatcher CashHandover[] @relation("CashHandoverDispatcher")
-  cashHandoversAsAccountant CashHandover[] @relation("CashHandoverAccountant")
-  ownerPayoutsEntered OwnerPayout[] @relation("OwnerPayoutEnteredBy")
+  driver                     Driver?
+  enteredTrips               Trip[]               @relation("TripEnteredBy")
+  enteredOtherIncomes        OtherIncome[]        @relation("OtherIncomeEnteredBy")
+  externalVehiclesCreated    ExternalVehicle[]    @relation("ExternalVehicleCreatedBy")
+  enteredExpenses            Expense[]            @relation("ExpenseEnteredBy")
+  finesReceived              Fine[]               @relation("FineUser")
+  finesEntered               Fine[]               @relation("FineEnteredBy")
+  lunches                    Lunch[]              @relation("LunchUser")
+  lunchesEntered             Lunch[]              @relation("LunchEnteredBy")
+  fuelLogsEntered            FuelLog[]            @relation("FuelLogEnteredBy")
+  stationPaymentsEntered     StationPayment[]     @relation("StationPaymentEnteredBy")
+  staffExpenses              StaffExpense[]       @relation("StaffExpenseUser")
+  staffExpensesEntered       StaffExpense[]       @relation("StaffExpenseEnteredBy")
+  salaries                   Salary[]             @relation("SalaryUser")
+  salariesApproved           Salary[]             @relation("SalaryApprovedBy")
+  salariesPaid               Salary[]             @relation("SalaryPaidBy")
+  planPaymentsReceived       PlanPayment[]        @relation("PlanPaymentReceivedBy")
+  advances                   Advance[]            @relation("AdvanceUser")
+  advancesEntered            Advance[]            @relation("AdvanceEnteredBy")
+  oilChangesEntered          OilChange[]          @relation("OilChangeEnteredBy")
+  deletionsPerformed         DeletionLog[]        @relation("DeletionLogDeletedBy")
+  cashHandoversAsDispatcher  CashHandover[]       @relation("CashHandoverDispatcher")
+  cashHandoversAsAccountant  CashHandover[]       @relation("CashHandoverAccountant")
+  ownerPayoutsEntered        OwnerPayout[]        @relation("OwnerPayoutEnteredBy")
   cashOpeningBalancesEntered CashOpeningBalance[] @relation("CashOpeningBalanceEnteredBy")
 
   @@index([role])
@@ -200,17 +200,18 @@ model Vehicle {
   purchaseDate  DateTime      @map("purchase_date")
   odometerKm    Int?          @map("odometer_km")
 
-  driver          Driver?
-  trips           Trip[]
-  dailyPlans      DailyPlan[]
-  rentals         Rental[]
-  expenses        Expense[]
-  shifts          Shift[]
-  fines           Fine[]
-  fuelLogs        FuelLog[]
-  oilChanges      OilChange[]
-  assignmentLogs  DriverAssignmentLog[]
-  mileages        VehicleMileage[]
+  driver           Driver?
+  trips            Trip[]
+  dailyPlans       DailyPlan[]
+  rentals          Rental[]
+  expenses         Expense[]
+  shifts           Shift[]
+  fines            Fine[]
+  fuelLogs         FuelLog[]
+  oilChanges       OilChange[]
+  assignmentLogs   DriverAssignmentLog[]
+  mileages         VehicleMileage[]
+  gpsDetectedTrips GpsDetectedTrip[]
 
   @@index([point])
   @@index([status])
@@ -256,6 +257,31 @@ model VehicleMileage {
   @@map("vehicle_mileages")
 }
 
+enum GpsTripDirection {
+  FARGONA_TO_QUVA
+  QUVA_TO_FARGONA
+}
+
+// One row per station-to-station transit independently detected from a
+// vehicle's raw Wialon GPS track (see lib/gpsTripDetection.ts) — not tied
+// to any dispatcher-entered Trip. Exists purely to let the accountant/owner
+// compare "GPS says this many transits happened" against "dispatcher logged
+// this many trips" for the same vehicle/day, to catch under- or
+// over-reporting. detectedAt is when the track shows the vehicle arriving
+// at the destination station, not when the trip actually started.
+model GpsDetectedTrip {
+  id         String           @id @default(uuid())
+  vehicleId  String           @map("vehicle_id")
+  direction  GpsTripDirection
+  detectedAt DateTime         @map("detected_at")
+  createdAt  DateTime         @default(now()) @map("created_at")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+
+  @@index([vehicleId, detectedAt])
+  @@map("gps_detected_trips")
+}
+
 model Driver {
   id          String     @id @default(uuid())
   userId      String     @unique @map("user_id")
@@ -279,12 +305,12 @@ model Driver {
 }
 
 model Route {
-  id          String  @id @default(uuid())
-  fromCity    String  @map("from_city")
-  toCity      String  @map("to_city")
-  distanceKm  Int     @map("distance_km")
-  baseFare    Int     @map("base_fare")
-  isActive    Boolean @default(true) @map("is_active")
+  id         String  @id @default(uuid())
+  fromCity   String  @map("from_city")
+  toCity     String  @map("to_city")
+  distanceKm Int     @map("distance_km")
+  baseFare   Int     @map("base_fare")
+  isActive   Boolean @default(true) @map("is_active")
 
   trips Trip[]
 
@@ -292,29 +318,29 @@ model Route {
 }
 
 model Trip {
-  id              String   @id @default(uuid())
-  vehicleId       String   @map("vehicle_id")
-  driverId        String   @map("driver_id")
-  routeId         String   @map("route_id")
+  id             String   @id @default(uuid())
+  vehicleId      String   @map("vehicle_id")
+  driverId       String   @map("driver_id")
+  routeId        String   @map("route_id")
   // Which point's dispatcher collected/entered this trip's revenue. Kept
   // separate from Vehicle.point because the same shared fleet shuttles both
   // Farg'ona and Quva — a vehicle has no single "home" point, so the point
   // that matters for cash-collection reporting has to live on the Trip itself.
-  point           Point
-  tripDate        DateTime @map("trip_date")
-  departureTime   DateTime @map("departure_time")
-  passengerCount  Int      @map("passenger_count")
-  tripNumber      Int?     @map("trip_number")
-  revenue         BigInt
-  kind            TripKind @default(TRIP)
-  note            String?
-  enteredBy       String   @map("entered_by")
-  createdAt       DateTime @default(now()) @map("created_at")
+  point          Point
+  tripDate       DateTime @map("trip_date")
+  departureTime  DateTime @map("departure_time")
+  passengerCount Int      @map("passenger_count")
+  tripNumber     Int?     @map("trip_number")
+  revenue        BigInt
+  kind           TripKind @default(TRIP)
+  note           String?
+  enteredBy      String   @map("entered_by")
+  createdAt      DateTime @default(now()) @map("created_at")
 
-  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
-  driver  Driver  @relation(fields: [driverId], references: [id])
-  route   Route   @relation(fields: [routeId], references: [id])
-  enteredByUser User @relation("TripEnteredBy", fields: [enteredBy], references: [id])
+  vehicle       Vehicle @relation(fields: [vehicleId], references: [id])
+  driver        Driver  @relation(fields: [driverId], references: [id])
+  route         Route   @relation(fields: [routeId], references: [id])
+  enteredByUser User    @relation("TripEnteredBy", fields: [enteredBy], references: [id])
 
   @@index([vehicleId, tripDate])
   @@index([driverId])
@@ -328,15 +354,15 @@ model Trip {
 // don't exist in this system at all. plateNumber is the primary identifier;
 // note is just a free-text comment on top of it, so both are optional.
 model OtherIncome {
-  id         String              @id @default(uuid())
-  point      Point
-  category   OtherIncomeCategory @default(BOSHQA)
-  amount     BigInt
-  note       String?
-  plateNumber String?            @map("plate_number")
-  incomeDate DateTime            @map("income_date")
-  enteredBy  String              @map("entered_by")
-  createdAt  DateTime            @default(now()) @map("created_at")
+  id          String              @id @default(uuid())
+  point       Point
+  category    OtherIncomeCategory @default(BOSHQA)
+  amount      BigInt
+  note        String?
+  plateNumber String?             @map("plate_number")
+  incomeDate  DateTime            @map("income_date")
+  enteredBy   String              @map("entered_by")
+  createdAt   DateTime            @default(now()) @map("created_at")
 
   enteredByUser User @relation("OtherIncomeEnteredBy", fields: [enteredBy], references: [id])
 
@@ -361,14 +387,14 @@ model ExternalVehicle {
 }
 
 model DailyPlan {
-  id          String     @id @default(uuid())
-  vehicleId   String     @map("vehicle_id")
-  driverId    String     @map("driver_id")
-  planDate    DateTime   @map("plan_date")
-  planAmount  BigInt     @map("plan_amount")
-  paidAmount  BigInt     @default(0) @map("paid_amount")
-  status      PlanStatus @default(PENDING)
-  paidAt      DateTime?  @map("paid_at")
+  id         String     @id @default(uuid())
+  vehicleId  String     @map("vehicle_id")
+  driverId   String     @map("driver_id")
+  planDate   DateTime   @map("plan_date")
+  planAmount BigInt     @map("plan_amount")
+  paidAmount BigInt     @default(0) @map("paid_amount")
+  status     PlanStatus @default(PENDING)
+  paidAt     DateTime?  @map("paid_at")
 
   vehicle Vehicle @relation(fields: [vehicleId], references: [id])
   driver  Driver  @relation(fields: [driverId], references: [id])
@@ -407,10 +433,10 @@ model Expense {
   note        String?
   enteredBy   String          @map("entered_by")
 
-  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
-  driver  Driver? @relation(fields: [driverId], references: [id])
-  enteredByUser User @relation("ExpenseEnteredBy", fields: [enteredBy], references: [id])
-  fuelLog FuelLog?
+  vehicle       Vehicle  @relation(fields: [vehicleId], references: [id])
+  driver        Driver?  @relation(fields: [driverId], references: [id])
+  enteredByUser User     @relation("ExpenseEnteredBy", fields: [enteredBy], references: [id])
+  fuelLog       FuelLog?
 
   @@index([vehicleId, expenseDate])
   @@index([expenseDate])
@@ -467,9 +493,9 @@ model Fine {
   deducted  Boolean  @default(false)
   enteredBy String   @map("entered_by")
 
-  user      User     @relation("FineUser", fields: [userId], references: [id])
-  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id])
-  enteredByUser User @relation("FineEnteredBy", fields: [enteredBy], references: [id])
+  user          User     @relation("FineUser", fields: [userId], references: [id])
+  vehicle       Vehicle? @relation(fields: [vehicleId], references: [id])
+  enteredByUser User     @relation("FineEnteredBy", fields: [enteredBy], references: [id])
 
   @@index([userId, fineDate])
   @@map("fines")
@@ -486,7 +512,7 @@ model Lunch {
   lunchDate DateTime @map("lunch_date")
   enteredBy String   @map("entered_by")
 
-  user User @relation("LunchUser", fields: [userId], references: [id])
+  user          User @relation("LunchUser", fields: [userId], references: [id])
   enteredByUser User @relation("LunchEnteredBy", fields: [enteredBy], references: [id])
 
   @@unique([userId, lunchDate])
@@ -525,12 +551,12 @@ model FuelLog {
   filledAt  DateTime @map("filled_at")
   enteredBy String   @map("entered_by")
 
-  station FuelStation @relation(fields: [stationId], references: [id])
-  vehicle Vehicle     @relation(fields: [vehicleId], references: [id])
-  driver  Driver      @relation(fields: [driverId], references: [id])
-  shift   Shift?      @relation(fields: [shiftId], references: [id])
-  expense Expense?    @relation(fields: [expenseId], references: [id])
-  enteredByUser User  @relation("FuelLogEnteredBy", fields: [enteredBy], references: [id])
+  station       FuelStation @relation(fields: [stationId], references: [id])
+  vehicle       Vehicle     @relation(fields: [vehicleId], references: [id])
+  driver        Driver      @relation(fields: [driverId], references: [id])
+  shift         Shift?      @relation(fields: [shiftId], references: [id])
+  expense       Expense?    @relation(fields: [expenseId], references: [id])
+  enteredByUser User        @relation("FuelLogEnteredBy", fields: [enteredBy], references: [id])
 
   @@index([vehicleId])
   @@index([stationId])
@@ -539,19 +565,19 @@ model FuelLog {
 }
 
 model StationPayment {
-  id           String        @id @default(uuid())
-  stationId    String        @map("station_id")
-  periodStart  DateTime      @map("period_start")
-  periodEnd    DateTime      @map("period_end")
-  totalVolume  Decimal       @map("total_volume")
-  amount       BigInt
-  paidAmount   BigInt        @default(0) @map("paid_amount")
-  status       PaymentStatus @default(PENDING)
-  paidAt       DateTime?     @map("paid_at")
-  enteredBy    String        @map("entered_by")
+  id          String        @id @default(uuid())
+  stationId   String        @map("station_id")
+  periodStart DateTime      @map("period_start")
+  periodEnd   DateTime      @map("period_end")
+  totalVolume Decimal       @map("total_volume")
+  amount      BigInt
+  paidAmount  BigInt        @default(0) @map("paid_amount")
+  status      PaymentStatus @default(PENDING)
+  paidAt      DateTime?     @map("paid_at")
+  enteredBy   String        @map("entered_by")
 
-  station FuelStation @relation(fields: [stationId], references: [id])
-  enteredByUser User   @relation("StationPaymentEnteredBy", fields: [enteredBy], references: [id])
+  station       FuelStation @relation(fields: [stationId], references: [id])
+  enteredByUser User        @relation("StationPaymentEnteredBy", fields: [enteredBy], references: [id])
 
   @@index([stationId])
   @@index([periodEnd])
@@ -568,7 +594,7 @@ model StaffExpense {
   expenseDate DateTime             @map("expense_date")
   enteredBy   String               @map("entered_by")
 
-  user User @relation("StaffExpenseUser", fields: [userId], references: [id])
+  user          User @relation("StaffExpenseUser", fields: [userId], references: [id])
   enteredByUser User @relation("StaffExpenseEnteredBy", fields: [enteredBy], references: [id])
 
   @@index([userId, expenseDate])
@@ -577,23 +603,23 @@ model StaffExpense {
 }
 
 model Salary {
-  id             String       @id @default(uuid())
-  userId         String       @map("user_id")
-  month          DateTime
-  baseSalary     BigInt       @map("base_salary")
-  bonus          BigInt       @default(0)
-  advancesTotal  BigInt       @default(0) @map("advances_total")
-  finesTotal     BigInt       @default(0) @map("fines_total")
-  lunchTotal     BigInt       @default(0) @map("lunch_total")
-  netPay         BigInt       @map("net_pay")
-  status      SalaryStatus @default(DRAFT)
-  approvedBy  String?      @map("approved_by")
-  paidAt      DateTime?    @map("paid_at")
-  paidBy      String?      @map("paid_by")
+  id            String       @id @default(uuid())
+  userId        String       @map("user_id")
+  month         DateTime
+  baseSalary    BigInt       @map("base_salary")
+  bonus         BigInt       @default(0)
+  advancesTotal BigInt       @default(0) @map("advances_total")
+  finesTotal    BigInt       @default(0) @map("fines_total")
+  lunchTotal    BigInt       @default(0) @map("lunch_total")
+  netPay        BigInt       @map("net_pay")
+  status        SalaryStatus @default(DRAFT)
+  approvedBy    String?      @map("approved_by")
+  paidAt        DateTime?    @map("paid_at")
+  paidBy        String?      @map("paid_by")
 
-  user User @relation("SalaryUser", fields: [userId], references: [id])
+  user           User  @relation("SalaryUser", fields: [userId], references: [id])
   approvedByUser User? @relation("SalaryApprovedBy", fields: [approvedBy], references: [id])
-  paidByUser User? @relation("SalaryPaidBy", fields: [paidBy], references: [id])
+  paidByUser     User? @relation("SalaryPaidBy", fields: [paidBy], references: [id])
 
   @@unique([userId, month])
   @@map("salaries")
@@ -607,8 +633,8 @@ model PlanPayment {
   paidAt      DateTime      @map("paid_at")
   receivedBy  String        @map("received_by")
 
-  dailyPlan DailyPlan @relation(fields: [dailyPlanId], references: [id])
-  receivedByUser User @relation("PlanPaymentReceivedBy", fields: [receivedBy], references: [id])
+  dailyPlan      DailyPlan @relation(fields: [dailyPlanId], references: [id])
+  receivedByUser User      @relation("PlanPaymentReceivedBy", fields: [receivedBy], references: [id])
 
   @@map("plan_payments")
 }
@@ -616,14 +642,14 @@ model PlanPayment {
 // Not in the original 17 tables — added per README instruction: the payroll
 // screen already shows an Avans column, so this table backs it.
 model Advance {
-  id         String   @id @default(uuid())
-  userId     String   @map("user_id")
-  amount     BigInt
-  givenDate  DateTime @map("given_date")
-  month      DateTime
-  enteredBy  String   @map("entered_by")
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  amount    BigInt
+  givenDate DateTime @map("given_date")
+  month     DateTime
+  enteredBy String   @map("entered_by")
 
-  user User @relation("AdvanceUser", fields: [userId], references: [id])
+  user          User @relation("AdvanceUser", fields: [userId], references: [id])
   enteredByUser User @relation("AdvanceEnteredBy", fields: [enteredBy], references: [id])
 
   @@index([userId, month])
