@@ -86,13 +86,21 @@ function VehicleRow({ row }: { row: GpsTripComparisonRow }) {
  * dispatcher-entered Trip records, per vehicle over the last 7 days. Never
  * modifies Trip data — flags mismatches for someone to look into.
  */
-export function GpsTripComparisonCard({ rows }: { rows: GpsTripComparisonRow[] }) {
+export function GpsTripComparisonCard({
+  rows,
+  windowLabel = "сўнгги 7 кун",
+}: {
+  rows: GpsTripComparisonRow[];
+  /** Overrides the default "last 7 days" heading when the window instead
+   * follows a specific selected date (see uptoDateStr on getGpsTripComparisonRows). */
+  windowLabel?: string;
+}) {
   if (rows.length === 0) return null;
 
   return (
     <Card className="overflow-hidden">
       <div className="px-6 py-3.5">
-        <div className="font-heading font-bold text-base text-heading">GPS ва диспетчер рейслари · сўнгги 7 кун</div>
+        <div className="font-heading font-bold text-base text-heading">GPS ва диспетчер рейслари · {windowLabel}</div>
         <div className="text-xs text-muted-2 font-semibold mt-0.5">
           Вокзаллар оралиғидаги GPS ҳаракатлари диспетчер кирган рейслар билан солиштирилади
         </div>

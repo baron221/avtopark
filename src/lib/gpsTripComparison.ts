@@ -28,15 +28,22 @@ const COMPARISON_DAYS = 7;
  * populated daily by the /api/gps/daily-trips cron) against dispatcher-
  * entered Trip records (kind=TRIP only — ORDER is a one-off private charter,
  * not the fixed vokzal-to-vokzal shuttle route this compares), per vehicle
- * per day over the last COMPARISON_DAYS days. Purely a discrepancy signal —
+ * per day over a COMPARISON_DAYS-day window. Purely a discrepancy signal —
  * never used to create/modify Trip rows, only to flag when the two sources
  * disagree so someone can look into why. Days with an Order are excluded
  * from the totals a mismatch is judged against (see hasOrder above).
+ *
+ * @param uptoDateStr ISO yyyy-mm-dd — last day of the window, inclusive.
+ * Defaults to "yesterday": today itself is excluded because the daily cron
+ * only detects the *previous* day's transits, so today would otherwise show
+ * as 100% GPS-missing noise. A caller inspecting a specific past date (the
+ * GPS history page) passes it explicitly so the window follows that date.
  */
-export async function getGpsTripComparisonRows(): Promise<GpsTripComparisonRow[]> {
+export async function getGpsTripComparisonRows(uptoDateStr?: string): Promise<GpsTripComparisonRow[]> {
   const now = new Date();
   const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  const rangeStart = new Date(todayStart.getTime() - COMPARISON_DAYS * 86_400_000);
+  const windowEnd = uptoDateStr ? new Date(new Date(`${uptoDateStr}T00:00:00Z`).getTime() + 86_400_000) : todayStart;
+  const rangeStart = new Date(windowEnd.getTime() - COMPARISON_DAYS * 86_400_000);
 
   const vehicles = await prisma.vehicle.findMany({
     where: { status: { in: DISPATCHABLE_STATUSES } },
@@ -79,7 +86,7 @@ export async function getGpsTripComparisonRows(): Promise<GpsTripComparisonRow[]
 
   const dayList: Date[] = [];
   for (let i = COMPARISON_DAYS; i >= 1; i--) {
-    dayList.push(new Date(todayStart.getTime() - i * 86_400_000));
+    dayList.push(new Date(windowEnd.getTime() - i * 86_400_000));
   }
 
   return vehicles

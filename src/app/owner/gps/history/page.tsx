@@ -26,7 +26,7 @@ export default async function OwnerGpsHistoryPage({
 
   const { vehicleId, date } = await searchParams;
   const dateStr = parseDateParam(date);
-  const tripComparisonRows = await getGpsTripComparisonRows();
+  const tripComparisonRows = await getGpsTripComparisonRows(dateStr);
 
   return (
     <div className="max-w-[1180px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
@@ -41,7 +41,7 @@ export default async function OwnerGpsHistoryPage({
       </div>
 
       <GpsHistoryView basePath="/owner/gps/history" vehicleId={vehicleId} dateStr={dateStr} />
-      <GpsTripComparisonCard rows={tripComparisonRows} />
+      <GpsTripComparisonCard rows={tripComparisonRows} windowLabel={`${dateStr.slice(8, 10)}.${dateStr.slice(5, 7)}гача 7 кун`} />
     </div>
   );
 }
