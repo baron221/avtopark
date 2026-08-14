@@ -8,6 +8,13 @@ import "leaflet/dist/leaflet.css";
 export type GpsTrackPoint = { t: string; lat: number; lon: number };
 export type GpsTrackStation = { label: string; lat: number; lon: number };
 
+// Forced to the fleet's own timezone rather than the viewing device's — a
+// GPS timestamp is a real UTC instant, and everyone reading this map is
+// asking "what time was that in Farg'ona/Quva", not in their own locale.
+function formatLocalTime(iso: string) {
+  return new Date(iso).toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tashkent" });
+}
+
 function endpointIcon(color: string, glyph: string) {
   return L.divIcon({
     className: "",
@@ -71,10 +78,10 @@ export default function GpsTrackMap({
         </Marker>
       ))}
       <Marker position={[first.lat, first.lon]} icon={endpointIcon("#1B9E6B", "Б")}>
-        <Popup>Бошланиш · {new Date(first.t).toLocaleTimeString("uz-UZ")}</Popup>
+        <Popup>Бошланиш · {formatLocalTime(first.t)}</Popup>
       </Marker>
       <Marker position={[last.lat, last.lon]} icon={endpointIcon("#E03131", "Т")}>
-        <Popup>Тугаш · {new Date(last.t).toLocaleTimeString("uz-UZ")}</Popup>
+        <Popup>Тугаш · {formatLocalTime(last.t)}</Popup>
       </Marker>
     </MapContainer>
   );

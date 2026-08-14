@@ -115,7 +115,7 @@ export async function GpsHistoryView({
                 <li key={i} className="flex items-center justify-between text-[13px]">
                   <span className="font-semibold text-heading">{DIRECTION_LABELS[t.direction]}</span>
                   <span className="text-muted-2 font-bold">
-                    {t.detectedAt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })}
+                    {t.detectedAt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tashkent" })}
                   </span>
                 </li>
               ))}
@@ -141,7 +141,7 @@ export async function GpsHistoryView({
                     )}
                   </span>
                   <span className="text-muted-2 font-bold whitespace-nowrap">
-                    {t.departureTime.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })}
+                    {t.departureTime.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tashkent" })}
                   </span>
                 </li>
               ))}
