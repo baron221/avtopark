@@ -170,95 +170,106 @@ function Tile({
  * CashDetail.periodWord/rangeLabel) rather than always saying "кунлик".
  */
 export function CashBreakdown({ detail }: { detail: CashDetail }) {
+  const net = detail.income.total - detail.expense.total;
   return (
-    <div className="grid grid-cols-2 gap-3">
-      <Tile
-        label={`Умумий ${detail.periodWord.toLowerCase()} тушум`}
-        rangeLabel={detail.rangeLabel}
-        total={detail.income.total}
-        color="success"
-      >
-        <Bucket
-          label="Фарғона"
-          total={detail.income.fargona.total}
-          count={detail.income.fargona.rows.length}
-          amountColor="success"
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-2 gap-3">
+        <Tile
+          label={`Умумий ${detail.periodWord.toLowerCase()} тушум`}
+          rangeLabel={detail.rangeLabel}
+          total={detail.income.total}
+          color="success"
         >
-          {detail.income.fargona.rows.length === 0 ? (
-            <Empty />
-          ) : (
-            detail.income.fargona.rows.map((r) => <TripRow key={r.id} r={r} />)
-          )}
-        </Bucket>
-        <Bucket
-          label="Қува"
-          total={detail.income.quva.total}
-          count={detail.income.quva.rows.length}
-          amountColor="success"
-        >
-          {detail.income.quva.rows.length === 0 ? (
-            <Empty />
-          ) : (
-            detail.income.quva.rows.map((r) => <TripRow key={r.id} r={r} />)
-          )}
-        </Bucket>
-        <Bucket
-          label="Бошқа кирим"
-          total={detail.income.other.total}
-          count={detail.income.other.rows.length}
-          amountColor="success"
-        >
-          {detail.income.other.rows.length === 0 ? (
-            <Empty />
-          ) : (
-            detail.income.other.rows.map((r) => <OtherIncomeRow key={r.id} r={r} />)
-          )}
-        </Bucket>
-      </Tile>
+          <Bucket
+            label="Фарғона"
+            total={detail.income.fargona.total}
+            count={detail.income.fargona.rows.length}
+            amountColor="success"
+          >
+            {detail.income.fargona.rows.length === 0 ? (
+              <Empty />
+            ) : (
+              detail.income.fargona.rows.map((r) => <TripRow key={r.id} r={r} />)
+            )}
+          </Bucket>
+          <Bucket
+            label="Қува"
+            total={detail.income.quva.total}
+            count={detail.income.quva.rows.length}
+            amountColor="success"
+          >
+            {detail.income.quva.rows.length === 0 ? (
+              <Empty />
+            ) : (
+              detail.income.quva.rows.map((r) => <TripRow key={r.id} r={r} />)
+            )}
+          </Bucket>
+          <Bucket
+            label="Бошқа кирим"
+            total={detail.income.other.total}
+            count={detail.income.other.rows.length}
+            amountColor="success"
+          >
+            {detail.income.other.rows.length === 0 ? (
+              <Empty />
+            ) : (
+              detail.income.other.rows.map((r) => <OtherIncomeRow key={r.id} r={r} />)
+            )}
+          </Bucket>
+        </Tile>
 
-      <Tile
-        label={`Умумий ${detail.periodWord.toLowerCase()} расход`}
-        rangeLabel={detail.rangeLabel}
-        total={detail.expense.total}
-        color="danger"
-      >
-        <Bucket
-          label="Фарғона"
-          total={detail.expense.fargona.total}
-          count={detail.expense.fargona.rows.length}
-          amountColor="danger"
+        <Tile
+          label={`Умумий ${detail.periodWord.toLowerCase()} расход`}
+          rangeLabel={detail.rangeLabel}
+          total={detail.expense.total}
+          color="danger"
         >
-          {detail.expense.fargona.rows.length === 0 ? (
-            <Empty />
-          ) : (
-            detail.expense.fargona.rows.map((r) => <PointExpenseRow key={r.id} r={r} />)
-          )}
-        </Bucket>
-        <Bucket
-          label="Қува"
-          total={detail.expense.quva.total}
-          count={detail.expense.quva.rows.length}
-          amountColor="danger"
-        >
-          {detail.expense.quva.rows.length === 0 ? (
-            <Empty />
-          ) : (
-            detail.expense.quva.rows.map((r) => <PointExpenseRow key={r.id} r={r} />)
-          )}
-        </Bucket>
-        <Bucket
-          label="Бошқа чиқимлар"
-          total={detail.expense.outside.total}
-          count={detail.expense.outside.rows.length}
-          amountColor="danger"
-        >
-          {detail.expense.outside.rows.length === 0 ? (
-            <Empty />
-          ) : (
-            detail.expense.outside.rows.map((r) => <OutsideExpenseRow key={r.id} r={r} />)
-          )}
-        </Bucket>
-      </Tile>
+          <Bucket
+            label="Фарғона"
+            total={detail.expense.fargona.total}
+            count={detail.expense.fargona.rows.length}
+            amountColor="danger"
+          >
+            {detail.expense.fargona.rows.length === 0 ? (
+              <Empty />
+            ) : (
+              detail.expense.fargona.rows.map((r) => <PointExpenseRow key={r.id} r={r} />)
+            )}
+          </Bucket>
+          <Bucket
+            label="Қува"
+            total={detail.expense.quva.total}
+            count={detail.expense.quva.rows.length}
+            amountColor="danger"
+          >
+            {detail.expense.quva.rows.length === 0 ? (
+              <Empty />
+            ) : (
+              detail.expense.quva.rows.map((r) => <PointExpenseRow key={r.id} r={r} />)
+            )}
+          </Bucket>
+          <Bucket
+            label="Бошқа чиқимлар"
+            total={detail.expense.outside.total}
+            count={detail.expense.outside.rows.length}
+            amountColor="danger"
+          >
+            {detail.expense.outside.rows.length === 0 ? (
+              <Empty />
+            ) : (
+              detail.expense.outside.rows.map((r) => <OutsideExpenseRow key={r.id} r={r} />)
+            )}
+          </Bucket>
+        </Tile>
+      </div>
+
+      <div className="bg-page rounded-xl p-3 flex items-center justify-between">
+        <div className="text-[11px] text-muted-2 font-bold uppercase">{detail.periodWord} қолдиқ</div>
+        <div className={`font-heading font-extrabold text-lg ${net >= 0 ? "text-success" : "text-danger"}`}>
+          {net >= 0 ? "+" : "−"}
+          {formatSom(Math.abs(net))}
+        </div>
+      </div>
     </div>
   );
 }

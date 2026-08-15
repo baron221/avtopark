@@ -61,17 +61,21 @@ export function CashHistorySection({
             ))}
             {confirmedHistory.length === 0 && <p className="text-xs text-muted-2">Ҳали йўқ</p>}
           </div>
-          <div className="flex flex-col gap-1.5 pt-2 border-t border-row-divider">
+          <div className="flex flex-col gap-2 pt-2 border-t border-row-divider">
             <div className="text-[11px] text-muted-2 font-bold uppercase">Эгасига тўланган</div>
             {payoutHistory.map((p) => (
-              <div key={p.id} className="flex items-center justify-between gap-2 text-xs">
-                <span className="text-muted-2 font-semibold">
-                  {p.payoutDate.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" })} ·{" "}
-                  {p.enteredByName}
-                  {p.note ? ` · ${p.note}` : ""}
-                </span>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className="font-bold text-primary whitespace-nowrap">−{formatSom(p.amount)}</span>
+              <div key={p.id} className="flex items-center justify-between gap-3 bg-page rounded-lg px-3.5 py-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-extrabold text-heading">
+                    {p.payoutDate.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" })} ·{" "}
+                    {p.enteredByName}
+                  </div>
+                  {p.note && <div className="text-xs text-muted-2 font-semibold mt-0.5">{p.note}</div>}
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <span className="font-extrabold text-primary text-base whitespace-nowrap">
+                    −{formatSom(p.amount)}
+                  </span>
                   {cancelPayoutAction && (
                     <form
                       action={cancelPayoutAction}
@@ -80,7 +84,7 @@ export function CashHistorySection({
                       }}
                     >
                       <input type="hidden" name="id" value={p.id} />
-                      <button type="submit" className="text-danger text-[11px] font-bold hover:underline whitespace-nowrap">
+                      <button type="submit" className="text-danger text-xs font-bold hover:underline whitespace-nowrap">
                         Бекор қилиш
                       </button>
                     </form>

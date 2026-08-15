@@ -185,15 +185,27 @@ async function getLatestOpeningBalance(): Promise<{ amount: number; setDate: Dat
  * the real cash paid to that employee for the month, so summing both here
  * doesn't double-count either.
  */
+// OwnerPayoutForm's date field is date-only (defaults to today, no time
+// picker), so recordOwnerPayoutAction stores it at UTC midnight — but
+// `since` is the precise instant the accountant physically counted cash.
+// Comparing a same-day payout at 00:00 against a `since` set later that day
+// (14:50, say) would wrongly exclude a payout that genuinely happened after
+// the count — so the cutoff here widens to the whole calendar day `since`
+// falls on, not the exact instant, for OwnerPayout specifically.
+function utcDayStart(d: Date): Date {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+}
+
 async function computeCashBalance(opening?: { amount: number; setDate: Date } | null): Promise<number> {
   const openingBalance = opening === undefined ? await getLatestOpeningBalance() : opening;
   if (!openingBalance) return 0;
   const since = openingBalance.setDate;
+  const sincePayoutCutoff = utcDayStart(since);
 
   const [confirmedAgg, payoutAgg, expenseAgg, lunchAgg, staffExpenseAgg, advanceAgg, salaryAgg, stationPaymentAgg] =
     await Promise.all([
       prisma.cashHandover.aggregate({ _sum: { amount: true }, where: { accountantConfirmedAt: { gte: since } } }),
-      prisma.ownerPayout.aggregate({ _sum: { amount: true }, where: { payoutDate: { gte: since } } }),
+      prisma.ownerPayout.aggregate({ _sum: { amount: true }, where: { payoutDate: { gte: sincePayoutCutoff } } }),
       prisma.expense.aggregate({
         _sum: { amount: true },
         where: { category: { not: "FUEL" }, expenseDate: { gte: since } },
@@ -262,7 +274,11 @@ async function computeBalanceLedger(since: Date, openingAmount: number): Promise
         where: { accountantConfirmedAt: { gte: since } },
         include: { dispatcherConfirmedByUser: true },
       }),
-      prisma.ownerPayout.findMany({ where: { payoutDate: { gte: since } }, include: { enteredByUser: true } }),
+      // Same widened same-day cutoff as computeCashBalance — see utcDayStart.
+      prisma.ownerPayout.findMany({
+        where: { payoutDate: { gte: utcDayStart(since) } },
+        include: { enteredByUser: true },
+      }),
       prisma.expense.findMany({
         where: { category: { not: "FUEL" }, expenseDate: { gte: since } },
         include: { vehicle: true },
