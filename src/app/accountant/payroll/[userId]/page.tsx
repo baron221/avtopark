@@ -108,6 +108,17 @@ export default async function PayrollDetailPage({
             </div>
           ))}
           {dailyPay.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Бу ойда рейс ёзилмаган</p>}
+          {dailyPay.length > 0 && (
+            <div className="grid grid-cols-3 px-6 py-3 border-t-2 border-primary bg-primary-tint items-center text-sm">
+              <div className="font-extrabold text-heading">Жами</div>
+              <div className="font-extrabold text-heading">
+                {formatSom(dailyPay.reduce((s, r) => s + r.revenue, 0))}
+              </div>
+              <div className="font-extrabold text-heading">
+                {formatSom(dailyPay.reduce((s, r) => s + r.pay, 0))}
+              </div>
+            </div>
+          )}
         </Card>
       )}
 

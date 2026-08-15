@@ -20,6 +20,7 @@ const POINT_LABELS: Record<string, string> = {
   YOLDA: "Йўлда",
   ISHXONA: "Ишхона",
   VEHICLE: "Машина",
+  ADVANCE: "Аванс",
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -41,7 +42,7 @@ const VEHICLE_CATEGORY_LABELS: Record<string, string> = {
   OTHER: "Бошқа",
 };
 
-type ExpenseFilter = StaffExpensePoint | "VEHICLE";
+type ExpenseFilter = StaffExpensePoint | "VEHICLE" | "ADVANCE";
 
 const POINT_FILTERS: { value?: ExpenseFilter; label: string }[] = [
   { value: undefined, label: "Барчаси" },
@@ -50,6 +51,7 @@ const POINT_FILTERS: { value?: ExpenseFilter; label: string }[] = [
   { value: "YOLDA", label: "Йўлда" },
   { value: "ISHXONA", label: "Ишхона" },
   { value: "VEHICLE", label: "Машина" },
+  { value: "ADVANCE", label: "Аванс" },
 ];
 
 function isPeriod(value: string | undefined): value is Period {
@@ -68,7 +70,14 @@ function parseDateParam(value: string | undefined): { date: Date; dateStr: strin
 }
 
 function isExpenseFilter(value: string | undefined): value is ExpenseFilter {
-  return value === "FARGONA" || value === "QUVA" || value === "YOLDA" || value === "ISHXONA" || value === "VEHICLE";
+  return (
+    value === "FARGONA" ||
+    value === "QUVA" ||
+    value === "YOLDA" ||
+    value === "ISHXONA" ||
+    value === "VEHICLE" ||
+    value === "ADVANCE"
+  );
 }
 
 function rangeLabel(period: Period, from: Date, to: Date): string {
@@ -96,22 +105,27 @@ export default async function AccountantExpensesPage({
   const point = isExpenseFilter(pointParam) ? pointParam : undefined;
   const { from, to } = rangeForPeriod(period, date);
 
-  // Three separate models feed this one page, none of which alone matches
+  // Four separate models feed this one page, none of which alone matches
   // the report page's "Жами харажат": StaffExpense (dispatcher/accountant
   // point expenses), Lunch (Обед routes here instead of StaffExpense — see
-  // ExpenseForm.tsx), and the generic vehicle Expense (mechanic-entered
-  // repair/fuel/salary/... — see mechanic/vehicles/[id]/actions.ts). Filter
-  // semantics: FARGONA/QUVA show StaffExpense+Lunch for that point; YOLDA/
-  // ISHXONA show StaffExpense only (Lunch/vehicle Expense can't have those
-  // points); VEHICLE shows only the generic Expense; "Барчаси" shows
-  // everything, so its total matches the report page exactly.
-  const staffPoint: StaffExpensePoint | undefined = point && point !== "VEHICLE" ? point : undefined;
+  // ExpenseForm.tsx), the generic vehicle Expense (mechanic-entered
+  // repair/fuel/salary/... — see mechanic/vehicles/[id]/actions.ts), and
+  // Advance (a driver/staff advance against salary — not a point expense at
+  // all, listed here purely for visibility/tracking, same as this page's
+  // other categories). Filter semantics: FARGONA/QUVA show StaffExpense+
+  // Lunch for that point; YOLDA/ISHXONA show StaffExpense only (Lunch/
+  // vehicle Expense/Advance can't have those points); VEHICLE shows only
+  // the generic Expense; ADVANCE shows only advances; "Барчаси" shows
+  // everything.
+  const staffPoint: StaffExpensePoint | undefined =
+    point && point !== "VEHICLE" && point !== "ADVANCE" ? point : undefined;
   const lunchPoint: Point | undefined = point === "FARGONA" || point === "QUVA" ? point : undefined;
   const includeLunch = point === undefined || point === "FARGONA" || point === "QUVA";
   const includeVehicleExpense = point === undefined || point === "VEHICLE";
-  const includeStaffExpense = point !== "VEHICLE";
+  const includeStaffExpense = point !== "VEHICLE" && point !== "ADVANCE";
+  const includeAdvance = point === undefined || point === "ADVANCE";
 
-  const [staffExpenses, lunches, vehicleExpenses, staffByPoint, lunchByPoint, vehicleExpenseAgg, users] =
+  const [staffExpenses, lunches, vehicleExpenses, advances, staffByPoint, lunchByPoint, vehicleExpenseAgg, advanceAgg, users] =
     await Promise.all([
       includeStaffExpense
         ? prisma.staffExpense.findMany({
@@ -133,6 +147,13 @@ export default async function AccountantExpensesPage({
             orderBy: { expenseDate: "desc" },
           })
         : Promise.resolve([]),
+      includeAdvance
+        ? prisma.advance.findMany({
+            where: { givenDate: { gte: from, lte: to } },
+            include: { user: true },
+            orderBy: { givenDate: "desc" },
+          })
+        : Promise.resolve([]),
       prisma.staffExpense.groupBy({
         by: ["point"],
         where: { expenseDate: { gte: from, lte: to } },
@@ -144,14 +165,16 @@ export default async function AccountantExpensesPage({
         _sum: { amount: true },
       }),
       prisma.expense.aggregate({ _sum: { amount: true }, where: { expenseDate: { gte: from, lte: to } } }),
+      prisma.advance.aggregate({ _sum: { amount: true }, where: { givenDate: { gte: from, lte: to } } }),
       prisma.user.findMany({ select: { id: true, fullName: true } }),
     ]);
 
   const nameById = new Map(users.map((u) => [u.id, u.fullName]));
-  const pointTotal: Record<string, number> = { FARGONA: 0, QUVA: 0, YOLDA: 0, ISHXONA: 0, VEHICLE: 0 };
+  const pointTotal: Record<string, number> = { FARGONA: 0, QUVA: 0, YOLDA: 0, ISHXONA: 0, VEHICLE: 0, ADVANCE: 0 };
   for (const row of staffByPoint) pointTotal[row.point] += Number(row._sum.amount ?? BigInt(0));
   for (const row of lunchByPoint) pointTotal[row.point] += Number(row._sum.amount ?? BigInt(0));
   pointTotal.VEHICLE = Number(vehicleExpenseAgg._sum.amount ?? BigInt(0));
+  pointTotal.ADVANCE = Number(advanceAgg._sum.amount ?? BigInt(0));
   const grandTotal = Object.values(pointTotal).reduce((s, v) => s + v, 0);
 
   type ExpenseRow = {
@@ -194,6 +217,16 @@ export default async function AccountantExpensesPage({
       point: l.point,
       category: "Обед",
       amount: Number(l.amount),
+    })),
+    ...advances.map((a) => ({
+      id: a.id,
+      editable: false,
+      time: a.givenDate,
+      personName: a.user.fullName,
+      note: null,
+      point: "ADVANCE",
+      category: "Аванс",
+      amount: Number(a.amount),
     })),
   ].sort((a, b) => b.time.getTime() - a.time.getTime());
 
@@ -275,6 +308,14 @@ export default async function AccountantExpensesPage({
             </div>
           </Card>
         )}
+        {pointTotal.ADVANCE > 0 && (
+          <Card className="p-4">
+            <div className="text-xs font-bold text-muted-2 uppercase">Аванс</div>
+            <div className="font-heading font-extrabold text-xl text-danger mt-1">
+              −{formatSom(pointTotal.ADVANCE)}
+            </div>
+          </Card>
+        )}
         <Card className="p-4">
           <div className="text-xs font-bold text-muted-2 uppercase">Жами</div>
           <div className="font-heading font-extrabold text-xl text-heading mt-1">−{formatSom(grandTotal)}</div>
@@ -330,7 +371,7 @@ export default async function AccountantExpensesPage({
                   />
                 </>
               ) : (
-                <span className="text-[11px] text-muted-2 font-semibold px-1">{r.point === "VEHICLE" ? "Механикда" : "Диспетчер журналида"}</span>
+                <span className="text-[11px] text-muted-2 font-semibold px-1">{r.point === "VEHICLE" ? "Механикда" : r.point === "ADVANCE" ? "Аванслар саҳифасида" : "Диспетчер журналида"}</span>
               )}
             </div>
           </div>
@@ -375,7 +416,7 @@ export default async function AccountantExpensesPage({
                     />
                   </div>
                 ) : (
-                  <span className="text-[11px] text-muted-2 font-semibold px-1">{r.point === "VEHICLE" ? "Механикда" : "Диспетчер журналида"}</span>
+                  <span className="text-[11px] text-muted-2 font-semibold px-1">{r.point === "VEHICLE" ? "Механикда" : r.point === "ADVANCE" ? "Аванслар саҳифасида" : "Диспетчер журналида"}</span>
                 )}
               </div>
             </div>

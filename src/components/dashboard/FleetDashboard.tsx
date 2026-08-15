@@ -9,7 +9,6 @@ import { OwnerPayoutForm } from "@/components/dashboard/OwnerPayoutForm";
 import { CashBreakdown } from "@/components/dashboard/CashBreakdown";
 import { CashOpeningBalanceForm } from "@/components/dashboard/CashOpeningBalanceForm";
 import { CashHistorySection } from "@/components/dashboard/CashHistorySection";
-import { CashReportImageButton } from "@/components/dashboard/CashReportImageButton";
 import { BalanceLedgerSection } from "@/components/dashboard/BalanceLedgerSection";
 import type { OwnerDashboardVM, Period } from "@/lib/dashboard";
 import type { CashLedgerSummary, OwnerPayoutState, MonthlyPayoutPoint } from "@/lib/ownerPayout";
@@ -29,6 +28,7 @@ export function FleetDashboard({
   date,
   exportHref,
   cashExportHref,
+  cashPdfExportHref,
   cashLedger,
   confirmReceiptAction,
   revertReceiptAction,
@@ -50,6 +50,8 @@ export function FleetDashboard({
   exportHref?: string;
   /** When set, shows an Excel download link on the cash-on-hand card, exporting the full kirim/chiqim drill-down (every row behind the CashBreakdown accordions), not just the totals shown on screen. */
   cashExportHref?: string;
+  /** When set, shows a compact PDF summary of the same cash-on-hand card (tushum/chiqim by point + Boshqa items itemized, kunlik qoldiq, kassa balance). */
+  cashPdfExportHref?: string;
   /** Accountant-only cash data (pending confirmations per point + a combined running balance/history). Passed only by /accountant/report — Owner/Admin omit it entirely, so this whole section renders nothing for them. */
   cashLedger?: CashLedgerSummary;
   confirmReceiptAction?: (formData: FormData) => Promise<void>;
@@ -350,7 +352,14 @@ export function FleetDashboard({
                       ⬇ Excel
                     </a>
                   )}
-                  <CashReportImageButton targetId="cash-report-capture" />
+                  {cashPdfExportHref && (
+                    <a
+                      href={cashPdfExportHref}
+                      className="bg-card border border-border text-body text-xs font-extrabold px-3 py-1.5 rounded-lg hover:border-primary hover:text-primary transition-colors whitespace-nowrap"
+                    >
+                      ⬇ Ҳисобот PDF
+                    </a>
+                  )}
                   {recordPayoutAction && cashLedger.balance > 0 && (
                     <OwnerPayoutForm balance={cashLedger.balance} action={recordPayoutAction} />
                   )}
