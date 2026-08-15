@@ -20,7 +20,7 @@ export default async function OwnerPage({
   if (!isOwner && !(await hasModuleAccess(session.user.role, "FLEET_DASHBOARD"))) redirect("/coming-soon");
 
   const { period: periodParam } = await searchParams;
-  const period: Period = isPeriod(periodParam) ? periodParam : "MONTH";
+  const period: Period = isPeriod(periodParam) ? periodParam : "DAY";
   const [vm, monthSummary, trend] = await Promise.all([
     getOwnerDashboardVM(period),
     // Personal payout data — only the real Owner sees it, not a granted role.

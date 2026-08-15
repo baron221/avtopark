@@ -8,6 +8,7 @@ import {
   confirmCashReceiptAction,
   revertCashReceiptAction,
   recordOwnerPayoutAction,
+  cancelOwnerPayoutAction,
   setCashOpeningBalanceAction,
 } from "./actions";
 
@@ -38,7 +39,7 @@ export default async function AccountantReportPage({
   }
 
   const { period: periodParam, date: dateParam } = await searchParams;
-  const period: Period = isPeriod(periodParam) ? periodParam : "MONTH";
+  const period: Period = isPeriod(periodParam) ? periodParam : "DAY";
   const { date, dateStr } = parseDateParam(dateParam);
   const [vm, cashLedger] = await Promise.all([getOwnerDashboardVM(period, date), getCashLedgerSummary(period, date)]);
 
@@ -56,6 +57,7 @@ export default async function AccountantReportPage({
       confirmReceiptAction={confirmCashReceiptAction}
       revertReceiptAction={revertCashReceiptAction}
       recordPayoutAction={recordOwnerPayoutAction}
+      cancelPayoutAction={cancelOwnerPayoutAction}
       setOpeningBalanceAction={setCashOpeningBalanceAction}
     />
   );

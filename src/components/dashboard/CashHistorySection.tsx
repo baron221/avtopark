@@ -10,10 +10,12 @@ export function CashHistorySection({
   confirmedHistory,
   payoutHistory,
   revertReceiptAction,
+  cancelPayoutAction,
 }: {
   confirmedHistory: ConfirmedHandoverRow[];
   payoutHistory: OwnerPayoutRow[];
   revertReceiptAction?: (formData: FormData) => Promise<void>;
+  cancelPayoutAction?: (formData: FormData) => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -68,7 +70,22 @@ export function CashHistorySection({
                   {p.enteredByName}
                   {p.note ? ` · ${p.note}` : ""}
                 </span>
-                <span className="font-bold text-primary whitespace-nowrap">−{formatSom(p.amount)}</span>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="font-bold text-primary whitespace-nowrap">−{formatSom(p.amount)}</span>
+                  {cancelPayoutAction && (
+                    <form
+                      action={cancelPayoutAction}
+                      onSubmit={(e) => {
+                        if (!window.confirm("Эгасига тўланганини бекор қиламизми?")) e.preventDefault();
+                      }}
+                    >
+                      <input type="hidden" name="id" value={p.id} />
+                      <button type="submit" className="text-danger text-[11px] font-bold hover:underline whitespace-nowrap">
+                        Бекор қилиш
+                      </button>
+                    </form>
+                  )}
+                </div>
               </div>
             ))}
             {payoutHistory.length === 0 && <p className="text-xs text-muted-2">Ҳали йўқ</p>}

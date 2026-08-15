@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Card } from "@/components/ui/Card";
 import { formatSom, formatDayMonth } from "@/lib/format";
 import type { DailyBreakdownRow } from "@/lib/dashboard";
 
@@ -100,12 +101,28 @@ function Row({ row }: { row: DailyBreakdownRow }) {
  * cash expense, and an advance is netted back out of salary later — see
  * computeCashBalance's own comment on the same distinction).
  */
-export function DailyBreakdownAccordion({ rows }: { rows: DailyBreakdownRow[] }) {
+export function DailyBreakdownAccordion({ rows, periodLabel }: { rows: DailyBreakdownRow[]; periodLabel: string }) {
+  const [visible, setVisible] = useState(true);
+
   return (
-    <div className="flex flex-col">
-      {rows.map((row) => (
-        <Row key={row.date.toISOString()} row={row} />
-      ))}
-    </div>
+    <Card className="overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setVisible((v) => !v)}
+        className="w-full flex items-center justify-between px-6 py-[18px] text-left"
+      >
+        <span className="font-heading font-bold text-base text-heading">Кунлик ҳисобот · {periodLabel}</span>
+        <span className="text-primary text-xs font-extrabold hover:underline">
+          {visible ? "Яшириш ▲" : "Кўрсатиш ▼"}
+        </span>
+      </button>
+      {visible && (
+        <div className="flex flex-col">
+          {rows.map((row) => (
+            <Row key={row.date.toISOString()} row={row} />
+          ))}
+        </div>
+      )}
+    </Card>
   );
 }

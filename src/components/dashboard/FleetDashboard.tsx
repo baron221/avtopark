@@ -13,7 +13,7 @@ import { CashHistorySection } from "@/components/dashboard/CashHistorySection";
 import { BalanceLedgerSection } from "@/components/dashboard/BalanceLedgerSection";
 import type { OwnerDashboardVM, Period } from "@/lib/dashboard";
 import type { CashLedgerSummary, OwnerPayoutState, MonthlyPayoutPoint } from "@/lib/ownerPayout";
-import { formatMillions, formatSom, formatTime } from "@/lib/format";
+import { formatMillions, formatSom, formatTime, formatDayMonth } from "@/lib/format";
 import { logoutAction } from "@/app/actions";
 
 const CATEGORY_COLORS = ["#4F46E5", "#FFB84D", "#1B9E6B", "#D9534F", "#C9CBE3", "#8A8CA0", "#6B6D82"];
@@ -33,6 +33,7 @@ export function FleetDashboard({
   confirmReceiptAction,
   revertReceiptAction,
   recordPayoutAction,
+  cancelPayoutAction,
   setOpeningBalanceAction,
   ownerPayoutSummary,
 }: {
@@ -54,6 +55,7 @@ export function FleetDashboard({
   confirmReceiptAction?: (formData: FormData) => Promise<void>;
   revertReceiptAction?: (formData: FormData) => Promise<void>;
   recordPayoutAction?: (prevState: OwnerPayoutState, formData: FormData) => Promise<OwnerPayoutState>;
+  cancelPayoutAction?: (formData: FormData) => Promise<void>;
   setOpeningBalanceAction?: (prevState: OwnerPayoutState, formData: FormData) => Promise<OwnerPayoutState>;
   /** Owner-only, read-only view of what's actually been paid out to them — passed only by /owner. */
   ownerPayoutSummary?: { thisMonth: number; lastMonth: number; trend: MonthlyPayoutPoint[] };
@@ -312,12 +314,43 @@ export function FleetDashboard({
             period, Quva/Fargona kirim-chiqim plus avans/jarima/outside-point
             expense. Accountant-only, same gate as the cash section below. */}
         {cashLedger && vm.dailyBreakdown.length > 0 && (
-          <Card className="overflow-hidden">
-            <div className="px-6 py-[18px] font-heading font-bold text-base text-heading">
-              Кунлик ҳисобот · {vm.periodLabel}
-            </div>
-            <DailyBreakdownAccordion rows={vm.dailyBreakdown} />
-          </Card>
+          <>
+            <DailyBreakdownAccordion rows={vm.dailyBreakdown} periodLabel={vm.periodLabel} />
+
+            {/* Distilled from the same rows above: each day's income minus
+                expense, and the period's overall net — a separate card since
+                it answers a different question ("are we net positive?") than
+                the itemized breakdown does. */}
+            <Card className="p-6 flex flex-col gap-2">
+              <div className="font-heading font-bold text-base text-heading mb-1">
+                Кунлик қолдиқ · {vm.periodLabel}
+              </div>
+              {vm.dailyBreakdown.map((row) => {
+                const net = row.totalIncome - row.totalExpense;
+                return (
+                  <div key={row.date.toISOString()} className="flex justify-between items-center text-[13px]">
+                    <span className="font-semibold text-body">{formatDayMonth(row.date)}</span>
+                    <span className={`font-extrabold ${net >= 0 ? "text-success" : "text-danger"}`}>
+                      {net >= 0 ? "+" : "−"}
+                      {formatSom(Math.abs(net))}
+                    </span>
+                  </div>
+                );
+              })}
+              {(() => {
+                const overallNet = vm.dailyBreakdown.reduce((s, r) => s + (r.totalIncome - r.totalExpense), 0);
+                return (
+                  <div className="flex justify-between items-center text-[15px] pt-2.5 mt-1 border-t-2 border-primary">
+                    <span className="font-extrabold text-heading">Умумий қолдиқ</span>
+                    <span className={`font-extrabold ${overallNet >= 0 ? "text-success" : "text-danger"}`}>
+                      {overallNet >= 0 ? "+" : "−"}
+                      {formatSom(Math.abs(overallNet))}
+                    </span>
+                  </div>
+                );
+              })()}
+            </Card>
+          </>
         )}
 
         {/* Combined cash-on-hand — not split by point since most of what
@@ -374,6 +407,7 @@ export function FleetDashboard({
               confirmedHistory={cashLedger.confirmedHistory}
               payoutHistory={cashLedger.payoutHistory}
               revertReceiptAction={revertReceiptAction}
+              cancelPayoutAction={cancelPayoutAction}
             />
             {cashLedger.openingBalance && (
               <BalanceLedgerSection rows={cashLedger.balanceLedger} openingBalance={cashLedger.openingBalance} />

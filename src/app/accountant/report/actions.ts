@@ -78,6 +78,24 @@ export async function recordOwnerPayoutAction(
   return { error: "" };
 }
 
+/** Undoes an accidental "Эгасига тўладим" entry — deletes the OwnerPayout
+ * row, so it drops out of both the payout history and the balance
+ * subtraction (the balance goes back up by that amount). */
+export async function cancelOwnerPayoutAction(formData: FormData) {
+  const session = await auth();
+  if (!session || (session.user.role !== "ACCOUNTANT" && !(await hasModuleAccess(session.user.role, "FLEET_DASHBOARD")))) {
+    throw new Error("Рухсат йўқ");
+  }
+
+  const id = String(formData.get("id") ?? "");
+  const payout = await prisma.ownerPayout.findUnique({ where: { id } });
+  if (!payout) return;
+
+  await prisma.ownerPayout.delete({ where: { id } });
+
+  revalidatePath("/accountant/report");
+}
+
 export async function setCashOpeningBalanceAction(
   _prevState: OwnerPayoutState,
   formData: FormData
