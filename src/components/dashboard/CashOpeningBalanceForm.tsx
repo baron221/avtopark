@@ -28,7 +28,7 @@ export function CashOpeningBalanceForm({
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="text-primary text-xs font-extrabold hover:underline whitespace-nowrap"
+        className="bg-card border border-border text-body text-xs font-extrabold px-3 py-1.5 rounded-lg hover:border-primary hover:text-primary transition-colors whitespace-nowrap"
       >
         {hasExisting ? "Қолдиқни қайта белгилаш" : "Бошланғич қолдиқни белгилаш"}
       </button>

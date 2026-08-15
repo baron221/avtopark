@@ -9,6 +9,7 @@ import { OwnerPayoutForm } from "@/components/dashboard/OwnerPayoutForm";
 import { CashBreakdown } from "@/components/dashboard/CashBreakdown";
 import { CashOpeningBalanceForm } from "@/components/dashboard/CashOpeningBalanceForm";
 import { CashHistorySection } from "@/components/dashboard/CashHistorySection";
+import { CashReportImageButton } from "@/components/dashboard/CashReportImageButton";
 import { BalanceLedgerSection } from "@/components/dashboard/BalanceLedgerSection";
 import type { OwnerDashboardVM, Period } from "@/lib/dashboard";
 import type { CashLedgerSummary, OwnerPayoutState, MonthlyPayoutPoint } from "@/lib/ownerPayout";
@@ -315,51 +316,54 @@ export function FleetDashboard({
             point-attributable either. Accountant-only. */}
         {cashLedger && (
           <Card className="p-6 flex flex-col gap-3.5">
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-              <div>
-                <div className="text-[11px] text-muted-2 font-bold uppercase">
-                  Эгасига берилмаган қолдиқ (харажатлардан кейин)
-                </div>
-                <div className="font-heading font-extrabold text-2xl text-heading">
-                  {formatSom(cashLedger.balance)}
-                </div>
-                {cashLedger.openingBalance ? (
-                  <div className="text-[11px] text-muted-2 font-semibold mt-1">
-                    Бошланғич қолдиқ {formatSom(cashLedger.openingBalance.amount)} ·{" "}
-                    {cashLedger.openingBalance.setDate.toLocaleDateString("uz-UZ", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                    })}
-                    дан ҳисобланмоқда
+            <div id="cash-report-capture" className="bg-card flex flex-col gap-3.5">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <div className="text-[11px] text-muted-2 font-bold uppercase">
+                    Эгасига берилмаган қолдиқ (харажатлардан кейин)
                   </div>
-                ) : (
-                  <div className="text-[11px] text-danger font-semibold mt-1">
-                    Бошланғич қолдиқ белгиланмаган — қолдиқ 0 деб кўрсатилмоқда
+                  <div className="font-heading font-extrabold text-2xl text-heading">
+                    {formatSom(cashLedger.balance)}
                   </div>
-                )}
+                  {cashLedger.openingBalance ? (
+                    <div className="text-[11px] text-muted-2 font-semibold mt-1">
+                      Бошланғич қолдиқ {formatSom(cashLedger.openingBalance.amount)} ·{" "}
+                      {cashLedger.openingBalance.setDate.toLocaleDateString("uz-UZ", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                      })}
+                      дан ҳисобланмоқда
+                    </div>
+                  ) : (
+                    <div className="text-[11px] text-danger font-semibold mt-1">
+                      Бошланғич қолдиқ белгиланмаган — қолдиқ 0 деб кўрсатилмоқда
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  {cashExportHref && (
+                    <a
+                      href={cashExportHref}
+                      className="bg-card border border-border text-body text-xs font-extrabold px-3 py-1.5 rounded-lg hover:border-primary hover:text-primary transition-colors whitespace-nowrap"
+                    >
+                      ⬇ Excel
+                    </a>
+                  )}
+                  <CashReportImageButton targetId="cash-report-capture" />
+                  {recordPayoutAction && cashLedger.balance > 0 && (
+                    <OwnerPayoutForm balance={cashLedger.balance} action={recordPayoutAction} />
+                  )}
+                  {setOpeningBalanceAction && (
+                    <CashOpeningBalanceForm
+                      hasExisting={!!cashLedger.openingBalance}
+                      action={setOpeningBalanceAction}
+                    />
+                  )}
+                </div>
               </div>
-              <div className="flex flex-col items-end gap-2">
-                {cashExportHref && (
-                  <a
-                    href={cashExportHref}
-                    className="bg-card border border-border text-body text-xs font-extrabold px-3 py-1.5 rounded-lg hover:border-primary hover:text-primary transition-colors whitespace-nowrap"
-                  >
-                    ⬇ Excel
-                  </a>
-                )}
-                {recordPayoutAction && cashLedger.balance > 0 && (
-                  <OwnerPayoutForm balance={cashLedger.balance} action={recordPayoutAction} />
-                )}
-                {setOpeningBalanceAction && (
-                  <CashOpeningBalanceForm
-                    hasExisting={!!cashLedger.openingBalance}
-                    action={setOpeningBalanceAction}
-                  />
-                )}
-              </div>
+              <CashBreakdown detail={cashLedger.cashDetail} />
             </div>
-            <CashBreakdown detail={cashLedger.cashDetail} />
             <CashHistorySection
               confirmedHistory={cashLedger.confirmedHistory}
               payoutHistory={cashLedger.payoutHistory}

@@ -27,7 +27,7 @@ export function BalanceLedgerSection({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="text-primary text-xs font-extrabold hover:underline"
+        className="bg-card border border-border text-body text-xs font-extrabold px-3 py-1.5 rounded-lg hover:border-primary hover:text-primary transition-colors whitespace-nowrap"
       >
         {open ? "Қолдиқ тарихини яшириш ▲" : `Қолдиқ тарихини кўрсатиш (${rows.length}) ▼`}
       </button>
