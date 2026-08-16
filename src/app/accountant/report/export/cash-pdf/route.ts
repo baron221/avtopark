@@ -1,16 +1,21 @@
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, rgb } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getCashLedgerSummary } from "@/lib/ownerPayout";
 import { hasModuleAccess } from "@/lib/access";
-import { cyrillicToLatin } from "@/lib/format";
 import type { Period } from "@/lib/dashboard";
 
-// pdf-lib's StandardFonts only encode WinAnsi (Latin) glyphs — see
-// cyrillicToLatin's own doc comment for why a real Cyrillic font isn't used
-// instead. Every dynamic string (category/subtitle/note/period label) is
-// transliterated before drawing; only this file's own static labels are
-// written in Latin Uzbek directly.
+// pdf-lib's StandardFonts (Helvetica) only encode WinAnsi/Latin glyphs, and
+// this report's text — category/subtitle/note, point names — is Cyrillic
+// like the rest of the app. DejaVu Sans (bundled as a real TTF, not a
+// web-optimized woff) has full Cyrillic coverage and, unlike an earlier
+// hand-converted woff->ttf attempt, round-trips correctly (verified via PDF
+// text extraction against real data, digits included).
+const FONTS_DIR = path.join(process.cwd(), "src/lib/fonts");
+
 const INDIGO = rgb(0.31, 0.27, 0.9);
 const HEADING = rgb(0.12, 0.12, 0.17);
 const MUTED = rgb(0.42, 0.42, 0.5);
@@ -32,13 +37,13 @@ function fmtTime(d: Date) {
   return d.toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit", timeZone: TASHKENT_TZ });
 }
 function fmtSom(n: number) {
-  return `${Math.round(n).toLocaleString("uz-UZ").replace(/,/g, " ")} so'm`;
+  return `${Math.round(n).toLocaleString("uz-UZ").replace(/,/g, " ")} сўм`;
 }
 
 export async function GET(request: Request) {
   const session = await auth();
   if (!session || (session.user.role !== "ACCOUNTANT" && !(await hasModuleAccess(session.user.role, "FLEET_DASHBOARD")))) {
-    return NextResponse.json({ error: "Ruxsat yo'q" }, { status: 403 });
+    return NextResponse.json({ error: "Рухсат йўқ" }, { status: 403 });
   }
 
   const { searchParams } = new URL(request.url);
@@ -51,7 +56,6 @@ export async function GET(request: Request) {
   const cashLedger = await getCashLedgerSummary(period, referenceDate);
   const { cashDetail } = cashLedger;
   const dailyBalance = cashDetail.income.total - cashDetail.expense.total;
-  const periodWord = cyrillicToLatin(cashDetail.periodWord);
 
   const PAGE_W = 420;
   const PAGE_H = 595;
@@ -60,8 +64,13 @@ export async function GET(request: Request) {
   const BOTTOM_MARGIN = 40;
 
   const pdfDoc = await PDFDocument.create();
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  pdfDoc.registerFontkit(fontkit);
+  const [regularBytes, boldBytes] = await Promise.all([
+    readFile(path.join(FONTS_DIR, "DejaVuSans.ttf")),
+    readFile(path.join(FONTS_DIR, "DejaVuSans-Bold.ttf")),
+  ]);
+  const font = await pdfDoc.embedFont(regularBytes, { subset: true });
+  const bold = await pdfDoc.embedFont(boldBytes, { subset: true });
 
   let page = pdfDoc.addPage([PAGE_W, PAGE_H]);
   let y = PAGE_H - 40;
@@ -98,7 +107,7 @@ export async function GET(request: Request) {
   }
   function itemRow(dateLabel: string, desc: string, value: string) {
     ensureSpace(13);
-    page.drawText(`${dateLabel} - ${cyrillicToLatin(desc)}`, { x: LEFT + 14, y, size: 8.5, font, color: MUTED });
+    page.drawText(`${dateLabel} · ${desc}`, { x: LEFT + 14, y, size: 8.5, font, color: MUTED });
     const valueWidth = font.widthOfTextAtSize(value, 8.5);
     page.drawText(value, { x: RIGHT - valueWidth, y, size: 8.5, font, color: MUTED });
     y -= 12;
@@ -107,46 +116,52 @@ export async function GET(request: Request) {
     y -= 6;
   }
 
-  title(`Kassa hisoboti - ${periodWord}`);
-  subtitle(`Sana: ${cyrillicToLatin(cashDetail.rangeLabel)}`);
+  title(`Касса ҳисоботи · ${cashDetail.periodWord}`);
+  subtitle(`Сана: ${cashDetail.rangeLabel}`);
   hr();
 
-  row(`Umumiy ${periodWord.toLowerCase()} tushum`, fmtSom(cashDetail.income.total), { boldLabel: true, color: GREEN });
-  row("Farg'ona", fmtSom(cashDetail.income.fargona.total), { indent: 12 });
-  row("Quva", fmtSom(cashDetail.income.quva.total), { indent: 12 });
-  row("Boshqa kirimlar", fmtSom(cashDetail.income.other.total), { indent: 12 });
+  row(`Умумий ${cashDetail.periodWord.toLowerCase()} тушум`, fmtSom(cashDetail.income.total), {
+    boldLabel: true,
+    color: GREEN,
+  });
+  row("Фарғона", fmtSom(cashDetail.income.fargona.total), { indent: 12 });
+  row("Қува", fmtSom(cashDetail.income.quva.total), { indent: 12 });
+  row("Бошқа кирим", fmtSom(cashDetail.income.other.total), { indent: 12 });
   for (const r of cashDetail.income.other.rows) {
     itemRow(
       `${fmtDate(r.time)} ${fmtTime(r.time)}`,
-      [r.category, r.plateNumber, r.note].filter(Boolean).join(" - "),
+      [r.category, r.plateNumber, r.note].filter(Boolean).join(" · "),
       fmtSom(r.amount)
     );
   }
   sectionGap();
 
-  row(`Umumiy ${periodWord.toLowerCase()} chiqim`, fmtSom(cashDetail.expense.total), { boldLabel: true, color: RED });
-  row("Farg'ona", fmtSom(cashDetail.expense.fargona.total), { indent: 12 });
-  row("Quva", fmtSom(cashDetail.expense.quva.total), { indent: 12 });
-  row("Boshqa chiqimlar", fmtSom(cashDetail.expense.outside.total), { indent: 12 });
+  row(`Умумий ${cashDetail.periodWord.toLowerCase()} расход`, fmtSom(cashDetail.expense.total), {
+    boldLabel: true,
+    color: RED,
+  });
+  row("Фарғона", fmtSom(cashDetail.expense.fargona.total), { indent: 12 });
+  row("Қува", fmtSom(cashDetail.expense.quva.total), { indent: 12 });
+  row("Бошқа чиқимлар", fmtSom(cashDetail.expense.outside.total), { indent: 12 });
   for (const r of cashDetail.expense.outside.rows) {
     itemRow(
       `${fmtDate(r.time)} ${fmtTime(r.time)}`,
-      [r.category, r.subtitle, r.note].filter(Boolean).join(" - "),
+      [r.category, r.subtitle, r.note].filter(Boolean).join(" · "),
       fmtSom(r.amount)
     );
   }
   sectionGap();
   hr();
 
-  row("Kunlik qoldiq (tushum - chiqim)", fmtSom(dailyBalance), {
+  row("Кунлик қолдиқ (тушум − чиқим)", fmtSom(dailyBalance), {
     boldLabel: true,
     color: dailyBalance >= 0 ? GREEN : RED,
   });
   sectionGap();
-  row("Kassa - egasiga berilmagan qoldiq", fmtSom(cashLedger.balance), { boldLabel: true, color: INDIGO });
+  row("Касса — эгасига берилмаган қолдиқ", fmtSom(cashLedger.balance), { boldLabel: true, color: INDIGO });
   if (cashLedger.openingBalance) {
     subtitle(
-      `Boshlang'ich qoldiq ${fmtSom(cashLedger.openingBalance.amount)} - ${fmtDate(cashLedger.openingBalance.setDate)}dan hisoblanmoqda`
+      `Бошланғич қолдиқ ${fmtSom(cashLedger.openingBalance.amount)} · ${fmtDate(cashLedger.openingBalance.setDate)}дан ҳисобланмоқда`
     );
   }
 
