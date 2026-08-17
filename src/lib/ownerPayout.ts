@@ -202,7 +202,7 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
   const since = openingBalance.setDate;
   const sincePayoutCutoff = utcDayStart(since);
 
-  const [confirmedAgg, payoutAgg, expenseAgg, lunchAgg, staffExpenseAgg, advanceAgg, salaryAgg, stationPaymentAgg] =
+  const [confirmedAgg, payoutAgg, expenseAgg, staffExpenseAgg, advanceAgg, salaryAgg, stationPaymentAgg] =
     await Promise.all([
       prisma.cashHandover.aggregate({ _sum: { amount: true }, where: { accountantConfirmedAt: { gte: since } } }),
       prisma.ownerPayout.aggregate({ _sum: { amount: true }, where: { payoutDate: { gte: sincePayoutCutoff } } }),
@@ -210,8 +210,18 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
         _sum: { amount: true },
         where: { category: { not: "FUEL" }, expenseDate: { gte: since } },
       }),
-      prisma.lunch.aggregate({ _sum: { amount: true }, where: { lunchDate: { gte: since } } }),
-      prisma.staffExpense.aggregate({ _sum: { amount: true }, where: { expenseDate: { gte: since } } }),
+      // FARGONA/QUVA only — createHandoverForDate (dispatcher/actions.ts)
+      // already nets that point's own StaffExpense (and Lunch — always
+      // FARGONA/QUVA, Point has no other values) out of the handover amount
+      // before the dispatcher hands it over, so subtracting them again here
+      // double-counted every point-level expense a dispatcher paid out of
+      // pocket. YOLDA/ISHXONA aren't tied to any handover, so they still
+      // need to come off here — Lunch has no YOLDA/ISHXONA equivalent, so
+      // it's dropped from this query entirely rather than filtered.
+      prisma.staffExpense.aggregate({
+        _sum: { amount: true },
+        where: { point: { in: ["YOLDA", "ISHXONA"] }, expenseDate: { gte: since } },
+      }),
       prisma.advance.aggregate({ _sum: { amount: true }, where: { givenDate: { gte: since } } }),
       // Filtered on paidAt (the exact moment "Ойлик бериш" was clicked per
       // employee), not month (always the 1st of the calendar month) — the
@@ -228,7 +238,6 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
   const confirmed = Number(confirmedAgg._sum.amount ?? BigInt(0));
   const paidToOwner = Number(payoutAgg._sum.amount ?? BigInt(0));
   const expenses = Number(expenseAgg._sum.amount ?? BigInt(0));
-  const lunch = Number(lunchAgg._sum.amount ?? BigInt(0));
   const staffExpenses = Number(staffExpenseAgg._sum.amount ?? BigInt(0));
   const advances = Number(advanceAgg._sum.amount ?? BigInt(0));
   const salaries = Number(salaryAgg._sum.netPay ?? BigInt(0));
@@ -239,7 +248,6 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
     confirmed -
     paidToOwner -
     expenses -
-    lunch -
     staffExpenses -
     advances -
     salaries -
@@ -268,7 +276,7 @@ const BALANCE_POINT_LABELS: Record<string, string> = {
  * sum to (balance − openingBalance.amount).
  */
 async function computeBalanceLedger(since: Date, openingAmount: number): Promise<BalanceLedgerRow[]> {
-  const [confirmed, payouts, expenses, lunches, staffExpenses, advances, salaries, stationPayments] =
+  const [confirmed, payouts, expenses, staffExpenses, advances, salaries, stationPayments] =
     await Promise.all([
       prisma.cashHandover.findMany({
         where: { accountantConfirmedAt: { gte: since } },
@@ -283,8 +291,15 @@ async function computeBalanceLedger(since: Date, openingAmount: number): Promise
         where: { category: { not: "FUEL" }, expenseDate: { gte: since } },
         include: { vehicle: true },
       }),
-      prisma.lunch.findMany({ where: { lunchDate: { gte: since } }, include: { user: true } }),
-      prisma.staffExpense.findMany({ where: { expenseDate: { gte: since } }, include: { enteredByUser: true } }),
+      // FARGONA/QUVA excluded — see computeCashBalance's own comment: their
+      // StaffExpense (and all Lunch, dropped entirely here) is already
+      // netted into the confirmed handover amount above, so listing it here
+      // too would both double-count the balance and show the same real
+      // expense as two separate rows.
+      prisma.staffExpense.findMany({
+        where: { point: { in: ["YOLDA", "ISHXONA"] }, expenseDate: { gte: since } },
+        include: { enteredByUser: true },
+      }),
       prisma.advance.findMany({ where: { givenDate: { gte: since } }, include: { user: true } }),
       prisma.salary.findMany({
         where: { status: "PAID", paidAt: { gte: since } },
@@ -318,14 +333,6 @@ async function computeBalanceLedger(since: Date, openingAmount: number): Promise
       category: OUTSIDE_EXPENSE_CATEGORY_LABELS[e.category] ?? e.category,
       subtitle: e.note ? `${e.vehicle.plate} · ${e.note}` : e.vehicle.plate,
       amount: Number(e.amount),
-    })),
-    ...lunches.map((l) => ({
-      id: l.id,
-      time: l.lunchDate,
-      sign: "OUT" as const,
-      category: "Обед",
-      subtitle: l.user.fullName,
-      amount: Number(l.amount),
     })),
     ...staffExpenses.map((e) => ({
       id: e.id,
