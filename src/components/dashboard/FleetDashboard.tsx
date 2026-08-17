@@ -341,7 +341,7 @@ export function FleetDashboard({
             what the two cards show added together. */}
         {vm.pointBreakdown.length > 0 && (
           <Card className="p-4 flex items-center justify-between flex-wrap gap-2">
-            <span className="text-[13px] font-extrabold text-heading">Жами</span>
+            <span className="text-[13px] font-extrabold text-heading">Пункт тушумлари жами</span>
             <div className="text-[13px] font-bold text-body flex items-center gap-1.5 flex-wrap">
               {vm.pointBreakdown.map((p, i) => (
                 <span key={p.point} className="flex items-center gap-1.5">
@@ -374,21 +374,27 @@ export function FleetDashboard({
             the two point cards it summarizes. Accountant-only, same gate as
             that card since it reads the same cashDetail. */}
         {cashLedger && (
-          <div className="bg-page rounded-xl p-3.5 flex items-center justify-between">
-            <div className="text-[11px] text-muted-2 font-bold uppercase">
-              {cashLedger.cashDetail.periodWord} қолдиқ
+          <Card className="p-4 flex items-center justify-between flex-wrap gap-2">
+            <span className="text-[13px] font-extrabold text-heading">
+              {cashLedger.cashDetail.periodWord} қолдиқ · {cashLedger.cashDetail.rangeLabel}
+            </span>
+            <div className="text-[13px] font-bold text-body flex items-center gap-1.5 flex-wrap">
+              <span>{formatSom(cashLedger.cashDetail.income.total)}</span>
+              <span className="text-muted-2">−</span>
+              <span>{formatSom(cashLedger.cashDetail.expense.total)}</span>
+              <span className="text-muted-2">=</span>
+              <span
+                className={`font-extrabold text-[15px] ${
+                  cashLedger.cashDetail.income.total - cashLedger.cashDetail.expense.total >= 0
+                    ? "text-success"
+                    : "text-danger"
+                }`}
+              >
+                {cashLedger.cashDetail.income.total - cashLedger.cashDetail.expense.total >= 0 ? "+" : "−"}
+                {formatSom(Math.abs(cashLedger.cashDetail.income.total - cashLedger.cashDetail.expense.total))}
+              </span>
             </div>
-            <div
-              className={`font-heading font-extrabold text-lg ${
-                cashLedger.cashDetail.income.total - cashLedger.cashDetail.expense.total >= 0
-                  ? "text-success"
-                  : "text-danger"
-              }`}
-            >
-              {cashLedger.cashDetail.income.total - cashLedger.cashDetail.expense.total >= 0 ? "+" : "−"}
-              {formatSom(Math.abs(cashLedger.cashDetail.income.total - cashLedger.cashDetail.expense.total))}
-            </div>
-          </div>
+          </Card>
         )}
 
         {/* Combined cash-on-hand — not split by point since most of what
