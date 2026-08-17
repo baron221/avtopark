@@ -155,6 +155,10 @@ export type CashLedgerSummary = {
    * accountant has confirmed it. Drives the "Топширилди/Топширилмади" badge
    * on each point card; only meaningful for a single day, not a week/month. */
   handoverSubmittedByPoint: Record<Point, boolean>;
+  /** The calendar day right before referenceDate's own kirim−chiqim net —
+   * always DAY-scoped regardless of the page's selected period, since this
+   * is specifically "yesterday", not "the previous period". */
+  yesterday: { dateLabel: string; balance: number };
 };
 
 export type OwnerPayoutState = { error: string };
@@ -653,34 +657,37 @@ async function computeCashDetail(period: Period, referenceDate: Date): Promise<C
 export async function getCashLedgerSummary(period: Period, referenceDate: Date): Promise<CashLedgerSummary> {
   const openingBalance = await getLatestOpeningBalance();
   const referenceDay = utcDayStart(referenceDate);
+  const yesterdayDate = new Date(referenceDate.getTime() - 24 * 60 * 60 * 1000);
 
-  const [pending, confirmed, payouts, balance, balanceLedger, cashDetail, handoversToday] = await Promise.all([
-    prisma.cashHandover.findMany({
-      where: { accountantConfirmedAt: null },
-      orderBy: { handoverDate: "asc" },
-      include: { dispatcherConfirmedByUser: true },
-    }),
-    prisma.cashHandover.findMany({
-      where: { accountantConfirmedAt: { not: null } },
-      orderBy: { handoverDate: "desc" },
-      take: HISTORY_LIMIT,
-      include: { dispatcherConfirmedByUser: true, accountantConfirmedByUser: true },
-    }),
-    prisma.ownerPayout.findMany({
-      orderBy: { payoutDate: "desc" },
-      take: HISTORY_LIMIT,
-      include: { enteredByUser: true },
-    }),
-    computeCashBalance(openingBalance),
-    openingBalance
-      ? computeBalanceLedger(openingBalance.setDate, openingBalance.amount)
-      : Promise.resolve([]),
-    computeCashDetail(period, referenceDate),
-    prisma.cashHandover.findMany({
-      where: { handoverDate: referenceDay, point: { in: ["FARGONA", "QUVA"] } },
-      select: { point: true },
-    }),
-  ]);
+  const [pending, confirmed, payouts, balance, balanceLedger, cashDetail, handoversToday, yesterdayDetail] =
+    await Promise.all([
+      prisma.cashHandover.findMany({
+        where: { accountantConfirmedAt: null },
+        orderBy: { handoverDate: "asc" },
+        include: { dispatcherConfirmedByUser: true },
+      }),
+      prisma.cashHandover.findMany({
+        where: { accountantConfirmedAt: { not: null } },
+        orderBy: { handoverDate: "desc" },
+        take: HISTORY_LIMIT,
+        include: { dispatcherConfirmedByUser: true, accountantConfirmedByUser: true },
+      }),
+      prisma.ownerPayout.findMany({
+        orderBy: { payoutDate: "desc" },
+        take: HISTORY_LIMIT,
+        include: { enteredByUser: true },
+      }),
+      computeCashBalance(openingBalance),
+      openingBalance
+        ? computeBalanceLedger(openingBalance.setDate, openingBalance.amount)
+        : Promise.resolve([]),
+      computeCashDetail(period, referenceDate),
+      prisma.cashHandover.findMany({
+        where: { handoverDate: referenceDay, point: { in: ["FARGONA", "QUVA"] } },
+        select: { point: true },
+      }),
+      computeCashDetail("DAY", yesterdayDate),
+    ]);
 
   const handoverSubmittedByPoint: Record<Point, boolean> = {
     FARGONA: handoversToday.some((h) => h.point === "FARGONA"),
@@ -723,6 +730,10 @@ export async function getCashLedgerSummary(period: Period, referenceDate: Date):
       enteredByName: p.enteredByUser.fullName,
     })),
     handoverSubmittedByPoint,
+    yesterday: {
+      dateLabel: yesterdayDetail.rangeLabel,
+      balance: yesterdayDetail.income.total - yesterdayDetail.expense.total,
+    },
   };
 }
 

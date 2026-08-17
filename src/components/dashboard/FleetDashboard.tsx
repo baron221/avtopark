@@ -336,9 +336,9 @@ export function FleetDashboard({
         )}
 
         {/* Sum of the two point cards' own trip/order income, plus both
-            points' Бошқа кирим and expense broken out as their own visible
-            terms (rather than silently folded into each point's figure) —
-            adds up to the same total as the two point cards combined. */}
+            points' Бошқа кирим broken out as its own visible term (rather
+            than silently folded into each point's figure) — income only,
+            no expenses subtracted here. */}
         {vm.pointBreakdown.length > 0 && (
           <Card className="p-5 flex flex-col items-center justify-center text-center gap-2">
             <span className="text-[13px] font-extrabold text-muted-2 uppercase tracking-wide">
@@ -353,15 +353,10 @@ export function FleetDashboard({
               ))}
               <span className="text-muted-2">+</span>
               {formatSom(vm.pointBreakdown.reduce((s, p) => s + p.otherIncome, 0))}
-              <span className="text-muted-2">−</span>
-              {formatSom(vm.pointBreakdown.reduce((s, p) => s + p.expenseTotal, 0))}
               <span className="text-muted-2">=</span>
               <span className="font-heading font-extrabold text-heading text-2xl">
                 {formatSom(
-                  vm.pointBreakdown.reduce(
-                    (s, p) => s + (p.tripIncome + p.orderIncome + p.otherIncome - p.expenseTotal),
-                    0
-                  )
+                  vm.pointBreakdown.reduce((s, p) => s + (p.tripIncome + p.orderIncome + p.otherIncome), 0)
                 )}
               </span>
             </div>
@@ -404,6 +399,16 @@ export function FleetDashboard({
         {cashLedger && (
           <Card className="p-6 flex flex-col gap-3.5">
             <div id="cash-report-capture" className="bg-card flex flex-col gap-3.5">
+              <div className="text-[12px] font-bold text-muted-2">
+                Кечаги қолдиқ · {cashLedger.yesterday.dateLabel}:{" "}
+                <span
+                  className={`font-extrabold ${cashLedger.yesterday.balance >= 0 ? "text-success" : "text-danger"}`}
+                >
+                  {cashLedger.yesterday.balance >= 0 ? "+" : "−"}
+                  {formatSom(Math.abs(cashLedger.yesterday.balance))}
+                </span>
+              </div>
+
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
                   <div className="text-[11px] text-muted-2 font-bold uppercase">
