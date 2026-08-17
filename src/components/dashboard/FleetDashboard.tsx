@@ -335,6 +335,33 @@ export function FleetDashboard({
           </div>
         )}
 
+        {/* Sum of just the two point cards' own "Бухгалтерга топшириладиган
+            қолдиқ" lines above — unlike Кунлик қолдиқ further down, this
+            deliberately excludes Бошқа кирим/чиқим, so it matches exactly
+            what the two cards show added together. */}
+        {vm.pointBreakdown.length > 0 && (
+          <Card className="p-4 flex items-center justify-between flex-wrap gap-2">
+            <span className="text-[13px] font-extrabold text-heading">Жами</span>
+            <div className="text-[13px] font-bold text-body flex items-center gap-1.5 flex-wrap">
+              {vm.pointBreakdown.map((p, i) => (
+                <span key={p.point} className="flex items-center gap-1.5">
+                  {i > 0 && <span className="text-muted-2">+</span>}
+                  {formatSom(p.tripIncome + p.orderIncome + p.otherIncome - p.expenseTotal)}
+                </span>
+              ))}
+              <span className="text-muted-2">=</span>
+              <span className="font-extrabold text-heading text-[15px]">
+                {formatSom(
+                  vm.pointBreakdown.reduce(
+                    (s, p) => s + (p.tripIncome + p.orderIncome + p.otherIncome - p.expenseTotal),
+                    0
+                  )
+                )}
+              </span>
+            </div>
+          </Card>
+        )}
+
         {cashLedger && (
           <OutsideExpensesCard
             periodWord={cashLedger.cashDetail.periodWord}
