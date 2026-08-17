@@ -335,22 +335,28 @@ export function FleetDashboard({
           </div>
         )}
 
-        {/* Sum of just the two point cards' own "Бухгалтерга топшириладиган
-            қолдиқ" lines above — unlike Кунлик қолдиқ further down, this
-            deliberately excludes Бошқа кирим/чиқим, so it matches exactly
-            what the two cards show added together. */}
+        {/* Sum of the two point cards' own trip/order income, plus both
+            points' Бошқа кирим and expense broken out as their own visible
+            terms (rather than silently folded into each point's figure) —
+            adds up to the same total as the two point cards combined. */}
         {vm.pointBreakdown.length > 0 && (
-          <Card className="p-4 flex items-center justify-between flex-wrap gap-2">
-            <span className="text-[13px] font-extrabold text-heading">Пункт тушумлари жами</span>
-            <div className="text-[13px] font-bold text-body flex items-center gap-1.5 flex-wrap">
+          <Card className="p-5 flex flex-col items-center justify-center text-center gap-2">
+            <span className="text-[13px] font-extrabold text-muted-2 uppercase tracking-wide">
+              Пункт тушумлари ва бошқа тушумлар жами
+            </span>
+            <div className="text-lg font-bold text-body flex items-center justify-center gap-2 flex-wrap">
               {vm.pointBreakdown.map((p, i) => (
-                <span key={p.point} className="flex items-center gap-1.5">
+                <span key={p.point} className="flex items-center gap-2">
                   {i > 0 && <span className="text-muted-2">+</span>}
-                  {formatSom(p.tripIncome + p.orderIncome + p.otherIncome - p.expenseTotal)}
+                  {formatSom(p.tripIncome + p.orderIncome)}
                 </span>
               ))}
+              <span className="text-muted-2">+</span>
+              {formatSom(vm.pointBreakdown.reduce((s, p) => s + p.otherIncome, 0))}
+              <span className="text-muted-2">−</span>
+              {formatSom(vm.pointBreakdown.reduce((s, p) => s + p.expenseTotal, 0))}
               <span className="text-muted-2">=</span>
-              <span className="font-extrabold text-heading text-[15px]">
+              <span className="font-heading font-extrabold text-heading text-2xl">
                 {formatSom(
                   vm.pointBreakdown.reduce(
                     (s, p) => s + (p.tripIncome + p.orderIncome + p.otherIncome - p.expenseTotal),
@@ -362,12 +368,7 @@ export function FleetDashboard({
           </Card>
         )}
 
-        {cashLedger && (
-          <OutsideExpensesCard
-            periodWord={cashLedger.cashDetail.periodWord}
-            rows={cashLedger.cashDetail.expense.outside.rows}
-          />
-        )}
+        {cashLedger && <OutsideExpensesCard detail={cashLedger.cashDetail} />}
 
         {/* Combined (both points + Бошқа кирим/чиқим) daily net — was inside
             the cash-on-hand card below, moved here so it sits right under
@@ -575,13 +576,13 @@ export function FleetDashboard({
 
         {/* Orders list */}
         {vm.orders.length > 0 && (
-          <Card className="overflow-hidden">
-            <div className="px-6 py-[18px] font-heading font-bold text-base text-heading">
-              Заказлар · {vm.periodLabel}
-            </div>
-
+          <CollapsibleCard
+            title={
+              <span className="font-heading font-bold text-base text-heading">Заказлар · {vm.periodLabel}</span>
+            }
+          >
             {/* Desktop */}
-            <div className="hidden lg:grid grid-cols-[0.9fr_0.7fr_0.9fr_1.1fr_0.9fr_1.6fr] px-6 py-2.5 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
+            <div className="hidden lg:grid grid-cols-[0.9fr_0.7fr_0.9fr_1.1fr_0.9fr_1.6fr] px-5 py-2.5 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
               <div>Вақт</div>
               <div>Пункт</div>
               <div>Машина</div>
@@ -592,7 +593,7 @@ export function FleetDashboard({
             {vm.orders.map((o) => (
               <div
                 key={o.id}
-                className="hidden lg:grid grid-cols-[0.9fr_0.7fr_0.9fr_1.1fr_0.9fr_1.6fr] gap-x-2 px-6 py-3 border-t border-row-divider items-center text-sm"
+                className="hidden lg:grid grid-cols-[0.9fr_0.7fr_0.9fr_1.1fr_0.9fr_1.6fr] gap-x-2 px-5 py-3 border-t border-row-divider items-center text-sm"
               >
                 <div className="text-muted-2 font-bold">
                   {o.time.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" })} · {formatTime(o.time)}
@@ -635,138 +636,149 @@ export function FleetDashboard({
                 </div>
               ))}
             </div>
-          </Card>
+          </CollapsibleCard>
         )}
 
-        {/* Vehicles — desktop table */}
-        <Card className="overflow-hidden hidden lg:block">
-          <div className="flex justify-between items-center px-6 py-[18px]">
-            <div className="font-heading font-bold text-base text-heading">Машиналар бўйича фойда</div>
-            <div className="text-[13px] font-bold text-primary">Барчаси ({vm.vehicles.length}) →</div>
-          </div>
-          <div className="grid grid-cols-[1.3fr_1.1fr_0.6fr_0.6fr_0.9fr_0.9fr_0.9fr_0.8fr] px-6 py-2.5 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
-            <div>Машина</div>
-            <div>Ҳайдовчи</div>
-            <div>Рейслар</div>
-            <div>Заказ</div>
-            <div>Тушум</div>
-            <div>Харажат</div>
-            <div>Фойда</div>
-            <div>Ҳолат</div>
-          </div>
-          {vm.vehicles.map((v) => (
-            <div
-              key={v.vehicleId}
-              className="grid grid-cols-[1.3fr_1.1fr_0.6fr_0.6fr_0.9fr_0.9fr_0.9fr_0.8fr] px-6 py-3.5 border-t border-row-divider items-center text-sm"
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="bg-primary-tint rounded-md px-2 py-0.5 font-extrabold text-xs text-primary font-heading">
-                  {v.plate}
-                </div>
-                <span className="font-semibold text-heading">{v.model}</span>
-              </div>
-              <div className="text-body font-semibold">{v.driverName}</div>
-              <div className="text-muted-2 font-bold">{v.tripCount}</div>
-              <div className="text-muted-2 font-bold">{v.orderCount}</div>
-              <div className="font-bold text-heading">{formatSom(v.income)}</div>
-              <div className="text-muted-2 font-semibold">{formatSom(v.expense)}</div>
-              <div className="font-extrabold text-success">{formatSom(v.profit)}</div>
-              <div>
-                <StatusPill status={v.status} />
-              </div>
+        {/* Vehicles — profit table (desktop) / cards (mobile) */}
+        <CollapsibleCard
+          title={
+            <div className="flex items-center justify-between flex-1 gap-3">
+              <span className="font-heading font-bold text-base text-heading">Машиналар бўйича фойда</span>
+              <span className="text-[13px] font-bold text-primary whitespace-nowrap">
+                Барчаси ({vm.vehicles.length}) →
+              </span>
             </div>
-          ))}
-          {date && (
-            <div className="grid grid-cols-[1.3fr_1.1fr_0.6fr_0.6fr_0.9fr_0.9fr_0.9fr_0.8fr] px-6 py-3.5 border-t-2 border-primary bg-primary-tint items-center text-sm">
-              <div className="font-extrabold text-heading col-span-2">
-                Жами: {activeVehicleCount} / {vm.vehicles.length} машина қатнади
-              </div>
-              <div></div>
-              <div></div>
-              <div className="font-extrabold text-heading">{formatSom(vm.totalIncome)}</div>
-              <div className="font-extrabold text-heading">{formatSom(vm.totalExpense)}</div>
-              <div className="font-extrabold text-success">{formatSom(vm.netProfit)}</div>
-              <div></div>
+          }
+        >
+          {/* Desktop table */}
+          <div className="hidden lg:block">
+            <div className="grid grid-cols-[1.3fr_1.1fr_0.6fr_0.6fr_0.9fr_0.9fr_0.9fr_0.8fr] px-5 py-2.5 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
+              <div>Машина</div>
+              <div>Ҳайдовчи</div>
+              <div>Рейслар</div>
+              <div>Заказ</div>
+              <div>Тушум</div>
+              <div>Харажат</div>
+              <div>Фойда</div>
+              <div>Ҳолат</div>
             </div>
-          )}
-        </Card>
-
-        {/* Vehicles — mobile cards */}
-        <div className="flex flex-col gap-3 lg:hidden">
-          <div className="font-heading font-bold text-base text-heading px-1">Машиналар бўйича фойда</div>
-          {vm.vehicles.map((v) => (
-            <Card key={v.vehicleId} className="p-4 flex flex-col gap-2.5">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
+            {vm.vehicles.map((v) => (
+              <div
+                key={v.vehicleId}
+                className="grid grid-cols-[1.3fr_1.1fr_0.6fr_0.6fr_0.9fr_0.9fr_0.9fr_0.8fr] px-5 py-3.5 border-t border-row-divider items-center text-sm"
+              >
+                <div className="flex items-center gap-2.5">
                   <div className="bg-primary-tint rounded-md px-2 py-0.5 font-extrabold text-xs text-primary font-heading">
                     {v.plate}
                   </div>
-                  <span className="font-semibold text-heading text-sm">{v.model}</span>
+                  <span className="font-semibold text-heading">{v.model}</span>
                 </div>
-                <StatusPill status={v.status} />
-              </div>
-              <div className="text-xs text-muted-2 font-semibold">{v.driverName}</div>
-              <div className="flex justify-between text-sm pt-1 border-t border-row-divider flex-wrap gap-y-2">
+                <div className="text-body font-semibold">{v.driverName}</div>
+                <div className="text-muted-2 font-bold">{v.tripCount}</div>
+                <div className="text-muted-2 font-bold">{v.orderCount}</div>
+                <div className="font-bold text-heading">{formatSom(v.income)}</div>
+                <div className="text-muted-2 font-semibold">{formatSom(v.expense)}</div>
+                <div className="font-extrabold text-success">{formatSom(v.profit)}</div>
                 <div>
-                  <div className="text-[11px] text-muted-2 font-bold uppercase">Рейслар</div>
-                  <div className="font-bold text-heading">{v.tripCount}</div>
-                </div>
-                <div>
-                  <div className="text-[11px] text-muted-2 font-bold uppercase">Заказ</div>
-                  <div className="font-bold text-heading">{v.orderCount}</div>
-                </div>
-                <div>
-                  <div className="text-[11px] text-muted-2 font-bold uppercase">Тушум</div>
-                  <div className="font-bold text-heading">{formatSom(v.income)}</div>
-                </div>
-                <div>
-                  <div className="text-[11px] text-muted-2 font-bold uppercase">Харажат</div>
-                  <div className="font-semibold text-muted-2">{formatSom(v.expense)}</div>
-                </div>
-                <div>
-                  <div className="text-[11px] text-muted-2 font-bold uppercase">Фойда</div>
-                  <div className="font-extrabold text-success">{formatSom(v.profit)}</div>
+                  <StatusPill status={v.status} />
                 </div>
               </div>
-            </Card>
-          ))}
-          {date && (
-            <Card className="p-4 flex flex-col gap-2 border-2 border-primary bg-primary-tint">
-              <div className="font-extrabold text-heading text-sm">
-                Жами: {activeVehicleCount} / {vm.vehicles.length} машина қатнади
+            ))}
+            {date && (
+              <div className="grid grid-cols-[1.3fr_1.1fr_0.6fr_0.6fr_0.9fr_0.9fr_0.9fr_0.8fr] px-5 py-3.5 border-t-2 border-primary bg-primary-tint items-center text-sm">
+                <div className="font-extrabold text-heading col-span-2">
+                  Жами: {activeVehicleCount} / {vm.vehicles.length} машина қатнади
+                </div>
+                <div></div>
+                <div></div>
+                <div className="font-extrabold text-heading">{formatSom(vm.totalIncome)}</div>
+                <div className="font-extrabold text-heading">{formatSom(vm.totalExpense)}</div>
+                <div className="font-extrabold text-success">{formatSom(vm.netProfit)}</div>
+                <div></div>
               </div>
-              <div className="flex justify-between text-sm">
-                <div>
-                  <div className="text-[11px] text-muted-2 font-bold uppercase">Тушум</div>
-                  <div className="font-extrabold text-heading">{formatSom(vm.totalIncome)}</div>
+            )}
+          </div>
+
+          {/* Mobile cards */}
+          <div className="flex flex-col gap-3 p-4 lg:hidden">
+            {vm.vehicles.map((v) => (
+              <Card key={v.vehicleId} className="p-4 flex flex-col gap-2.5">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-primary-tint rounded-md px-2 py-0.5 font-extrabold text-xs text-primary font-heading">
+                      {v.plate}
+                    </div>
+                    <span className="font-semibold text-heading text-sm">{v.model}</span>
+                  </div>
+                  <StatusPill status={v.status} />
                 </div>
-                <div>
-                  <div className="text-[11px] text-muted-2 font-bold uppercase">Харажат</div>
-                  <div className="font-extrabold text-heading">{formatSom(vm.totalExpense)}</div>
+                <div className="text-xs text-muted-2 font-semibold">{v.driverName}</div>
+                <div className="flex justify-between text-sm pt-1 border-t border-row-divider flex-wrap gap-y-2">
+                  <div>
+                    <div className="text-[11px] text-muted-2 font-bold uppercase">Рейслар</div>
+                    <div className="font-bold text-heading">{v.tripCount}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-muted-2 font-bold uppercase">Заказ</div>
+                    <div className="font-bold text-heading">{v.orderCount}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-muted-2 font-bold uppercase">Тушум</div>
+                    <div className="font-bold text-heading">{formatSom(v.income)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-muted-2 font-bold uppercase">Харажат</div>
+                    <div className="font-semibold text-muted-2">{formatSom(v.expense)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-muted-2 font-bold uppercase">Фойда</div>
+                    <div className="font-extrabold text-success">{formatSom(v.profit)}</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-[11px] text-muted-2 font-bold uppercase">Фойда</div>
-                  <div className="font-extrabold text-success">{formatSom(vm.netProfit)}</div>
+              </Card>
+            ))}
+            {date && (
+              <Card className="p-4 flex flex-col gap-2 border-2 border-primary bg-primary-tint">
+                <div className="font-extrabold text-heading text-sm">
+                  Жами: {activeVehicleCount} / {vm.vehicles.length} машина қатнади
                 </div>
-              </div>
-            </Card>
-          )}
-        </div>
+                <div className="flex justify-between text-sm">
+                  <div>
+                    <div className="text-[11px] text-muted-2 font-bold uppercase">Тушум</div>
+                    <div className="font-extrabold text-heading">{formatSom(vm.totalIncome)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-muted-2 font-bold uppercase">Харажат</div>
+                    <div className="font-extrabold text-heading">{formatSom(vm.totalExpense)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-muted-2 font-bold uppercase">Фойда</div>
+                    <div className="font-extrabold text-success">{formatSom(vm.netProfit)}</div>
+                  </div>
+                </div>
+              </Card>
+            )}
+          </div>
+        </CollapsibleCard>
 
         {/* Other income — cash collected from non-fleet vehicles (tax/fuel/
             parking payments, see OtherIncome's schema comment), separate
             from a fleet vehicle's own trip revenue above. */}
         {vm.otherIncomes.length > 0 && (
-          <Card className="overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-[18px]">
-              <div className="font-heading font-bold text-base text-heading">
-                Бошқа кирим · {vm.periodLabel}
+          <CollapsibleCard
+            title={
+              <div className="flex items-center justify-between flex-1 gap-3">
+                <span className="font-heading font-bold text-base text-heading">
+                  Бошқа кирим · {vm.periodLabel}
+                </span>
+                <span className="text-[13px] font-extrabold text-success whitespace-nowrap">
+                  {formatSom(vm.otherIncomeTotal)}
+                </span>
               </div>
-              <div className="text-[13px] font-extrabold text-success">{formatSom(vm.otherIncomeTotal)}</div>
-            </div>
-
+            }
+          >
             {/* Desktop */}
-            <div className="hidden lg:grid grid-cols-[0.9fr_0.7fr_0.9fr_0.9fr_1.1fr_1.4fr] px-6 py-2.5 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
+            <div className="hidden lg:grid grid-cols-[0.9fr_0.7fr_0.9fr_0.9fr_1.1fr_1.4fr] px-5 py-2.5 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
               <div>Вақт</div>
               <div>Пункт</div>
               <div>Тоифа</div>
@@ -777,7 +789,7 @@ export function FleetDashboard({
             {vm.otherIncomes.map((i) => (
               <div
                 key={i.id}
-                className="hidden lg:grid grid-cols-[0.9fr_0.7fr_0.9fr_0.9fr_1.1fr_1.4fr] gap-x-2 px-6 py-3 border-t border-row-divider items-center text-sm"
+                className="hidden lg:grid grid-cols-[0.9fr_0.7fr_0.9fr_0.9fr_1.1fr_1.4fr] gap-x-2 px-5 py-3 border-t border-row-divider items-center text-sm"
               >
                 <div className="text-muted-2 font-bold">
                   {i.time.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" })} · {formatTime(i.time)}
@@ -826,7 +838,7 @@ export function FleetDashboard({
                 </div>
               ))}
             </div>
-          </Card>
+          </CollapsibleCard>
         )}
       </div>
     </div>
