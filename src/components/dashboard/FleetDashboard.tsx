@@ -11,6 +11,7 @@ import { CashOpeningBalanceForm } from "@/components/dashboard/CashOpeningBalanc
 import { CashHistorySection } from "@/components/dashboard/CashHistorySection";
 import { BalanceLedgerSection } from "@/components/dashboard/BalanceLedgerSection";
 import { CollapsibleCard } from "@/components/dashboard/CollapsibleCard";
+import { OutsideExpensesCard } from "@/components/dashboard/OutsideExpensesCard";
 import type { OwnerDashboardVM, Period } from "@/lib/dashboard";
 import type { CashLedgerSummary, OwnerPayoutState, MonthlyPayoutPoint } from "@/lib/ownerPayout";
 import { formatMillions, formatSom, formatTime } from "@/lib/format";
@@ -274,11 +275,24 @@ export function FleetDashboard({
                   </div>
 
                   <div className="flex justify-between items-center text-[13px] font-extrabold pt-1 border-t border-row-divider">
-                    <span className="text-heading">Кунлик қолдиқ</span>
-                    <span className={totalIncome - p.expenseTotal >= 0 ? "text-success" : "text-danger"}>
-                      {totalIncome - p.expenseTotal >= 0 ? "+" : "−"}
-                      {formatSom(Math.abs(totalIncome - p.expenseTotal))}
-                    </span>
+                    <span className="text-heading">Бухгалтерга топшириладиган қолдиқ</span>
+                    <div className="flex items-center gap-2">
+                      <span className={totalIncome - p.expenseTotal >= 0 ? "text-success" : "text-danger"}>
+                        {totalIncome - p.expenseTotal >= 0 ? "+" : "−"}
+                        {formatSom(Math.abs(totalIncome - p.expenseTotal))}
+                      </span>
+                      {cashLedger && (
+                        <span
+                          className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full whitespace-nowrap ${
+                            cashLedger.handoverSubmittedByPoint[p.point]
+                              ? "bg-success-tint text-success"
+                              : "bg-danger-tint text-danger"
+                          }`}
+                        >
+                          {cashLedger.handoverSubmittedByPoint[p.point] ? "Топширилди" : "Топширилмади"}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {cashLedger &&
@@ -319,6 +333,13 @@ export function FleetDashboard({
               );
             })}
           </div>
+        )}
+
+        {cashLedger && (
+          <OutsideExpensesCard
+            periodWord={cashLedger.cashDetail.periodWord}
+            rows={cashLedger.cashDetail.expense.outside.rows}
+          />
         )}
 
         {/* Combined (both points + Бошқа кирим/чиқим) daily net — was inside

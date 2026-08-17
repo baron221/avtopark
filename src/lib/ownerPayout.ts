@@ -150,6 +150,11 @@ export type CashLedgerSummary = {
   cashDetail: CashDetail;
   confirmedHistory: ConfirmedHandoverRow[];
   payoutHistory: OwnerPayoutRow[];
+  /** Whether a CashHandover row exists yet for that point on the report
+   * page's own selected day (referenceDate) — regardless of whether the
+   * accountant has confirmed it. Drives the "Топширилди/Топширилмади" badge
+   * on each point card; only meaningful for a single day, not a week/month. */
+  handoverSubmittedByPoint: Record<Point, boolean>;
 };
 
 export type OwnerPayoutState = { error: string };
@@ -647,8 +652,9 @@ async function computeCashDetail(period: Period, referenceDate: Date): Promise<C
  */
 export async function getCashLedgerSummary(period: Period, referenceDate: Date): Promise<CashLedgerSummary> {
   const openingBalance = await getLatestOpeningBalance();
+  const referenceDay = utcDayStart(referenceDate);
 
-  const [pending, confirmed, payouts, balance, balanceLedger, cashDetail] = await Promise.all([
+  const [pending, confirmed, payouts, balance, balanceLedger, cashDetail, handoversToday] = await Promise.all([
     prisma.cashHandover.findMany({
       where: { accountantConfirmedAt: null },
       orderBy: { handoverDate: "asc" },
@@ -670,7 +676,16 @@ export async function getCashLedgerSummary(period: Period, referenceDate: Date):
       ? computeBalanceLedger(openingBalance.setDate, openingBalance.amount)
       : Promise.resolve([]),
     computeCashDetail(period, referenceDate),
+    prisma.cashHandover.findMany({
+      where: { handoverDate: referenceDay, point: { in: ["FARGONA", "QUVA"] } },
+      select: { point: true },
+    }),
   ]);
+
+  const handoverSubmittedByPoint: Record<Point, boolean> = {
+    FARGONA: handoversToday.some((h) => h.point === "FARGONA"),
+    QUVA: handoversToday.some((h) => h.point === "QUVA"),
+  };
 
   const pointPending: PointPending[] = (["FARGONA", "QUVA"] as const).map((point) => ({
     point,
@@ -707,6 +722,7 @@ export async function getCashLedgerSummary(period: Period, referenceDate: Date):
       note: p.note,
       enteredByName: p.enteredByUser.fullName,
     })),
+    handoverSubmittedByPoint,
   };
 }
 
