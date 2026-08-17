@@ -10,6 +10,7 @@ import { CashBreakdown } from "@/components/dashboard/CashBreakdown";
 import { CashOpeningBalanceForm } from "@/components/dashboard/CashOpeningBalanceForm";
 import { CashHistorySection } from "@/components/dashboard/CashHistorySection";
 import { BalanceLedgerSection } from "@/components/dashboard/BalanceLedgerSection";
+import { CollapsibleCard } from "@/components/dashboard/CollapsibleCard";
 import type { OwnerDashboardVM, Period } from "@/lib/dashboard";
 import type { CashLedgerSummary, OwnerPayoutState, MonthlyPayoutPoint } from "@/lib/ownerPayout";
 import { formatMillions, formatSom, formatTime } from "@/lib/format";
@@ -272,6 +273,14 @@ export function FleetDashboard({
                     )}
                   </div>
 
+                  <div className="flex justify-between items-center text-[13px] font-extrabold pt-1 border-t border-row-divider">
+                    <span className="text-heading">Кунлик қолдиқ</span>
+                    <span className={totalIncome - p.expenseTotal >= 0 ? "text-success" : "text-danger"}>
+                      {totalIncome - p.expenseTotal >= 0 ? "+" : "−"}
+                      {formatSom(Math.abs(totalIncome - p.expenseTotal))}
+                    </span>
+                  </div>
+
                   {cashLedger &&
                     confirmReceiptAction &&
                     (() => {
@@ -312,6 +321,27 @@ export function FleetDashboard({
           </div>
         )}
 
+        {/* Combined (both points + Бошқа кирим/чиқим) daily net — was inside
+            the cash-on-hand card below, moved here so it sits right under
+            the two point cards it summarizes. Accountant-only, same gate as
+            that card since it reads the same cashDetail. */}
+        {cashLedger && (
+          <div className="bg-page rounded-xl p-3.5 flex items-center justify-between">
+            <div className="text-[11px] text-muted-2 font-bold uppercase">
+              {cashLedger.cashDetail.periodWord} қолдиқ
+            </div>
+            <div
+              className={`font-heading font-extrabold text-lg ${
+                cashLedger.cashDetail.income.total - cashLedger.cashDetail.expense.total >= 0
+                  ? "text-success"
+                  : "text-danger"
+              }`}
+            >
+              {cashLedger.cashDetail.income.total - cashLedger.cashDetail.expense.total >= 0 ? "+" : "−"}
+              {formatSom(Math.abs(cashLedger.cashDetail.income.total - cashLedger.cashDetail.expense.total))}
+            </div>
+          </div>
+        )}
 
         {/* Combined cash-on-hand — not split by point since most of what
             it's spent on (salary, repairs, fuel-station bills, ...) isn't
@@ -423,11 +453,14 @@ export function FleetDashboard({
         {vm.pointVehicles.some((p) => p.rows.length > 0) && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {vm.pointVehicles.map((p) => (
-              <Card key={p.point} className="overflow-hidden">
-                <div className="px-5 py-4 font-heading font-bold text-base text-heading">
-                  {POINT_LABELS[p.point]} машиналари · {vm.periodLabel}
-                </div>
-
+              <CollapsibleCard
+                key={p.point}
+                title={
+                  <span className="font-heading font-bold text-base text-heading">
+                    {POINT_LABELS[p.point]} машиналари · {vm.periodLabel}
+                  </span>
+                }
+              >
                 {/* Desktop table */}
                 <div className="hidden lg:block">
                   <div className="grid grid-cols-[1fr_0.9fr_0.5fr_0.5fr_0.8fr_0.7fr] px-5 py-2 bg-page text-[11px] font-extrabold text-muted-2 uppercase tracking-wide">
@@ -481,7 +514,7 @@ export function FleetDashboard({
                 </div>
 
                 {p.rows.length === 0 && <p className="text-[13px] text-muted-2 px-5 py-4">Бу даврда маълумот йўқ</p>}
-              </Card>
+              </CollapsibleCard>
             ))}
           </div>
         )}

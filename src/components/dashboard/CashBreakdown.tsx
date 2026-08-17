@@ -170,7 +170,6 @@ function Tile({
  * CashDetail.periodWord/rangeLabel) rather than always saying "кунлик".
  */
 export function CashBreakdown({ detail }: { detail: CashDetail }) {
-  const net = detail.income.total - detail.expense.total;
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-2 gap-3">
@@ -261,14 +260,6 @@ export function CashBreakdown({ detail }: { detail: CashDetail }) {
             )}
           </Bucket>
         </Tile>
-      </div>
-
-      <div className="bg-page rounded-xl p-3 flex items-center justify-between">
-        <div className="text-[11px] text-muted-2 font-bold uppercase">{detail.periodWord} қолдиқ</div>
-        <div className={`font-heading font-extrabold text-lg ${net >= 0 ? "text-success" : "text-danger"}`}>
-          {net >= 0 ? "+" : "−"}
-          {formatSom(Math.abs(net))}
-        </div>
       </div>
     </div>
   );
