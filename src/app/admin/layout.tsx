@@ -11,7 +11,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!isAdmin && !(await hasAnyModuleAccess(session.user.role, ["FLEET_DASHBOARD", "USER_MANAGEMENT", "SHIFTS"]))) {
     redirect("/coming-soon");
   }
-  const extra = isAdmin ? [] : await getGuestNavLinks(session.user.role);
+  // getGuestNavLinks("ADMIN") returns HOME_NAV.ADMIN (identical to AdminNav's
+  // own hardcoded default) plus anything granted to it via /admin/access,
+  // deduped by href — so this covers isAdmin too now that Admin can be
+  // granted other roles' modules for oversight, not just OWNER/ACCOUNTANT/
+  // MECHANIC acting as guests elsewhere.
+  const extra = await getGuestNavLinks(session.user.role);
 
   return (
     <div className="min-h-screen flex flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0">
@@ -24,7 +29,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </div>
 
         <div className="hidden lg:block">
-          <AdminNavDesktop items={isAdmin ? undefined : extra} />
+          <AdminNavDesktop items={extra} />
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -39,7 +44,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
       <div className="flex-1">{children}</div>
 
-      <AdminNavMobile items={isAdmin ? undefined : extra} />
+      <AdminNavMobile items={extra} />
     </div>
   );
 }

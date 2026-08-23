@@ -99,16 +99,20 @@ export async function getGrantedModuleKeys(role: Role): Promise<ModuleKey[]> {
   return rows.map((r) => r.module as ModuleKey);
 }
 
-// A few roles already show a module's exact same data on one of their own
-// native screens (ACCOUNTANT's "Hisobot" and ADMIN's "Panel" both embed the
-// identical fleet dashboard as /owner, just wrapped in their own nav style).
-// For those roles, point the granted module at that native screen instead of
-// the standalone /owner page — its own distinct header/nav would otherwise
-// look like a jarringly different app, and getGuestNavLinks's href-dedup then
-// drops the now-redundant duplicate automatically.
+// ACCOUNTANT already shows this module's exact same data on its own native
+// screen (Hisobot embeds the identical fleet dashboard as /owner, just
+// wrapped in its own nav style) — point the granted module at that native
+// screen instead of the standalone /owner page, and getGuestNavLinks's
+// href-dedup drops the now-redundant duplicate automatically.
+//
+// ADMIN's own native /admin/panel is the stripped-down profit view only —
+// it doesn't wire up cashLedger/handover-confirm/payout/export the way
+// /accountant/report does (see that page's own props) — so ADMIN's granted
+// link points at the full accountant report instead, as a second nav entry
+// alongside its own Панел, rather than being deduped into that thinner one.
 const ROLE_HREF_OVERRIDE: Partial<Record<Role, Partial<Record<ModuleKey, string>>>> = {
   ACCOUNTANT: { FLEET_DASHBOARD: "/accountant/report" },
-  ADMIN: { FLEET_DASHBOARD: "/admin/panel" },
+  ADMIN: { FLEET_DASHBOARD: "/accountant/report" },
 };
 
 /** Extra nav links for modules a role has beyond its own native screens. */
