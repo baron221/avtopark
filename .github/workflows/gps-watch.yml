@@ -1,0 +1,22 @@
+name: GPS movement + signal watch
+
+on:
+  schedule:
+    # Vercel's own Cron on this project's plan only runs once a day, far too
+    # coarse for "alert us while it's still driving away" — this workflow
+    # calls the same protected routes on a real interval instead.
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call movement-watch endpoint
+        run: |
+          curl -sf -X GET "${{ vars.APP_URL }}/api/gps/movement-watch" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: Call signal-watch endpoint
+        run: |
+          curl -sf -X GET "${{ vars.APP_URL }}/api/gps/signal-watch" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

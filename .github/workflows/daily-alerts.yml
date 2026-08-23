@@ -1,0 +1,32 @@
+name: Daily Telegram alerts
+
+# Times are UTC; Tashkent is UTC+5 year-round (no DST), so:
+#   16:30 UTC -> 21:30 Toshkent (cash reminder, near end of day)
+#   03:00 UTC -> 08:00 Toshkent (oil-change due, start of day)
+#   18:00 UTC -> 23:00 Toshkent (daily summary, end of day)
+on:
+  schedule:
+    - cron: "30 16 * * *"
+    - cron: "0 3 * * *"
+    - cron: "0 18 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cash reminder
+        if: github.event.schedule == '30 16 * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl -sf -X GET "${{ vars.APP_URL }}/api/alerts/cash-reminder" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: Oil-change due
+        if: github.event.schedule == '0 3 * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl -sf -X GET "${{ vars.APP_URL }}/api/alerts/oil-due" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: Daily summary
+        if: github.event.schedule == '0 18 * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl -sf -X GET "${{ vars.APP_URL }}/api/alerts/daily-summary" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

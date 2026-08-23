@@ -212,6 +212,8 @@ model Vehicle {
   assignmentLogs   DriverAssignmentLog[]
   mileages         VehicleMileage[]
   gpsDetectedTrips GpsDetectedTrip[]
+  movementWatch    VehicleMovementWatch?
+  signalAlert      VehicleSignalAlert?
 
   @@index([point])
   @@index([status])
@@ -280,6 +282,42 @@ model GpsDetectedTrip {
 
   @@index([vehicleId, detectedAt])
   @@map("gps_detected_trips")
+}
+
+// One row per vehicle currently NOT_ON_LINE (shouldn't be moving at all) —
+// see /api/gps/movement-watch. REPAIR is deliberately excluded: a mechanic
+// routinely test-drives/repositions a vehicle under repair, which would
+// otherwise fire constant false alerts. lastLat/lastLon is the position
+// from the *previous* check, not a fixed parking spot, so the comparison is
+// always "did it move since we last looked" rather than requiring a
+// separately-defined rest location. alertedAt is set the moment a Telegram
+// alert fires and left set (not cleared on every check) so a vehicle that
+// keeps driving doesn't re-alert every ~10 minutes — it only clears when
+// the row is deleted, which happens once the vehicle leaves NOT_ON_LINE.
+model VehicleMovementWatch {
+  vehicleId String    @id @map("vehicle_id")
+  lastLat   Float     @map("last_lat")
+  lastLon   Float     @map("last_lon")
+  alertedAt DateTime? @map("alerted_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+
+  @@map("vehicle_movement_watches")
+}
+
+// One row per vehicle whose Wialon tracker has gone quiet for longer than
+// the threshold (see /api/gps/signal-watch) — a dead battery, no GSM
+// coverage, or someone physically disconnecting the device (often the
+// first thing done before an unauthorized trip). Deleted the moment the
+// tracker reports again, so a future outage re-alerts from scratch.
+model VehicleSignalAlert {
+  vehicleId String   @id @map("vehicle_id")
+  alertedAt DateTime @map("alerted_at")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+
+  @@map("vehicle_signal_alerts")
 }
 
 model Driver {
