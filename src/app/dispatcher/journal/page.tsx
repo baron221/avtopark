@@ -226,9 +226,9 @@ export default async function DispatcherJournalPage({
 
       <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4 items-start">
         <div className="flex flex-col gap-4">
-          {canIncomeExpense && (
+          {isDispatcher && (
             <ExpenseForm
-              point={isDispatcher ? undefined : point}
+              point={undefined}
               people={lunchPeople}
               todayStr={todayStr}
               monthStartStr={monthStartStr}

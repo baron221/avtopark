@@ -209,24 +209,26 @@ export default async function DispatcherPointPage({
         </div>
       </div>
 
-      <div className="max-w-[420px] w-full">
-        <IncomeForm
-          vehicles={vehicleOptions}
-          baseFare={baseFareRoute?.baseFare ?? 20000}
-          point={isDispatcher ? undefined : point}
-          todayStr={todayStr}
-          monthStartStr={monthStartStr}
-          defaultDateStr={viewDateStr}
-          externalVehiclePlates={externalVehicles.map((v) => v.plate)}
-        />
-        <p className="text-xs text-muted-2 font-semibold text-center pt-3">
-          Расход ва обед қўшиш учун{" "}
-          <Link href="/dispatcher/journal" className="text-primary font-extrabold hover:underline">
-            Журнал
-          </Link>{" "}
-          бўлимига ўтинг
-        </p>
-      </div>
+      {isDispatcher && (
+        <div className="max-w-[420px] w-full">
+          <IncomeForm
+            vehicles={vehicleOptions}
+            baseFare={baseFareRoute?.baseFare ?? 20000}
+            point={undefined}
+            todayStr={todayStr}
+            monthStartStr={monthStartStr}
+            defaultDateStr={viewDateStr}
+            externalVehiclePlates={externalVehicles.map((v) => v.plate)}
+          />
+          <p className="text-xs text-muted-2 font-semibold text-center pt-3">
+            Расход ва обед қўшиш учун{" "}
+            <Link href="/dispatcher/journal" className="text-primary font-extrabold hover:underline">
+              Журнал
+            </Link>{" "}
+            бўлимига ўтинг
+          </p>
+        </div>
+      )}
 
       <Card className="overflow-hidden">
         <DriverTripsTable groups={driverGroups} deleteAction={deleteTripAction} deletePoint={deletePoint} />
