@@ -1,15 +1,60 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 import { SearchableSelect } from "@/components/ui/SearchableSelect";
-import { addTripAction, addOtherIncomeAction } from "../actions";
+import { addTripAction, addOtherIncomeAction, type TripReceipt } from "../actions";
 import { OTHER_INCOME_CATEGORIES, OTHER_INCOME_CATEGORY_LABELS } from "@/lib/otherIncome";
+import { formatSom } from "@/lib/format";
 import type { Point, OtherIncomeCategory } from "@prisma/client";
 
 type VehicleOption = { id: string; plate: string; driverName: string };
 type Kind = "TRIP" | "ORDER" | "OTHER_INCOME";
+
+const POINT_LABELS: Record<Point, string> = { FARGONA: "Фарғона", QUVA: "Қува" };
+
+/** Terminal (Sunmi P3) prints via the browser's own print dialog once the
+ * client installs Sunmi App Market's "Sunmiprinterplugin", which intercepts
+ * window.print() and routes it to the built-in thermal printer instead of
+ * showing a normal print preview — no native app/SDK integration needed on
+ * our side. #trip-receipt is hidden on screen and is the only thing the
+ * @media print rule leaves visible, so printing the page prints just this. */
+function TripReceiptPrint({ receipt }: { receipt: TripReceipt }) {
+  return (
+    <>
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          #trip-receipt, #trip-receipt * { visibility: visible; }
+          #trip-receipt {
+            display: block !important;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 58mm;
+            padding: 3mm;
+          }
+        }
+      `}</style>
+      <div id="trip-receipt" className="hidden font-mono text-[12px] leading-tight">
+        <div className="text-center font-bold">Фарғона–Қува Автопарк</div>
+        <div className="text-center">{POINT_LABELS[receipt.point]} пункти</div>
+        <div>{"-".repeat(32)}</div>
+        <div>{receipt.time.toLocaleString("uz-UZ", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
+        <div>Машина: {receipt.plate}</div>
+        <div>Ҳайдовчи: {receipt.driverName}</div>
+        {receipt.kind === "TRIP" ? (
+          <div>{receipt.tripNumber ? `${receipt.tripNumber}-рейс` : "Рейс"} · {receipt.passengerCount} йўловчи</div>
+        ) : (
+          <div>Алоҳида заказ</div>
+        )}
+        <div>{"-".repeat(32)}</div>
+        <div className="text-center font-bold text-[16px]">{formatSom(receipt.amount)} сўм</div>
+      </div>
+    </>
+  );
+}
 
 export function IncomeForm({
   vehicles,
@@ -53,6 +98,7 @@ export function IncomeForm({
   const [dateValue, setDateValue] = useState(initialDate);
   const formRef = useRef<HTMLFormElement>(null);
   const savedTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [receipt, setReceipt] = useState<TripReceipt | null>(null);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -61,7 +107,8 @@ export function IncomeForm({
       if (kind === "OTHER_INCOME") {
         await addOtherIncomeAction(formData);
       } else {
-        await addTripAction(formData);
+        const created = await addTripAction(formData);
+        if (created) setReceipt(created);
       }
       router.refresh();
       formRef.current?.reset();
@@ -71,6 +118,21 @@ export function IncomeForm({
       savedTimeout.current = setTimeout(() => setSaved(false), 2500);
     });
   }
+
+  // Terminal (Sunmi P3) prints via window.print() — see TripReceiptPrint's
+  // own comment. Fires once the receipt DOM has actually rendered, and
+  // clears the receipt afterward so the next save doesn't re-print a stale
+  // one if something else on the page triggers a print later.
+  useEffect(() => {
+    if (!receipt) return;
+    const timer = setTimeout(() => window.print(), 100);
+    const clear = () => setReceipt(null);
+    window.addEventListener("afterprint", clear);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("afterprint", clear);
+    };
+  }, [receipt]);
 
   return (
     <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-3">
@@ -258,6 +320,7 @@ export function IncomeForm({
           </div>
         )}
       </form>
+      {receipt && <TripReceiptPrint receipt={receipt} />}
     </div>
   );
 }

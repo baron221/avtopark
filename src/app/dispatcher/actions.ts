@@ -116,7 +116,21 @@ export async function setActivePointAction(formData: FormData) {
   revalidatePath("/dispatcher", "layout");
 }
 
-export async function addTripAction(formData: FormData) {
+export type TripReceipt = {
+  plate: string;
+  driverName: string;
+  point: Point;
+  kind: TripKind;
+  passengerCount: number;
+  tripNumber: number | null;
+  amount: number;
+  time: Date;
+};
+
+/** Returns the just-created trip's receipt-relevant fields on success, or
+ * null on any validation failure/early-out — the terminal print flow
+ * (IncomeForm) prints a receipt only when this resolves to a real trip. */
+export async function addTripAction(formData: FormData): Promise<TripReceipt | null> {
   // Guests may reach this either through the Journal (TRIP_ENTRY) or through
   // the point overview page (COLLECT_PAYMENT), which now shares this same form.
   const { userId, point } = await requireDispatcherOrGranted(formData, ["TRIP_ENTRY", "COLLECT_PAYMENT"]);
@@ -133,10 +147,10 @@ export async function addTripAction(formData: FormData) {
     where: { id: vehicleId },
     include: { driver: { include: { user: true } } },
   });
-  if (!vehicle || !DISPATCHABLE_STATUSES.includes(vehicle.status) || !vehicle.driver) return;
+  if (!vehicle || !DISPATCHABLE_STATUSES.includes(vehicle.status) || !vehicle.driver) return null;
 
   const route = await prisma.route.findFirst({ where: { isActive: true } });
-  if (!route) return;
+  if (!route) return null;
 
   let passengerCount = 1;
   let revenue = Number(formData.get("revenue") ?? 0);
@@ -148,7 +162,7 @@ export async function addTripAction(formData: FormData) {
     const rawTripNumber = Number(formData.get("tripNumber") ?? "");
     tripNumber = Number.isFinite(rawTripNumber) && rawTripNumber >= 1 ? Math.floor(rawTripNumber) : null;
   }
-  if (!(revenue > 0) || !Number.isFinite(passengerCount) || passengerCount < 1) return;
+  if (!(revenue > 0) || !Number.isFinite(passengerCount) || passengerCount < 1) return null;
 
   const now = new Date();
   const backdate = parseBackdate(formData, now);
@@ -171,11 +185,12 @@ export async function addTripAction(formData: FormData) {
   });
 
   // A backdated entry is paperwork catch-up, not a live event — the driver
-  // doesn't need an SMS about a trip "recorded" days after it happened.
+  // doesn't need an SMS about it, and the terminal shouldn't print a
+  // passenger receipt for a trip that already happened days ago either.
   if (backdate) {
     revalidatePath("/dispatcher/journal");
     revalidatePath("/dispatcher/point");
-    return;
+    return null;
   }
 
   const kindLabel = kind === "ORDER" ? "Алоҳида заказ" : tripNumber ? `${tripNumber}-рейс` : "Рейс";
@@ -189,6 +204,17 @@ export async function addTripAction(formData: FormData) {
 
   revalidatePath("/dispatcher/journal");
   revalidatePath("/dispatcher/point");
+
+  return {
+    plate: vehicle.plate,
+    driverName: vehicle.driver.user.fullName,
+    point,
+    kind,
+    passengerCount,
+    tripNumber,
+    amount: Math.round(revenue),
+    time: now,
+  };
 }
 
 /** Cash from a vehicle outside the company's own fleet — paying for tax
