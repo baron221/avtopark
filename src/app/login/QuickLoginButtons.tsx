@@ -12,12 +12,13 @@ const ACCOUNTS = [
   { label: "Ҳайдовчи", phone: "+998900000006" },
 ];
 
-// TEMPORARY: also rendered in production for now, per explicit request, so it
-// can be tested on the live deployed site. This exposes one-click login to
-// every seeded test account (including Owner/Admin) to anyone who visits
-// /login — remove the moment testing is done by restoring the guard:
-//   if (process.env.NODE_ENV === "production") return null;
 export function QuickLoginButtons() {
+  // Never in production — this exposes one-click login to every seeded test
+  // account (including Owner/Admin), password included, to anyone who visits
+  // /login. Was temporarily rendered in prod for live-site testing; that
+  // testing is done, so this is locked to local/dev again.
+  if (process.env.NODE_ENV === "production") return null;
+
   return (
     <div className="flex flex-col gap-2.5 pt-3 mt-1 border-t border-border">
       <div className="text-xs text-muted-2 font-bold text-center">Тест учун тезкор кириш (фақат локал)</div>
