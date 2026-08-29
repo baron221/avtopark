@@ -158,6 +158,7 @@ model User {
   advancesEntered            Advance[]            @relation("AdvanceEnteredBy")
   oilChangesEntered          OilChange[]          @relation("OilChangeEnteredBy")
   deletionsPerformed         DeletionLog[]        @relation("DeletionLogDeletedBy")
+  editsPerformed             EditLog[]            @relation("EditLogEditedBy")
   cashHandoversAsDispatcher  CashHandover[]       @relation("CashHandoverDispatcher")
   cashHandoversAsAccountant  CashHandover[]       @relation("CashHandoverAccountant")
   ownerPayoutsEntered        OwnerPayout[]        @relation("OwnerPayoutEnteredBy")
@@ -186,6 +187,26 @@ model DeletionLog {
   @@index([deletedAt])
   @@index([entityType, entityId])
   @@map("deletion_logs")
+}
+
+// Parallel to DeletionLog, but for edits to an existing record's amount —
+// this app has no general edit history, so before this a Trip/StaffExpense/
+// Lunch amount silently changed after that day's cash was already handed
+// over/confirmed left no trace (see ownerPayout.ts's comment on why the
+// handover snapshot can drift from the live recomputed total).
+model EditLog {
+  id         String   @id @default(uuid())
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  summary    String
+  editedBy   String   @map("edited_by")
+  editedAt   DateTime @default(now()) @map("edited_at")
+
+  editedByUser User @relation("EditLogEditedBy", fields: [editedBy], references: [id])
+
+  @@index([editedAt])
+  @@index([entityType, entityId])
+  @@map("edit_logs")
 }
 
 model Vehicle {

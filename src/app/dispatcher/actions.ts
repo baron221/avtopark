@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hasAnyModuleAccess, type ModuleKey } from "@/lib/access";
 import { logDeletion } from "@/lib/deletionLog";
+import { logEdit } from "@/lib/editLog";
 import { sendSms } from "@/lib/sms";
 import { formatTime } from "@/lib/format";
 import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
@@ -385,10 +386,10 @@ export async function updateTripAction(
   _prevState: UpdateTripState,
   formData: FormData
 ): Promise<UpdateTripState> {
-  const { point } = await requireDispatcherOrGranted(formData, ["TRIP_ENTRY", "COLLECT_PAYMENT"]);
+  const { userId, point } = await requireDispatcherOrGranted(formData, ["TRIP_ENTRY", "COLLECT_PAYMENT"]);
   const id = String(formData.get("id") ?? "");
 
-  const trip = await prisma.trip.findUnique({ where: { id } });
+  const trip = await prisma.trip.findUnique({ where: { id }, include: { vehicle: true, driver: { include: { user: true } } } });
   if (!trip || trip.point !== point) return { error: "Рейс топилмади" };
 
   const driverId = String(formData.get("driverId") ?? "").trim();
@@ -409,9 +410,19 @@ export async function updateTripAction(
     return { error: "Йўловчилар сонини тўғри киритинг" };
   }
 
+  const newRevenue = BigInt(Math.round(revenue));
+  if (newRevenue !== trip.revenue) {
+    await logEdit(
+      "Trip",
+      trip.id,
+      `${trip.vehicle.plate} · ${trip.driver.user.fullName} · ${trip.revenue.toString()} → ${newRevenue.toString()} сўм`,
+      userId
+    );
+  }
+
   await prisma.trip.update({
     where: { id },
-    data: { driverId, kind, passengerCount, tripNumber, revenue: BigInt(Math.round(revenue)), note },
+    data: { driverId, kind, passengerCount, tripNumber, revenue: newRevenue, note },
   });
 
   const backTo = String(formData.get("backTo") ?? "") === "point" ? "/dispatcher/point" : "/dispatcher/journal";
@@ -475,10 +486,10 @@ export async function updateStaffExpenseAction(
   _prevState: UpdateStaffExpenseState,
   formData: FormData
 ): Promise<UpdateStaffExpenseState> {
-  const { point } = await requireDispatcherOrGranted(formData, "INCOME_EXPENSE_LOG");
+  const { userId, point } = await requireDispatcherOrGranted(formData, "INCOME_EXPENSE_LOG");
   const id = String(formData.get("id") ?? "");
 
-  const expense = await prisma.staffExpense.findUnique({ where: { id } });
+  const expense = await prisma.staffExpense.findUnique({ where: { id }, include: { user: true } });
   if (!expense || expense.point !== toStaffExpensePoint(point)) return { error: "Ёзув топилмади" };
 
   const category = formData.get("category") as StaffExpenseCategory;
@@ -487,9 +498,19 @@ export async function updateStaffExpenseAction(
   if (!category) return { error: "Тоифани танланг" };
   if (!(amount > 0)) return { error: "Суммани тўғри киритинг" };
 
+  const newAmount = BigInt(Math.round(amount));
+  if (newAmount !== expense.amount) {
+    await logEdit(
+      "StaffExpense",
+      expense.id,
+      `${EXPENSE_CATEGORY_LABELS[expense.category] ?? expense.category} · ${expense.user.fullName} · ${expense.amount.toString()} → ${newAmount.toString()} сўм`,
+      userId
+    );
+  }
+
   await prisma.staffExpense.update({
     where: { id },
-    data: { category, amount: BigInt(Math.round(amount)), note },
+    data: { category, amount: newAmount, note },
   });
 
   const backTo = String(formData.get("backTo") ?? "") === "point" ? "/dispatcher/point" : "/dispatcher/journal";
@@ -546,16 +567,26 @@ export async function updateLunchAction(
   _prevState: UpdateLunchState,
   formData: FormData
 ): Promise<UpdateLunchState> {
-  const { point } = await requireDispatcherOrGranted(formData, "INCOME_EXPENSE_LOG");
+  const { userId, point } = await requireDispatcherOrGranted(formData, "INCOME_EXPENSE_LOG");
   const id = String(formData.get("id") ?? "");
 
-  const lunch = await prisma.lunch.findUnique({ where: { id } });
+  const lunch = await prisma.lunch.findUnique({ where: { id }, include: { user: true } });
   if (!lunch || lunch.point !== point) return { error: "Ёзув топилмади" };
 
   const amount = Number(formData.get("amount") ?? 0);
   if (!(amount > 0)) return { error: "Суммани тўғри киритинг" };
 
-  await prisma.lunch.update({ where: { id }, data: { amount: BigInt(Math.round(amount)) } });
+  const newAmount = BigInt(Math.round(amount));
+  if (newAmount !== lunch.amount) {
+    await logEdit(
+      "Lunch",
+      lunch.id,
+      `Тушлик · ${lunch.user.fullName} · ${lunch.amount.toString()} → ${newAmount.toString()} сўм`,
+      userId
+    );
+  }
+
+  await prisma.lunch.update({ where: { id }, data: { amount: newAmount } });
 
   const backTo = String(formData.get("backTo") ?? "") === "point" ? "/dispatcher/point" : "/dispatcher/journal";
   revalidatePath("/dispatcher/journal");
