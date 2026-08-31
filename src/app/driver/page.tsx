@@ -41,10 +41,9 @@ export default async function DriverPage() {
   const today = { from: startOfDay(now), to: endOfDay(now) };
   const monthStart = getMonthStart(now);
 
-  const [todayTrips, todayPlan, monthTrips, monthPlan, salary] = await Promise.all([
+  const [todayTrips, todayPlan, salary] = await Promise.all([
     prisma.trip.findMany({
       where: { driverId: driver.id, tripDate: { gte: today.from, lte: today.to } },
-      include: { route: true },
       orderBy: { createdAt: "asc" },
     }),
     driver.vehicleId
@@ -52,22 +51,12 @@ export default async function DriverPage() {
           where: { vehicleId: driver.vehicleId, planDate: { gte: today.from, lte: today.to } },
         })
       : null,
-    prisma.trip.aggregate({
-      _sum: { revenue: true },
-      where: { driverId: driver.id, tripDate: { gte: monthStart } },
-    }),
-    prisma.dailyPlan.aggregate({
-      _sum: { paidAmount: true },
-      where: { driverId: driver.id, planDate: { gte: monthStart } },
-    }),
     prisma.salary.findUnique({ where: { userId_month: { userId: session.user.id, month: monthStart } } }),
   ]);
 
   const todayTripRevenue = todayTrips.reduce((s, t) => s + Number(t.revenue), 0);
   const todayPlanPaid = todayPlan ? Number(todayPlan.paidAmount) : 0;
   const todayTotal = todayTripRevenue + todayPlanPaid;
-
-  const monthTotal = Number(monthTrips._sum.revenue ?? BigInt(0)) + Number(monthPlan._sum.paidAmount ?? BigInt(0));
 
   return (
     <div className="max-w-[720px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
@@ -78,16 +67,7 @@ export default async function DriverPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard variant="primary" label="Бугунги тушум" value={formatSom(todayTotal)} />
-        <KpiCard label="Бугунги рейслар" value={String(todayTrips.length)} />
-        <KpiCard label="Ой бошидан тушум" value={formatSom(monthTotal)} />
-        <KpiCard
-          label="Кунлик план"
-          value={todayPlan ? `${formatSom(Number(todayPlan.paidAmount))} / ${formatSom(Number(todayPlan.planAmount))}` : "—"}
-          hint={todayPlan ? undefined : "Бу машина рейс асосида ишлайди"}
-        />
-      </div>
+      <KpiCard variant="primary" label="Бугунги тушум" value={formatSom(todayTotal)} />
 
       <Card className="overflow-hidden">
         <div className="px-5 py-3.5 font-heading font-bold text-[15px] text-heading">Бугунги рейслар</div>
@@ -98,7 +78,11 @@ export default async function DriverPage() {
           >
             <div className="text-muted-2 font-bold w-12 shrink-0">{formatTime(t.departureTime)}</div>
             <div className="flex-1 font-semibold text-heading min-w-0 break-words">
-              {t.kind === "ORDER" ? t.note ?? "Алоҳида заказ" : `${t.route.fromCity} → ${t.route.toCity}`}
+              {t.kind === "ORDER"
+                ? (t.note ?? "Алоҳида заказ")
+                : t.point === "FARGONA"
+                  ? "Фарғона → Қува"
+                  : "Қува → Фарғона"}
               {t.kind === "TRIP" && <span className="text-muted-2 font-normal"> · {t.passengerCount} йўловчи</span>}
             </div>
             <div className="font-extrabold text-success shrink-0">+{formatSom(Number(t.revenue))}</div>
