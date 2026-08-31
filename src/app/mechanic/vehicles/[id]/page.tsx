@@ -126,22 +126,20 @@ export default async function VehicleDetailPage({
   const gpsUnit = gpsBundle.unit;
   const gpsMileageToday = gpsBundle.mileageToday;
 
-  // Approaching due (within 500km or 7 days) gets its own "yellow" tier so a
-  // mechanic sees it coming instead of the status jumping straight from
-  // "fine" to "overdue" with no lead time to actually schedule the change.
+  // Approaching due (within 500km) gets its own "yellow" tier so a mechanic
+  // sees it coming instead of the status jumping straight from "fine" to
+  // "overdue" with no lead time to actually schedule the change. Km-only —
+  // no day-based trigger, since a vehicle sitting unused for a while
+  // shouldn't be flagged just because time passed with no distance driven.
   const OIL_WARNING_KM = 500;
-  const OIL_WARNING_DAYS = 7;
-  let oilStatus: { level: "OK" | "WARNING" | "OVERDUE"; kmRemaining: number; daysRemaining: number } | null = null;
+  let oilStatus: { level: "OK" | "WARNING" | "OVERDUE"; kmRemaining: number } | null = null;
   if (lastOilChange) {
     const nextDueKm = lastOilChange.odometerKm + lastOilChange.intervalKm;
-    const nextDueDate = new Date(lastOilChange.changedAt);
-    nextDueDate.setMonth(nextDueDate.getMonth() + lastOilChange.intervalMonths);
     const currentKm = estimatedOdometerKm ?? vehicle.odometerKm ?? lastOilChange.odometerKm;
     const kmRemaining = nextDueKm - currentKm;
-    const daysRemaining = Math.ceil((nextDueDate.getTime() - new Date().getTime()) / 86_400_000);
-    const overdue = kmRemaining <= 0 || daysRemaining <= 0;
-    const nearing = kmRemaining <= OIL_WARNING_KM || daysRemaining <= OIL_WARNING_DAYS;
-    oilStatus = { level: overdue ? "OVERDUE" : nearing ? "WARNING" : "OK", kmRemaining, daysRemaining };
+    const overdue = kmRemaining <= 0;
+    const nearing = kmRemaining <= OIL_WARNING_KM;
+    oilStatus = { level: overdue ? "OVERDUE" : nearing ? "WARNING" : "OK", kmRemaining };
   }
 
   const row = vm.vehicles.find((v) => v.vehicleId === id);
@@ -341,7 +339,7 @@ export default async function VehicleDetailPage({
             >
               {oilStatus.level === "OVERDUE"
                 ? "Муддати ўтган"
-                : `${Math.max(0, oilStatus.kmRemaining).toLocaleString("uz-UZ")} км / ${Math.max(0, oilStatus.daysRemaining)} кун қолди`}
+                : `${Math.max(0, oilStatus.kmRemaining).toLocaleString("uz-UZ")} км қолди`}
             </span>
           )}
         </div>

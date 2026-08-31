@@ -2,17 +2,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { notifyRole } from "@/lib/telegram";
 
-function addMonths(date: Date, months: number): Date {
-  const d = new Date(date);
-  d.setMonth(d.getMonth() + months);
-  return d;
-}
-
 // Runs once daily (see .github/workflows/daily-alerts.yml). Re-alerts every
 // day a vehicle stays overdue — unlike the GPS alerts, that's the point:
 // a maintenance reminder should keep nagging until the oil is actually
 // changed, not fire once and go silent. Vehicles with no OilChange history
 // yet are skipped — there's no baseline to compute a due date from.
+// Km-only, same as the mechanic vehicle page's own warning badge — a
+// vehicle sitting unused for a while shouldn't be flagged just because
+// time passed with no distance driven.
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
@@ -24,26 +21,23 @@ export async function GET(request: Request) {
   const oilChanges = await prisma.oilChange.findMany({
     where: { vehicleId: { in: vehicles.map((v) => v.id) } },
     orderBy: { changedAt: "desc" },
-    select: { vehicleId: true, changedAt: true, odometerKm: true, intervalKm: true, intervalMonths: true },
+    select: { vehicleId: true, odometerKm: true, intervalKm: true },
   });
   const latestByVehicle = new Map<string, (typeof oilChanges)[number]>();
   for (const oc of oilChanges) {
     if (!latestByVehicle.has(oc.vehicleId)) latestByVehicle.set(oc.vehicleId, oc);
   }
 
-  const now = new Date();
   const due: { plate: string; model: string }[] = [];
 
   for (const vehicle of vehicles) {
     const last = latestByVehicle.get(vehicle.id);
     if (!last) continue;
 
-    const dueDate = addMonths(last.changedAt, last.intervalMonths);
     const dueKm = last.odometerKm + last.intervalKm;
-    const overdueByDate = now >= dueDate;
     const overdueByKm = vehicle.odometerKm != null && vehicle.odometerKm >= dueKm;
 
-    if (overdueByDate || overdueByKm) {
+    if (overdueByKm) {
       due.push({ plate: vehicle.plate, model: vehicle.model });
     }
   }
