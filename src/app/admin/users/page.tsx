@@ -14,7 +14,7 @@ import type { Role } from "@prisma/client";
 export default async function AdminUsersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; deleteError?: string }>;
+  searchParams: Promise<{ page?: string; deleteError?: string; showBlocked?: string }>;
 }) {
   const session = await auth();
   if (!session) redirect("/login");
@@ -22,17 +22,25 @@ export default async function AdminUsersPage({
     redirect("/coming-soon");
   }
 
-  const { page: pageParam, deleteError } = await searchParams;
+  const { page: pageParam, deleteError, showBlocked: showBlockedParam } = await searchParams;
   const page = parsePage(pageParam);
+  // Blocked (former) employees stay in the system forever (deleting anyone
+  // with real trip/expense/salary history would corrupt past reports), but
+  // there was no way to keep them out of this list once they piled up —
+  // hidden by default, one click to bring them back for the odd lookup.
+  const showBlocked = showBlockedParam === "1";
+  const where = showBlocked ? {} : { isActive: true };
 
-  const [users, totalCount, roleCounts] = await Promise.all([
+  const [users, totalCount, roleCounts, blockedCount] = await Promise.all([
     prisma.user.findMany({
+      where,
       orderBy: [{ role: "asc" }, { fullName: "asc" }],
       skip: paginationSkip(page),
       take: DEFAULT_PAGE_SIZE,
     }),
-    prisma.user.count(),
-    prisma.user.groupBy({ by: ["role"], _count: true }),
+    prisma.user.count({ where }),
+    prisma.user.groupBy({ by: ["role"], _count: true, where }),
+    prisma.user.count({ where: { isActive: false } }),
   ]);
 
   const counts = roleCounts.reduce(
@@ -56,12 +64,22 @@ export default async function AdminUsersPage({
           <div className="font-heading font-bold text-xl text-heading">Фойдаланувчилар ва роллар</div>
           <div className="text-[13px] text-muted-2 font-semibold">{summary}</div>
         </div>
-        <Link
-          href="/admin/users/new"
-          className="bg-primary text-white rounded-[10px] px-[18px] py-2.5 font-extrabold text-[13px]"
-        >
-          + Фойдаланувчи қўшиш
-        </Link>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {blockedCount > 0 && (
+            <Link
+              href={showBlocked ? "/admin/users" : "/admin/users?showBlocked=1"}
+              className="bg-page border border-border text-body text-xs font-extrabold px-3 py-2 rounded-lg whitespace-nowrap"
+            >
+              {showBlocked ? "Фақат фаолларни кўрсатиш" : `Блокланганларни ҳам кўрсатиш (${blockedCount})`}
+            </Link>
+          )}
+          <Link
+            href="/admin/users/new"
+            className="bg-primary text-white rounded-[10px] px-[18px] py-2.5 font-extrabold text-[13px]"
+          >
+            + Фойдаланувчи қўшиш
+          </Link>
+        </div>
       </div>
 
       {deleteError && (
@@ -131,7 +149,7 @@ export default async function AdminUsersPage({
             </div>
           </div>
         ))}
-        <Pagination page={page} totalPages={pages} basePath="/admin/users" />
+        <Pagination page={page} totalPages={pages} basePath="/admin/users" params={showBlocked ? { showBlocked: "1" } : undefined} />
       </Card>
 
       {/* Mobile cards */}
@@ -190,7 +208,7 @@ export default async function AdminUsersPage({
           </Card>
         ))}
         <Card>
-          <Pagination page={page} totalPages={pages} basePath="/admin/users" />
+          <Pagination page={page} totalPages={pages} basePath="/admin/users" params={showBlocked ? { showBlocked: "1" } : undefined} />
         </Card>
       </div>
     </div>
