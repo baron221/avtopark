@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { rangeForPeriod, daysInMonth, type Period } from "@/lib/dashboard";
+import { rangeForPeriod, daysInMonth, overlapDays, type Period } from "@/lib/dashboard";
 import { monthStart as getMonthStart } from "@/lib/month";
 import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 
@@ -40,7 +40,7 @@ export async function getVehicleReport(vehicleId: string, period: Period): Promi
   const monthDays = daysInMonth(monthStart.getUTCFullYear(), monthStart.getUTCMonth());
   const proration = days / monthDays;
 
-  const [trips, dailyPlans, fuelLogs, expenses, activeVehicleCount, driverSalary, staffSalaryAgg, staffExpenseAgg, lunchAgg] =
+  const [trips, dailyPlans, fuelLogs, expenses, activeVehicleCount, driverAssignmentLogs, staffSalaryAgg, staffExpenseAgg, lunchAgg] =
     await Promise.all([
       prisma.trip.findMany({ where: { vehicleId, tripDate: { gte: from, lte: to } }, select: { revenue: true, kind: true } }),
       prisma.dailyPlan.findMany({ where: { vehicleId, planDate: { gte: from, lte: to } }, select: { paidAmount: true } }),
@@ -50,9 +50,15 @@ export async function getVehicleReport(vehicleId: string, period: Period): Promi
       }),
       prisma.expense.findMany({ where: { vehicleId, expenseDate: { gte: from, lte: to } }, select: { category: true, amount: true } }),
       prisma.vehicle.count({ where: { status: { in: DISPATCHABLE_STATUSES } } }),
-      vehicle.driver
-        ? prisma.salary.findUnique({ where: { userId_month: { userId: vehicle.driver.userId, month: monthStart } } })
-        : Promise.resolve(null),
+      // Every driver who actually drove this vehicle at some point within
+      // [from, to] — not just whoever is currently assigned. A vehicle
+      // reassigned mid-period used to attribute the *whole* period's driver
+      // salary expense to the new driver alone, silently dropping whoever
+      // drove it before the handoff.
+      prisma.driverAssignmentLog.findMany({
+        where: { vehicleId, startedAt: { lte: to }, OR: [{ endedAt: null }, { endedAt: { gte: from } }] },
+        include: { driver: { select: { userId: true } } },
+      }),
       prisma.salary.aggregate({
         _sum: { netPay: true },
         where: { month: monthStart, user: { role: { notIn: ["DRIVER", "OWNER"] } } },
@@ -62,6 +68,21 @@ export async function getVehicleReport(vehicleId: string, period: Period): Promi
       // so it belongs in the same shared-overhead pool as StaffExpense.
       prisma.lunch.aggregate({ _sum: { amount: true }, where: { lunchDate: { gte: from, lte: to } } }),
     ]);
+
+  // Each driver's own days-on-this-vehicle within the period, summed in case
+  // they handed off and came back (see "40 056 RCA" real-world case: same
+  // driver, three separate log entries in one week).
+  const daysByDriverUserId = new Map<string, number>();
+  for (const log of driverAssignmentLogs) {
+    const overlap = overlapDays(from, to, log.startedAt, log.endedAt);
+    if (overlap <= 0) continue;
+    daysByDriverUserId.set(log.driver.userId, (daysByDriverUserId.get(log.driver.userId) ?? 0) + overlap);
+  }
+  const driverSalaries =
+    daysByDriverUserId.size > 0
+      ? await prisma.salary.findMany({ where: { userId: { in: [...daysByDriverUserId.keys()] }, month: monthStart } })
+      : [];
+  const salaryByUserId = new Map(driverSalaries.map((s) => [s.userId, s]));
 
   const income =
     trips.reduce((s, t) => s + Number(t.revenue), 0) + dailyPlans.reduce((s, p) => s + Number(p.paidAmount), 0);
@@ -87,7 +108,12 @@ export async function getVehicleReport(vehicleId: string, period: Period): Promi
   const fuelByTypeSum = [...fuelByTypeMap.values()].reduce((s, v) => s + v, 0);
   const fuelResidual = fuelTotal - fuelByTypeSum;
 
-  const driverSalaryAmount = driverSalary ? Number(driverSalary.netPay) * proration : 0;
+  let driverSalaryAmount = 0;
+  for (const [userId, daysDriven] of daysByDriverUserId) {
+    const salary = salaryByUserId.get(userId);
+    if (!salary) continue;
+    driverSalaryAmount += (Number(salary.netPay) * daysDriven) / monthDays;
+  }
   const overheadShare =
     activeVehicleCount > 0
       ? ((Number(staffSalaryAgg._sum.netPay ?? 0) * proration +
