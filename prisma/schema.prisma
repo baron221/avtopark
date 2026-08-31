@@ -220,6 +220,14 @@ model Vehicle {
   purchasePrice BigInt        @map("purchase_price")
   purchaseDate  DateTime      @map("purchase_date")
   odometerKm    Int?          @map("odometer_km")
+  // When odometerKm was last actually true — the GPS mileage estimate adds
+  // distance driven *since* this date on top of it. Set alongside
+  // odometerKm both by an oil change (a real physical reading) and by a
+  // standalone correction (see UpdateOdometerForm) — whichever happened
+  // more recently wins as the estimate's baseline. Null for a vehicle
+  // that's only ever had its creation-time reading (falls back to
+  // purchaseDate, same as before this field existed).
+  odometerAsOf  DateTime?     @map("odometer_as_of")
 
   driver           Driver?
   trips            Trip[]

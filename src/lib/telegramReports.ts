@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getCashLedgerSummary } from "@/lib/ownerPayout";
 import { formatSom } from "@/lib/format";
 import { notifyRole } from "@/lib/telegram";
+import { estimateCurrentOdometerKm, resolveOdometerBase } from "@/lib/oilChange";
 
 // Shared with the three cron-triggered alert routes (api/alerts/*) — each
 // builds its own message text here, then either the cron route decides
@@ -37,33 +38,91 @@ export async function buildCashReminderReport(): Promise<{ message: string; hasI
   return { hasIssue: false, message: "💰 Бугун ҳар иккала пункт ҳам пул топширган." };
 }
 
-export async function buildOilDueReport(): Promise<{ message: string; hasIssue: boolean }> {
-  const vehicles = await prisma.vehicle.findMany({ select: { id: true, plate: true, model: true, odometerKm: true } });
+const OIL_WARNING_KM = 500;
+
+type OilRow = { plate: string; model: string; currentKm: number | null; kmRemaining: number | null; rank: number };
+
+/** Same km-remaining math and same GPS-estimated current km as the
+ * mechanic vehicle page's own badge (estimateCurrentOdometerKm doesn't
+ * touch Wialon, just sums the already-synced VehicleMileage rows, so this
+ * is cheap even for the whole fleet at once). rank: 3 = overdue,
+ * 2 = nearing (within OIL_WARNING_KM), 1 = no oil-change history to judge
+ * by, 0 = fine. Shared by /moy (all rows) and the daily cron (rank >= 2
+ * only). */
+async function computeOilRows(): Promise<OilRow[]> {
+  const vehicles = await prisma.vehicle.findMany({
+    select: { id: true, plate: true, model: true, odometerKm: true, odometerAsOf: true, purchaseDate: true },
+    orderBy: { plate: "asc" },
+  });
   const oilChanges = await prisma.oilChange.findMany({
     where: { vehicleId: { in: vehicles.map((v) => v.id) } },
     orderBy: { changedAt: "desc" },
-    select: { vehicleId: true, odometerKm: true, intervalKm: true },
+    select: { vehicleId: true, odometerKm: true, intervalKm: true, changedAt: true },
   });
   const latestByVehicle = new Map<string, (typeof oilChanges)[number]>();
   for (const oc of oilChanges) {
     if (!latestByVehicle.has(oc.vehicleId)) latestByVehicle.set(oc.vehicleId, oc);
   }
 
-  const due: { plate: string; model: string }[] = [];
+  const rows: OilRow[] = [];
   for (const vehicle of vehicles) {
     const last = latestByVehicle.get(vehicle.id);
-    if (!last) continue;
-    const dueKm = last.odometerKm + last.intervalKm;
-    if (vehicle.odometerKm != null && vehicle.odometerKm >= dueKm) {
-      due.push({ plate: vehicle.plate, model: vehicle.model });
+    const base = resolveOdometerBase(last ?? null, vehicle);
+
+    const estimated = base ? await estimateCurrentOdometerKm(vehicle.id, base.km, base.date) : null;
+    const currentKm = estimated ?? vehicle.odometerKm ?? base?.km ?? null;
+
+    if (!last) {
+      rows.push({ plate: vehicle.plate, model: vehicle.model, currentKm, kmRemaining: null, rank: 1 });
+      continue;
     }
+
+    const nextDueKm = last.odometerKm + last.intervalKm;
+    const kmRemaining = currentKm != null ? nextDueKm - currentKm : null;
+    const rank = kmRemaining == null ? 1 : kmRemaining <= 0 ? 3 : kmRemaining <= OIL_WARNING_KM ? 2 : 0;
+    rows.push({ plate: vehicle.plate, model: vehicle.model, currentKm, kmRemaining, rank });
   }
 
-  if (due.length > 0) {
-    const list = due.map((v) => `• <b>${v.plate}</b> (${v.model})`).join("\n");
-    return { hasIssue: true, message: `🔧 Мой алмаштириш муддати етган машиналар:\n\n${list}` };
+  return rows.sort((a, b) => b.rank - a.rank);
+}
+
+function formatOilRow(r: OilRow): string {
+  const kmText = r.currentKm != null ? `${r.currentKm.toLocaleString("uz-UZ")} км` : "км номаълум";
+  if (r.kmRemaining == null) {
+    return `⚪ <b>${r.plate}</b> (${r.model}) — жами ${kmText}, мой тарихи йўқ`;
   }
-  return { hasIssue: false, message: "🔧 Ҳозирча мой алмаштириш муддати ўтган машина йўқ." };
+  if (r.kmRemaining <= 0) {
+    return `🔴 <b>${r.plate}</b> (${r.model}) — жами ${kmText}, муддати ${Math.abs(r.kmRemaining).toLocaleString("uz-UZ")} км олдин ўтган`;
+  }
+  if (r.kmRemaining <= OIL_WARNING_KM) {
+    return `🟡 <b>${r.plate}</b> (${r.model}) — жами ${kmText}, ${r.kmRemaining.toLocaleString("uz-UZ")} км қолди`;
+  }
+  return `🟢 <b>${r.plate}</b> (${r.model}) — жами ${kmText}, ${r.kmRemaining.toLocaleString("uz-UZ")} км қолди`;
+}
+
+/** Cron's actual handler (see api/alerts/oil-due) — pushes to the mechanic
+ * once a vehicle enters the warning zone (kmRemaining <= OIL_WARNING_KM),
+ * not just once it's fully overdue, so there's real lead time to schedule
+ * the change instead of finding out the same day it's due. Re-alerts every
+ * day a vehicle stays in that zone — a maintenance reminder should keep
+ * nagging until the oil is actually changed, not fire once and go silent. */
+export async function buildOilDueReport(): Promise<{ message: string; hasIssue: boolean }> {
+  const rows = (await computeOilRows()).filter((r) => r.rank >= 2);
+
+  if (rows.length > 0) {
+    const list = rows.map(formatOilRow).join("\n");
+    return { hasIssue: true, message: `🔧 <b>Мой алмаштиришга эътибор керак:</b>\n\n${list}` };
+  }
+  return { hasIssue: false, message: "🔧 Ҳозирча барча машиналарда мой яхши ҳолатда." };
+}
+
+/** /moy's actual handler: unlike buildOilDueReport (cron, silent unless
+ * something needs attention), this always lists every vehicle. Sorted
+ * most-urgent first so the list is useful even when it's long. */
+export async function buildOilStatusReport(): Promise<{ message: string }> {
+  const rows = await computeOilRows();
+  const lines = rows.map(formatOilRow).join("\n");
+  return { message: `🔧 <b>Барча машиналар — мой ҳолати</b>\n\n${lines}` };
 }
 
 export async function buildDailySummaryReport(referenceDate: Date = new Date()): Promise<{ message: string }> {

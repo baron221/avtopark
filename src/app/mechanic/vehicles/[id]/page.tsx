@@ -12,7 +12,7 @@ import { getOwnerDashboardVM, type Period } from "@/lib/dashboard";
 import { getVehicleReport } from "@/lib/vehicleReport";
 import { getDriverAssignmentHistory } from "@/lib/driverAssignment";
 import { getWialonUnitByPlate, getWialonMileageToday, type WialonUnit } from "@/lib/wialon";
-import { estimateCurrentOdometerKm } from "@/lib/oilChange";
+import { estimateCurrentOdometerKm, resolveOdometerBase } from "@/lib/oilChange";
 import { monthStart as toMonthStart, monthEnd as toMonthEnd } from "@/lib/month";
 import { hasModuleAccess } from "@/lib/access";
 import { StatusSelect } from "./StatusSelect";
@@ -20,6 +20,7 @@ import { ExpenseForm } from "./ExpenseForm";
 import { DriverSelect } from "./DriverSelect";
 import { AddDriverForm } from "./AddDriverForm";
 import { OilChangeForm } from "./OilChangeForm";
+import { UpdateOdometerForm } from "./UpdateOdometerForm";
 import { MonthlyFuelCardContent } from "./MonthlyFuelCardContent";
 
 // Viewing a past month with no cached VehicleMileage data falls back to one
@@ -88,15 +89,12 @@ export default async function VehicleDetailPage({
   const maxDayKm = Math.max(1, ...last7Days.map((m) => m.km));
 
   const lastOilChange = oilChanges[0] ?? null;
-  // The last real reading we know of — from the last oil change if there's
-  // been one, otherwise the vehicle's own odometerKm (dated from purchase,
-  // a rough base but VehicleMileage only has rows from when GPS tracking
-  // started anyway, so summing "since" it is safe either way).
-  const oilBase = lastOilChange
-    ? { km: lastOilChange.odometerKm, date: lastOilChange.changedAt }
-    : vehicle.odometerKm != null
-      ? { km: vehicle.odometerKm, date: vehicle.purchaseDate }
-      : null;
+  // The last real reading we know of — whichever of the last oil change or
+  // a standalone correction (UpdateOdometerForm) happened more recently,
+  // falling back to the vehicle's creation-time reading if neither has
+  // ever happened (VehicleMileage only has rows from when GPS tracking
+  // started anyway, so summing "since" any of these bases is safe).
+  const oilBase = resolveOdometerBase(lastOilChange, vehicle);
 
   type GpsBundle = { unit: WialonUnit | null; mileageToday: number | null };
 
@@ -132,10 +130,10 @@ export default async function VehicleDetailPage({
   // no day-based trigger, since a vehicle sitting unused for a while
   // shouldn't be flagged just because time passed with no distance driven.
   const OIL_WARNING_KM = 500;
+  const currentKm = estimatedOdometerKm ?? vehicle.odometerKm ?? oilBase?.km ?? null;
   let oilStatus: { level: "OK" | "WARNING" | "OVERDUE"; kmRemaining: number } | null = null;
-  if (lastOilChange) {
+  if (lastOilChange && currentKm != null) {
     const nextDueKm = lastOilChange.odometerKm + lastOilChange.intervalKm;
-    const currentKm = estimatedOdometerKm ?? vehicle.odometerKm ?? lastOilChange.odometerKm;
     const kmRemaining = nextDueKm - currentKm;
     const overdue = kmRemaining <= 0;
     const nearing = kmRemaining <= OIL_WARNING_KM;
@@ -343,8 +341,9 @@ export default async function VehicleDetailPage({
             </span>
           )}
         </div>
-        <div className="px-6 pb-4">
+        <div className="px-6 pb-4 flex flex-col gap-3">
           <OilChangeForm vehicleId={vehicle.id} lastOdometerKm={vehicle.odometerKm} estimatedOdometerKm={estimatedOdometerKm} />
+          <UpdateOdometerForm vehicleId={vehicle.id} currentKm={currentKm} />
         </div>
         {oilChanges.map((o) => (
           <div

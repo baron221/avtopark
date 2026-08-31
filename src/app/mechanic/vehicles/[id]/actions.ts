@@ -105,8 +105,27 @@ export async function addOilChangeAction(formData: FormData) {
         enteredBy: userId,
       },
     }),
-    prisma.vehicle.update({ where: { id: vehicleId }, data: { odometerKm } }),
+    prisma.vehicle.update({ where: { id: vehicleId }, data: { odometerKm, odometerAsOf: changedAt } }),
   ]);
+
+  revalidatePath(`/mechanic/vehicles/${vehicleId}`);
+  revalidatePath("/mechanic/vehicles");
+}
+
+/** Corrects the vehicle's known odometer without recording an oil change —
+ * for when the GPS estimate has drifted from the real dashboard reading
+ * but the oil isn't actually due yet. Doesn't touch OilChange/intervalKm,
+ * so "when is the next change due" is unaffected — only the current-km
+ * estimate's baseline moves forward to this reading's date (see
+ * resolveOdometerBase). */
+export async function updateOdometerAction(formData: FormData) {
+  await requireMechanic();
+
+  const vehicleId = String(formData.get("vehicleId") ?? "");
+  const odometerKm = Math.round(Number(formData.get("odometerKm") ?? 0));
+  if (!vehicleId || !(odometerKm > 0)) return;
+
+  await prisma.vehicle.update({ where: { id: vehicleId }, data: { odometerKm, odometerAsOf: new Date() } });
 
   revalidatePath(`/mechanic/vehicles/${vehicleId}`);
   revalidatePath("/mechanic/vehicles");
