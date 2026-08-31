@@ -405,6 +405,7 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
       select: {
         id: true,
         vehicleId: true,
+        driverId: true,
         revenue: true,
         kind: true,
         point: true,
@@ -464,6 +465,14 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
   ]);
 
   const driverByVehicleId = new Map(driversFlat.filter((d) => d.vehicleId).map((d) => [d.vehicleId as string, d]));
+  // Vehicle -> its *current* driver, used for the per-vehicle summary rows
+  // below (vehicleRows/pointVehicles) where showing "who drives it now" is a
+  // reasonable label for a whole-period aggregate. A per-trip row (orderRows)
+  // needs the driver who actually drove *that trip* instead — a vehicle
+  // reassigned mid-period would otherwise show every one of its past trips
+  // under the new driver's name, even ones from before they were ever
+  // assigned to it.
+  const driverById = new Map(driversFlat.map((d) => [d.id, d]));
   const vehicleById = new Map(vehiclesFlat.map((v) => [v.id, v]));
   // Kept separate (not just a combined trip+order count) so the fleet table
   // can show how much of a vehicle's activity is its regular route vs a
@@ -676,7 +685,7 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
       time: t.createdAt,
       point: t.point,
       plate: vehicleById.get(t.vehicleId)?.plate ?? "—",
-      driverName: driverByVehicleId.get(t.vehicleId)?.user.fullName ?? "—",
+      driverName: driverById.get(t.driverId)?.user.fullName ?? "—",
       amount: Number(t.revenue),
       note: t.note,
     }))
