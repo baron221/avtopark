@@ -44,3 +44,13 @@ export async function notifyRole(role: AlertRole, text: string): Promise<void> {
     await sendToChat(chatId, text);
   }
 }
+
+/**
+ * Direct reply to one specific chat — used by the webhook route (api/
+ * telegram/webhook) to answer an on-demand /hisobot-style command, unlike
+ * notifyRole's broadcast-to-a-role-plus-channel pattern.
+ */
+export async function sendMessage(chatId: string, text: string): Promise<void> {
+  if (!process.env.TELEGRAM_BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN .env da yo'q");
+  await sendToChat(chatId, text);
+}
