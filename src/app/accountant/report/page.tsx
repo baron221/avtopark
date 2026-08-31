@@ -6,6 +6,7 @@ import { getCashLedgerSummary } from "@/lib/ownerPayout";
 import { hasModuleAccess } from "@/lib/access";
 import {
   confirmCashReceiptAction,
+  confirmCashReceiptWithAdjustmentAction,
   revertCashReceiptAction,
   recordOwnerPayoutAction,
   cancelOwnerPayoutAction,
@@ -56,6 +57,7 @@ export default async function AccountantReportPage({
       cashPdfExportHref={`/accountant/report/export/cash-pdf?period=${period}&date=${dateStr}`}
       cashLedger={cashLedger}
       confirmReceiptAction={confirmCashReceiptAction}
+      adjustReceiptAction={confirmCashReceiptWithAdjustmentAction}
       revertReceiptAction={revertCashReceiptAction}
       recordPayoutAction={recordOwnerPayoutAction}
       cancelPayoutAction={cancelOwnerPayoutAction}

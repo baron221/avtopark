@@ -24,10 +24,51 @@ export async function confirmCashReceiptAction(formData: FormData) {
   revalidatePath("/accountant/report");
 }
 
+/** Same as confirmCashReceiptAction, but for when what the accountant
+ * actually counted on receipt doesn't match `amount` (the dispatcher's own
+ * declared figure) — the accountant enters the real amount, with a reason,
+ * the same way a dispatcher can already override their own handover.
+ * `amount` itself is untouched (still "what the dispatcher declared");
+ * confirmedAmount is what actually flows into the cash balance from here
+ * on (see computeCashBalance/computeBalanceLedger). */
+export async function confirmCashReceiptWithAdjustmentAction(
+  _prevState: OwnerPayoutState,
+  formData: FormData
+): Promise<OwnerPayoutState> {
+  const session = await auth();
+  if (!session || (session.user.role !== "ACCOUNTANT" && !(await hasModuleAccess(session.user.role, "FLEET_DASHBOARD")))) {
+    throw new Error("Рухсат йўқ");
+  }
+
+  const id = String(formData.get("id") ?? "");
+  const rawAmount = Number(formData.get("amount"));
+  const note = String(formData.get("note") ?? "").trim();
+  if (!Number.isFinite(rawAmount) || rawAmount < 0) return { error: "Суммани тўғри киритинг" };
+  if (!note) return { error: "Сабабини киритинг" };
+
+  const handover = await prisma.cashHandover.findUnique({ where: { id } });
+  if (!handover || handover.accountantConfirmedAt) return { error: "" };
+
+  await prisma.cashHandover.update({
+    where: { id },
+    data: {
+      accountantConfirmedBy: session.user.id,
+      accountantConfirmedAt: new Date(),
+      confirmedAmount: BigInt(Math.round(rawAmount)),
+      confirmedNote: note,
+    },
+  });
+
+  revalidatePath("/accountant/report");
+  return { error: "" };
+}
+
 /** Undoes an accidental "Қабул қилдим" click — back to pending (unconfirmed),
  * so it reappears in the pending list and drops back out of the confirmed
  * cash balance. The dispatcher's own handover record and any note on it are
- * untouched, only the accountant's confirmation. */
+ * untouched, only the accountant's confirmation (and any count-adjustment
+ * that came with it, so a later re-confirm starts clean rather than
+ * silently re-applying a stale correction). */
 export async function revertCashReceiptAction(formData: FormData) {
   const session = await auth();
   if (!session || (session.user.role !== "ACCOUNTANT" && !(await hasModuleAccess(session.user.role, "FLEET_DASHBOARD")))) {
@@ -40,7 +81,12 @@ export async function revertCashReceiptAction(formData: FormData) {
 
   await prisma.cashHandover.update({
     where: { id },
-    data: { accountantConfirmedBy: null, accountantConfirmedAt: null },
+    data: {
+      accountantConfirmedBy: null,
+      accountantConfirmedAt: null,
+      confirmedAmount: null,
+      confirmedNote: null,
+    },
   });
 
   revalidatePath("/accountant/report");

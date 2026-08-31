@@ -126,7 +126,12 @@ export default async function VehicleDetailPage({
   const gpsUnit = gpsBundle.unit;
   const gpsMileageToday = gpsBundle.mileageToday;
 
-  let oilStatus: { overdue: boolean; kmRemaining: number; daysRemaining: number } | null = null;
+  // Approaching due (within 500km or 7 days) gets its own "yellow" tier so a
+  // mechanic sees it coming instead of the status jumping straight from
+  // "fine" to "overdue" with no lead time to actually schedule the change.
+  const OIL_WARNING_KM = 500;
+  const OIL_WARNING_DAYS = 7;
+  let oilStatus: { level: "OK" | "WARNING" | "OVERDUE"; kmRemaining: number; daysRemaining: number } | null = null;
   if (lastOilChange) {
     const nextDueKm = lastOilChange.odometerKm + lastOilChange.intervalKm;
     const nextDueDate = new Date(lastOilChange.changedAt);
@@ -134,7 +139,9 @@ export default async function VehicleDetailPage({
     const currentKm = estimatedOdometerKm ?? vehicle.odometerKm ?? lastOilChange.odometerKm;
     const kmRemaining = nextDueKm - currentKm;
     const daysRemaining = Math.ceil((nextDueDate.getTime() - new Date().getTime()) / 86_400_000);
-    oilStatus = { overdue: kmRemaining <= 0 || daysRemaining <= 0, kmRemaining, daysRemaining };
+    const overdue = kmRemaining <= 0 || daysRemaining <= 0;
+    const nearing = kmRemaining <= OIL_WARNING_KM || daysRemaining <= OIL_WARNING_DAYS;
+    oilStatus = { level: overdue ? "OVERDUE" : nearing ? "WARNING" : "OK", kmRemaining, daysRemaining };
   }
 
   const row = vm.vehicles.find((v) => v.vehicleId === id);
@@ -325,10 +332,14 @@ export default async function VehicleDetailPage({
           {oilStatus && (
             <span
               className={`text-xs font-extrabold px-2.5 py-1 rounded-full ${
-                oilStatus.overdue ? "bg-danger-tint text-danger" : "bg-success-tint text-success"
+                oilStatus.level === "OVERDUE"
+                  ? "bg-danger-tint text-danger"
+                  : oilStatus.level === "WARNING"
+                    ? "bg-warning-tint text-warning"
+                    : "bg-success-tint text-success"
               }`}
             >
-              {oilStatus.overdue
+              {oilStatus.level === "OVERDUE"
                 ? "Муддати ўтган"
                 : `${Math.max(0, oilStatus.kmRemaining).toLocaleString("uz-UZ")} км / ${Math.max(0, oilStatus.daysRemaining)} кун қолди`}
             </span>

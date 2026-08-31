@@ -736,6 +736,13 @@ model CashHandover {
   dispatcherConfirmedAt DateTime  @map("dispatcher_confirmed_at")
   accountantConfirmedBy String?   @map("accountant_confirmed_by")
   accountantConfirmedAt DateTime? @map("accountant_confirmed_at")
+  // Set only when the accountant's physical count on receipt didn't match
+  // `amount` (the dispatcher's own declared figure) — confirmedNote is then
+  // required, same as `note` above is for the dispatcher's own override.
+  // Once set, this — not `amount` — is what the cash balance sums, so a
+  // count correction doesn't leave the two figures silently diverging.
+  confirmedAmount       BigInt?   @map("confirmed_amount")
+  confirmedNote         String?   @map("confirmed_note")
   createdAt             DateTime  @default(now()) @map("created_at")
 
   dispatcherConfirmedByUser User  @relation("CashHandoverDispatcher", fields: [dispatcherConfirmedBy], references: [id])

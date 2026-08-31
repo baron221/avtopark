@@ -11,6 +11,7 @@ import { CashOpeningBalanceForm } from "@/components/dashboard/CashOpeningBalanc
 import { CashHistorySection } from "@/components/dashboard/CashHistorySection";
 import { BalanceLedgerSection } from "@/components/dashboard/BalanceLedgerSection";
 import { CollapsibleCard } from "@/components/dashboard/CollapsibleCard";
+import { ConfirmReceiptRow } from "@/components/dashboard/ConfirmReceiptRow";
 import { OutsideExpensesCard } from "@/components/dashboard/OutsideExpensesCard";
 import type { OwnerDashboardVM, Period } from "@/lib/dashboard";
 import type { CashLedgerSummary, OwnerPayoutState, MonthlyPayoutPoint } from "@/lib/ownerPayout";
@@ -33,6 +34,7 @@ export function FleetDashboard({
   cashPdfExportHref,
   cashLedger,
   confirmReceiptAction,
+  adjustReceiptAction,
   revertReceiptAction,
   recordPayoutAction,
   cancelPayoutAction,
@@ -57,6 +59,7 @@ export function FleetDashboard({
   /** Accountant-only cash data (pending confirmations per point + a combined running balance/history). Passed only by /accountant/report — Owner/Admin omit it entirely, so this whole section renders nothing for them. */
   cashLedger?: CashLedgerSummary;
   confirmReceiptAction?: (formData: FormData) => Promise<void>;
+  adjustReceiptAction?: (prevState: OwnerPayoutState, formData: FormData) => Promise<OwnerPayoutState>;
   revertReceiptAction?: (formData: FormData) => Promise<void>;
   recordPayoutAction?: (prevState: OwnerPayoutState, formData: FormData) => Promise<OwnerPayoutState>;
   cancelPayoutAction?: (formData: FormData) => Promise<void>;
@@ -297,6 +300,7 @@ export function FleetDashboard({
 
                   {cashLedger &&
                     confirmReceiptAction &&
+                    adjustReceiptAction &&
                     (() => {
                       const pointPending = cashLedger.pointPending.find((c) => c.point === p.point);
                       if (!pointPending || pointPending.pending.length === 0) return null;
@@ -304,27 +308,12 @@ export function FleetDashboard({
                         <div className="pt-3 border-t border-row-divider flex flex-col gap-2">
                           <div className="text-[13px] font-extrabold text-heading">Диспетчердан кутилмоқда</div>
                           {pointPending.pending.map((h) => (
-                            <div key={h.id} className="flex items-center justify-between gap-2 bg-page rounded-xl p-2.5">
-                              <div>
-                                <div className="text-xs font-bold text-heading">{formatSom(h.amount)}</div>
-                                <div className="text-[11px] text-muted-2 font-semibold">
-                                  {h.dispatcherName} ·{" "}
-                                  {h.handoverDate.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" })}
-                                </div>
-                                {h.note && (
-                                  <div className="text-[11px] text-danger font-semibold">Сабаб: {h.note}</div>
-                                )}
-                              </div>
-                              <form action={confirmReceiptAction}>
-                                <input type="hidden" name="id" value={h.id} />
-                                <button
-                                  type="submit"
-                                  className="bg-success text-white rounded-lg px-3 py-1.5 text-xs font-extrabold whitespace-nowrap"
-                                >
-                                  Қабул қилдим ✓
-                                </button>
-                              </form>
-                            </div>
+                            <ConfirmReceiptRow
+                              key={h.id}
+                              handover={h}
+                              confirmAction={confirmReceiptAction}
+                              adjustAction={adjustReceiptAction}
+                            />
                           ))}
                         </div>
                       );

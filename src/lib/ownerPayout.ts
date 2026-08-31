@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { monthStart, monthEnd } from "@/lib/month";
-import { uzMonthName, formatDayMonth } from "@/lib/format";
+import { uzMonthName, formatDayMonth, formatSom } from "@/lib/format";
 import { OTHER_INCOME_CATEGORY_LABELS } from "@/lib/otherIncome";
 import { rangeForPeriod, type Period } from "@/lib/dashboard";
 import type { Point } from "@prisma/client";
@@ -29,6 +29,11 @@ export type ConfirmedHandoverRow = {
   accountantName: string;
   /** Only set when the dispatcher overrode the auto-computed amount. */
   note: string | null;
+  /** Only set when the accountant's physical count on receipt didn't match
+   * `amount` — this, not `amount`, is what actually reached the cash pile
+   * (see confirmCashReceiptWithAdjustmentAction). */
+  confirmedAmount: number | null;
+  confirmedNote: string | null;
 };
 
 export type OwnerPayoutRow = {
@@ -211,9 +216,17 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
   const since = openingBalance.setDate;
   const sincePayoutCutoff = utcDayStart(since);
 
-  const [confirmedAgg, payoutAgg, expenseAgg, staffExpenseAgg, advanceAgg, salaryAgg, stationPaymentAgg] =
+  const [confirmedHandovers, payoutAgg, expenseAgg, staffExpenseAgg, advanceAgg, salaryAgg, stationPaymentAgg] =
     await Promise.all([
-      prisma.cashHandover.aggregate({ _sum: { amount: true }, where: { accountantConfirmedAt: { gte: since } } }),
+      // Not an aggregate: a handover the accountant confirmed at a different
+      // amount than the dispatcher declared (see confirmCashReceiptWith
+      // AdjustmentAction) has confirmedAmount set, and that — not `amount`
+      // — is what actually reached the cash pile, so each row needs its own
+      // confirmedAmount-or-amount pick before summing.
+      prisma.cashHandover.findMany({
+        where: { accountantConfirmedAt: { gte: since } },
+        select: { amount: true, confirmedAmount: true },
+      }),
       prisma.ownerPayout.aggregate({ _sum: { amount: true }, where: { payoutDate: { gte: sincePayoutCutoff } } }),
       prisma.expense.aggregate({
         _sum: { amount: true },
@@ -244,7 +257,7 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
       prisma.stationPayment.aggregate({ _sum: { paidAmount: true }, where: { paidAt: { gte: since } } }),
     ]);
 
-  const confirmed = Number(confirmedAgg._sum.amount ?? BigInt(0));
+  const confirmed = confirmedHandovers.reduce((s, h) => s + Number(h.confirmedAmount ?? h.amount), 0);
   const paidToOwner = Number(payoutAgg._sum.amount ?? BigInt(0));
   const expenses = Number(expenseAgg._sum.amount ?? BigInt(0));
   const staffExpenses = Number(staffExpenseAgg._sum.amount ?? BigInt(0));
@@ -318,15 +331,20 @@ async function computeBalanceLedger(since: Date, openingAmount: number): Promise
     ]);
 
   const rows: Omit<BalanceLedgerRow, "balanceAfter">[] = [
-    ...confirmed.map((h) => ({
-      id: h.id,
-      time: h.accountantConfirmedAt as Date,
-      forDate: h.handoverDate,
-      sign: "IN" as const,
-      category: "Топширилган",
-      subtitle: `${BALANCE_POINT_LABELS[h.point] ?? h.point} · ${h.dispatcherConfirmedByUser.fullName}`,
-      amount: Number(h.amount),
-    })),
+    ...confirmed.map((h) => {
+      const adjusted = h.confirmedAmount !== null && h.confirmedAmount !== h.amount;
+      return {
+        id: h.id,
+        time: h.accountantConfirmedAt as Date,
+        forDate: h.handoverDate,
+        sign: "IN" as const,
+        category: "Топширилган",
+        subtitle: adjusted
+          ? `${BALANCE_POINT_LABELS[h.point] ?? h.point} · ${h.dispatcherConfirmedByUser.fullName} · дастлаб ${formatSom(Number(h.amount))}, сабаб: ${h.confirmedNote}`
+          : `${BALANCE_POINT_LABELS[h.point] ?? h.point} · ${h.dispatcherConfirmedByUser.fullName}`,
+        amount: Number(h.confirmedAmount ?? h.amount),
+      };
+    }),
     ...payouts.map((p) => ({
       id: p.id,
       time: p.payoutDate,
@@ -721,6 +739,8 @@ export async function getCashLedgerSummary(period: Period, referenceDate: Date):
       dispatcherName: h.dispatcherConfirmedByUser.fullName,
       accountantName: h.accountantConfirmedByUser?.fullName ?? "—",
       note: h.note,
+      confirmedAmount: h.confirmedAmount !== null ? Number(h.confirmedAmount) : null,
+      confirmedNote: h.confirmedNote,
     })),
     payoutHistory: payouts.map((p) => ({
       id: p.id,
