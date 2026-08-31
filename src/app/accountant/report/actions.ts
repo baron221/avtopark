@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hasModuleAccess } from "@/lib/access";
 import { getCashBalance, type OwnerPayoutState } from "@/lib/ownerPayout";
+import { maybeAutoSendDailySummary } from "@/lib/telegramReports";
 
 export async function confirmCashReceiptAction(formData: FormData) {
   const session = await auth();
@@ -20,6 +21,9 @@ export async function confirmCashReceiptAction(formData: FormData) {
     where: { id },
     data: { accountantConfirmedBy: session.user.id, accountantConfirmedAt: new Date() },
   });
+
+  // Best-effort — a Telegram hiccup shouldn't fail the confirm itself.
+  await maybeAutoSendDailySummary(handover.handoverDate).catch((err) => console.error("Telegram авто-жўнатиш хатоси:", err));
 
   revalidatePath("/accountant/report");
 }
@@ -58,6 +62,9 @@ export async function confirmCashReceiptWithAdjustmentAction(
       confirmedNote: note,
     },
   });
+
+  // Best-effort — a Telegram hiccup shouldn't fail the confirm itself.
+  await maybeAutoSendDailySummary(handover.handoverDate).catch((err) => console.error("Telegram авто-жўнатиш хатоси:", err));
 
   revalidatePath("/accountant/report");
   return { error: "" };

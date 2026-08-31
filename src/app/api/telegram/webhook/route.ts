@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { sendMessage } from "@/lib/telegram";
-import { buildCashReminderReport, buildOilDueReport, buildDailySummaryReport } from "@/lib/telegramReports";
+import { buildCashReminderReport, buildOilDueReport, buildOnDemandDailySummary } from "@/lib/telegramReports";
 
 const WELCOME =
   "Салом! Қуйидаги буйруқлар орқали хоҳлаган пайтда ҳисобот сўраш мумкин:\n\n" +
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
 
   try {
     if (command === "/hisobot") {
-      const report = await buildDailySummaryReport();
+      const report = await buildOnDemandDailySummary();
       await sendMessage(chatId, report.message);
     } else if (command === "/moy") {
       const report = await buildOilDueReport();
