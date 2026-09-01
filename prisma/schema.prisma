@@ -262,10 +262,17 @@ model OilChange {
   intervalMonths Int      @map("interval_months")
   amount         BigInt
   note           String?
+  // The matching Expense (category REPAIR) created alongside this row, same
+  // pattern as FuelLog.expenseId — so deleting an oil-change entry (see
+  // deleteOilChangeAction) keeps both in sync instead of leaving an
+  // orphaned expense behind. Nullable because rows created before this
+  // field existed have no linked expense.
+  expenseId      String?  @unique @map("expense_id")
   enteredBy      String   @map("entered_by")
 
-  vehicle       Vehicle @relation(fields: [vehicleId], references: [id])
-  enteredByUser User    @relation("OilChangeEnteredBy", fields: [enteredBy], references: [id])
+  vehicle       Vehicle  @relation(fields: [vehicleId], references: [id])
+  expense       Expense? @relation(fields: [expenseId], references: [id])
+  enteredByUser User     @relation("OilChangeEnteredBy", fields: [enteredBy], references: [id])
 
   @@index([vehicleId, changedAt])
   @@map("oil_changes")
@@ -500,10 +507,11 @@ model Expense {
   note        String?
   enteredBy   String          @map("entered_by")
 
-  vehicle       Vehicle  @relation(fields: [vehicleId], references: [id])
-  driver        Driver?  @relation(fields: [driverId], references: [id])
-  enteredByUser User     @relation("ExpenseEnteredBy", fields: [enteredBy], references: [id])
+  vehicle       Vehicle    @relation(fields: [vehicleId], references: [id])
+  driver        Driver?    @relation(fields: [driverId], references: [id])
+  enteredByUser User       @relation("ExpenseEnteredBy", fields: [enteredBy], references: [id])
   fuelLog       FuelLog?
+  oilChange     OilChange?
 
   @@index([vehicleId, expenseDate])
   @@index([expenseDate])

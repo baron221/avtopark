@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { currentMonthDate, syncDriverVehicleAssignment } from "@/lib/driverAssignment";
 import { hasModuleAccess } from "@/lib/access";
 import { normalizePhone } from "@/lib/phone";
+import { logDeletion } from "@/lib/deletionLog";
 import type { ExpenseCategory, Point, SalaryType, VehicleStatus, VehicleType } from "@prisma/client";
 
 async function requireMechanic() {
@@ -77,6 +78,86 @@ export async function addVehicleExpenseAction(formData: FormData) {
   revalidatePath("/mechanic/vehicles");
 }
 
+/** Deletes a generic vehicle Expense row — also used for the accountant's
+ * "Машина" filter (see /accountant/expenses), which points here rather
+ * than offering its own delete. If this expense turns out to be an
+ * oil-change's paired row (see OilChange.expenseId), cascades to delete
+ * that too, same as deleteOilChangeAction does from the other direction —
+ * whichever list a mechanic deletes from, both stay in sync. */
+export async function deleteVehicleExpenseAction(formData: FormData) {
+  const userId = await requireMechanic();
+
+  const id = String(formData.get("id") ?? "");
+  const expense = await prisma.expense.findUnique({ where: { id }, include: { vehicle: true, oilChange: true } });
+  if (!expense) return;
+
+  await logDeletion(
+    "Expense",
+    expense.id,
+    `${expense.vehicle.plate} · ${expense.category} · ${expense.amount.toString()} сўм${expense.note ? ` · ${expense.note}` : ""}`,
+    userId
+  );
+
+  await prisma.$transaction(async (tx) => {
+    if (expense.oilChange) await tx.oilChange.delete({ where: { id: expense.oilChange.id } });
+    await tx.expense.delete({ where: { id } });
+    if (expense.oilChange) await revertVehicleOdometerIfStale(tx, expense.vehicleId, expense.oilChange.changedAt);
+  });
+
+  revalidatePath(`/mechanic/vehicles/${expense.vehicleId}`);
+  revalidatePath("/mechanic/vehicles");
+  revalidatePath("/accountant/expenses");
+}
+
+/** Deletes an oil-change entry and its paired Expense (see addOilChangeAction).
+ * If this was the freshest known reading, falls back to whichever oil
+ * change is now the latest (or clears odometerAsOf, falling back to
+ * purchaseDate) — but leaves the vehicle untouched if a newer standalone
+ * correction (UpdateOdometerForm) already superseded it. */
+export async function deleteOilChangeAction(formData: FormData) {
+  const userId = await requireMechanic();
+
+  const id = String(formData.get("id") ?? "");
+  const oilChange = await prisma.oilChange.findUnique({ where: { id }, include: { vehicle: true } });
+  if (!oilChange) return;
+
+  await logDeletion(
+    "OilChange",
+    oilChange.id,
+    `${oilChange.vehicle.plate} · ${oilChange.odometerKm.toLocaleString("uz-UZ")} км · ${oilChange.amount.toString()} сўм`,
+    userId
+  );
+
+  await prisma.$transaction(async (tx) => {
+    await tx.oilChange.delete({ where: { id } });
+    if (oilChange.expenseId) await tx.expense.delete({ where: { id: oilChange.expenseId } });
+    await revertVehicleOdometerIfStale(tx, oilChange.vehicleId, oilChange.changedAt);
+  });
+
+  revalidatePath(`/mechanic/vehicles/${oilChange.vehicleId}`);
+  revalidatePath("/mechanic/vehicles");
+  revalidatePath("/accountant/expenses");
+}
+
+// Shared by both delete actions above: only touches the vehicle's cached
+// odometerKm/odometerAsOf when the just-deleted oil change was actually the
+// source of that cached reading (changedAt matches exactly) — otherwise a
+// later standalone correction already moved past it and nothing to fix.
+async function revertVehicleOdometerIfStale(
+  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  vehicleId: string,
+  deletedChangedAt: Date
+) {
+  const vehicle = await tx.vehicle.findUnique({ where: { id: vehicleId } });
+  if (vehicle?.odometerAsOf?.getTime() !== deletedChangedAt.getTime()) return;
+
+  const newLatest = await tx.oilChange.findFirst({ where: { vehicleId }, orderBy: { changedAt: "desc" } });
+  await tx.vehicle.update({
+    where: { id: vehicleId },
+    data: newLatest ? { odometerKm: newLatest.odometerKm, odometerAsOf: newLatest.changedAt } : { odometerAsOf: null },
+  });
+}
+
 export async function addOilChangeAction(formData: FormData) {
   const userId = await requireMechanic();
 
@@ -91,11 +172,11 @@ export async function addOilChangeAction(formData: FormData) {
 
   const changedAt = new Date();
 
-  await prisma.$transaction([
-    prisma.oilChange.create({
-      data: { vehicleId, changedAt, odometerKm, intervalKm, intervalMonths, amount: BigInt(Math.round(amount)), note, enteredBy: userId },
-    }),
-    prisma.expense.create({
+  // Expense created first so its id can be stored on the OilChange, same
+  // pattern as addFuelLogAction — letting deleteOilChangeAction keep both
+  // rows in sync later instead of orphaning one of them.
+  await prisma.$transaction(async (tx) => {
+    const expense = await tx.expense.create({
       data: {
         vehicleId,
         category: "REPAIR",
@@ -104,9 +185,22 @@ export async function addOilChangeAction(formData: FormData) {
         note: note ? `Мой алмаштириш · ${note}` : "Мой алмаштириш",
         enteredBy: userId,
       },
-    }),
-    prisma.vehicle.update({ where: { id: vehicleId }, data: { odometerKm, odometerAsOf: changedAt } }),
-  ]);
+    });
+    await tx.oilChange.create({
+      data: {
+        vehicleId,
+        changedAt,
+        odometerKm,
+        intervalKm,
+        intervalMonths,
+        amount: BigInt(Math.round(amount)),
+        note,
+        enteredBy: userId,
+        expenseId: expense.id,
+      },
+    });
+    await tx.vehicle.update({ where: { id: vehicleId }, data: { odometerKm, odometerAsOf: changedAt } });
+  });
 
   revalidatePath(`/mechanic/vehicles/${vehicleId}`);
   revalidatePath("/mechanic/vehicles");

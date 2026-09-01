@@ -15,6 +15,7 @@ import { getWialonUnitByPlate, getWialonMileageToday, type WialonUnit } from "@/
 import { estimateCurrentOdometerKm, resolveOdometerBase } from "@/lib/oilChange";
 import { monthStart as toMonthStart, monthEnd as toMonthEnd } from "@/lib/month";
 import { hasModuleAccess } from "@/lib/access";
+import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
 import { StatusSelect } from "./StatusSelect";
 import { ExpenseForm } from "./ExpenseForm";
 import { DriverSelect } from "./DriverSelect";
@@ -22,6 +23,7 @@ import { AddDriverForm } from "./AddDriverForm";
 import { OilChangeForm } from "./OilChangeForm";
 import { UpdateOdometerForm } from "./UpdateOdometerForm";
 import { MonthlyFuelCardContent } from "./MonthlyFuelCardContent";
+import { deleteVehicleExpenseAction, deleteOilChangeAction } from "./actions";
 
 // Viewing a past month with no cached VehicleMileage data falls back to one
 // live Wialon range query, observed to take ~10-14s against the self-hosted
@@ -298,7 +300,7 @@ export default async function VehicleDetailPage({
         {expenses.map((e) => (
           <div
             key={e.id}
-            className="grid grid-cols-[0.6fr_0.9fr_2fr_1fr] px-6 py-3 border-t border-row-divider items-center text-sm gap-2"
+            className="grid grid-cols-[0.6fr_0.9fr_2fr_1fr_auto] px-6 py-3 border-t border-row-divider items-center text-sm gap-2"
           >
             <div className="text-muted-2 font-bold">
               {e.expenseDate.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" })}
@@ -310,6 +312,12 @@ export default async function VehicleDetailPage({
             </div>
             <div className="text-body font-semibold">{e.note ?? "—"}</div>
             <div className="font-extrabold text-heading text-right">−{formatSom(Number(e.amount))}</div>
+            <ConfirmDeleteButton
+              action={deleteVehicleExpenseAction}
+              id={e.id}
+              confirmText="Бу харажатни ўчиришни тасдиқлайсизми?"
+              className="text-muted-2 hover:text-danger font-extrabold text-base leading-none px-1"
+            />
           </div>
         ))}
         {expenses.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Ҳали харажат йўқ</p>}
@@ -348,7 +356,7 @@ export default async function VehicleDetailPage({
         {oilChanges.map((o) => (
           <div
             key={o.id}
-            className="grid grid-cols-[0.6fr_0.9fr_2fr_1fr] px-6 py-3 border-t border-row-divider items-center text-sm gap-2"
+            className="grid grid-cols-[0.6fr_0.9fr_2fr_1fr_auto] px-6 py-3 border-t border-row-divider items-center text-sm gap-2"
           >
             <div className="text-muted-2 font-bold">
               {o.changedAt.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" })}
@@ -356,6 +364,12 @@ export default async function VehicleDetailPage({
             <div className="text-body font-semibold">{o.odometerKm.toLocaleString("uz-UZ")} км</div>
             <div className="text-muted-2 text-xs font-semibold">{o.note ?? "—"}</div>
             <div className="font-extrabold text-heading text-right">−{formatSom(Number(o.amount))}</div>
+            <ConfirmDeleteButton
+              action={deleteOilChangeAction}
+              id={o.id}
+              confirmText="Бу мой алмаштириш ёзувини ўчиришни тасдиқлайсизми?"
+              className="text-muted-2 hover:text-danger font-extrabold text-base leading-none px-1"
+            />
           </div>
         ))}
         {oilChanges.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Ҳали мой алмаштирилмаган</p>}
