@@ -19,7 +19,7 @@ import { formatMillions, formatSom, formatTime } from "@/lib/format";
 import { logoutAction } from "@/app/actions";
 
 const CATEGORY_COLORS = ["#4F46E5", "#FFB84D", "#1B9E6B", "#D9534F", "#C9CBE3", "#8A8CA0", "#6B6D82"];
-const POINT_LABELS: Record<string, string> = { FARGONA: "Фарғона", QUVA: "Қува" };
+const POINT_LABELS: Record<string, string> = { FARGONA: "Фарғона", QUVA: "Қува", BUXGALTERIYA: "Бухгалтер" };
 
 export function FleetDashboard({
   vm,

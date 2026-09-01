@@ -5,7 +5,7 @@ import { getCashLedgerSummary } from "@/lib/ownerPayout";
 import { hasModuleAccess } from "@/lib/access";
 import type { Period } from "@/lib/dashboard";
 
-const POINT_LABELS: Record<string, string> = { FARGONA: "Фарғона", QUVA: "Қува" };
+const POINT_LABELS: Record<string, string> = { FARGONA: "Фарғона", QUVA: "Қува", BUXGALTERIYA: "Бухгалтер" };
 const TASHKENT_TZ = "Asia/Tashkent";
 
 function headerRow(sheet: ExcelJS.Worksheet) {

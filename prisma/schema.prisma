@@ -433,9 +433,18 @@ model Trip {
 // no vehicleId/driverId to attach to (unlike Trip), since those vehicles
 // don't exist in this system at all. plateNumber is the primary identifier;
 // note is just a free-text comment on top of it, so both are optional.
+// Wider than Point (FARGONA/QUVA) — an accountant recording a non-fleet
+// vehicle's payment (see IncomeEntryCard) isn't always tied to either
+// dispatch point, same reasoning as StaffExpensePoint's own YOLDA/ISHXONA.
+enum OtherIncomePoint {
+  FARGONA
+  QUVA
+  BUXGALTERIYA
+}
+
 model OtherIncome {
   id          String              @id @default(uuid())
-  point       Point
+  point       OtherIncomePoint
   category    OtherIncomeCategory @default(BOSHQA)
   amount      BigInt
   note        String?

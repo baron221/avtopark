@@ -3,7 +3,7 @@ import { monthStart, monthEnd } from "@/lib/month";
 import { uzMonthName, formatDayMonth, formatSom } from "@/lib/format";
 import { OTHER_INCOME_CATEGORY_LABELS } from "@/lib/otherIncome";
 import { rangeForPeriod, type Period } from "@/lib/dashboard";
-import type { Point } from "@prisma/client";
+import type { Point, OtherIncomePoint } from "@prisma/client";
 
 export type PendingHandoverRow = {
   id: string;
@@ -57,7 +57,7 @@ export type TripIncomeDetailRow = {
 export type OtherIncomeDetailRow = {
   id: string;
   time: Date;
-  point: Point;
+  point: OtherIncomePoint;
   category: string;
   amount: number;
   plateNumber: string | null;

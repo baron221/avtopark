@@ -3,7 +3,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { OTHER_INCOME_CATEGORIES } from "@/lib/otherIncome";
-import type { Point, OtherIncomeCategory } from "@prisma/client";
+import type { OtherIncomePoint, OtherIncomeCategory } from "@prisma/client";
 
 export type AddOtherIncomeState = { error: string };
 
@@ -36,7 +36,7 @@ export async function addOtherIncomeAction(formData: FormData): Promise<AddOther
     return { error: "Рухсат йўқ" };
   }
 
-  const point = formData.get("point") as Point;
+  const point = formData.get("point") as OtherIncomePoint;
   const rawCategory = String(formData.get("category") ?? "");
   const category: OtherIncomeCategory = OTHER_INCOME_CATEGORIES.includes(rawCategory as OtherIncomeCategory)
     ? (rawCategory as OtherIncomeCategory)
@@ -45,7 +45,7 @@ export async function addOtherIncomeAction(formData: FormData): Promise<AddOther
   const plateNumber = String(formData.get("plateNumber") ?? "").trim() || null;
   const note = String(formData.get("note") ?? "").trim() || null;
 
-  if (point !== "FARGONA" && point !== "QUVA") return { error: "Пунктни танланг" };
+  if (point !== "FARGONA" && point !== "QUVA" && point !== "BUXGALTERIYA") return { error: "Пунктни танланг" };
   if (!(amount > 0)) return { error: "Суммани тўғри киритинг" };
 
   await prisma.otherIncome.create({

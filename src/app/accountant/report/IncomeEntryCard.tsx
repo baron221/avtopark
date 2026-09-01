@@ -73,6 +73,7 @@ export function IncomeEntryCard({ externalVehicles }: { externalVehicles: Extern
               <select name="point" required className={inputClass} defaultValue="FARGONA">
                 <option value="FARGONA">Фарғона</option>
                 <option value="QUVA">Қува</option>
+                <option value="BUXGALTERIYA">Бухгалтер</option>
               </select>
             </div>
             <div>

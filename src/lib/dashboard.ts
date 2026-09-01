@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { uzMonthName, uzWeekdayShort } from "@/lib/format";
 import { monthStart as monthStartUTC } from "@/lib/month";
 import { OTHER_INCOME_CATEGORY_LABELS } from "@/lib/otherIncome";
-import type { VehicleType } from "@prisma/client";
+import type { VehicleType, OtherIncomePoint } from "@prisma/client";
 
 export type Period = "DAY" | "WEEK" | "MONTH";
 
@@ -45,7 +45,7 @@ export type OrderRow = {
 export type OtherIncomeRow = {
   id: string;
   time: Date;
-  point: "FARGONA" | "QUVA";
+  point: OtherIncomePoint;
   category: string;
   amount: number;
   plateNumber: string | null;
@@ -243,7 +243,7 @@ function computeDailyBreakdown(
   from: Date,
   days: number,
   trips: { point: "FARGONA" | "QUVA"; tripDate: Date; revenue: bigint | number }[],
-  otherIncomes: { point: "FARGONA" | "QUVA"; incomeDate: Date; amount: bigint | number }[],
+  otherIncomes: { point: OtherIncomePoint; incomeDate: Date; amount: bigint | number }[],
   staffExpenses: { point: string; expenseDate: Date; amount: bigint | number }[],
   lunches: { point: "FARGONA" | "QUVA"; lunchDate: Date; amount: bigint | number }[],
   expenses: { expenseDate: Date; amount: bigint | number }[],
@@ -272,8 +272,12 @@ function computeDailyBreakdown(
   for (const oi of otherIncomes) {
     const i = dayIndex(oi.incomeDate, from);
     if (i < 0 || i >= days) continue;
+    // OtherIncomePoint also has BUXGALTERIYA (see IncomeEntryCard.tsx) —
+    // neither Farg'ona nor Quva; folded into fargonaIncome would silently
+    // misattribute it, so it's dropped from this per-point chart instead
+    // (still counted in the real totals elsewhere — see computeTotals).
     if (oi.point === "QUVA") rows[i].quvaIncome += Number(oi.amount);
-    else rows[i].fargonaIncome += Number(oi.amount);
+    else if (oi.point === "FARGONA") rows[i].fargonaIncome += Number(oi.amount);
   }
   for (const e of staffExpenses) {
     const i = dayIndex(e.expenseDate, from);
