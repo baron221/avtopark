@@ -1,7 +1,7 @@
 // Distance-based "did this vehicle move since we last checked" test for
 // vehicles that are currently NOT_ON_LINE and therefore shouldn't be moving
-// at all — see /api/gps/movement-watch, which calls this once per vehicle on
-// every run. Pure geometry, no I/O, so it's unit-testable on its own.
+// at all — see /api/gps/watch, which calls this once per vehicle on every
+// run. Pure geometry, no I/O, so it's unit-testable on its own.
 
 function haversineMeters(a: { lat: number; lon: number }, b: { lat: number; lon: number }): number {
   const R = 6_371_000;

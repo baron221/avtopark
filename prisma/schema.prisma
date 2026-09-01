@@ -327,7 +327,7 @@ model GpsDetectedTrip {
 }
 
 // One row per vehicle currently NOT_ON_LINE (shouldn't be moving at all) —
-// see /api/gps/movement-watch. REPAIR is deliberately excluded: a mechanic
+// see /api/gps/watch. REPAIR is deliberately excluded: a mechanic
 // routinely test-drives/repositions a vehicle under repair, which would
 // otherwise fire constant false alerts. lastLat/lastLon is the position
 // from the *previous* check, not a fixed parking spot, so the comparison is
@@ -349,7 +349,7 @@ model VehicleMovementWatch {
 }
 
 // One row per vehicle whose Wialon tracker has gone quiet for longer than
-// the threshold (see /api/gps/signal-watch) — a dead battery, no GSM
+// the threshold (see /api/gps/watch) — a dead battery, no GSM
 // coverage, or someone physically disconnecting the device (often the
 // first thing done before an unauthorized trip). Deleted the moment the
 // tracker reports again, so a future outage re-alerts from scratch.
