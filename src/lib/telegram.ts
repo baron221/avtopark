@@ -40,16 +40,22 @@ async function sendToChat(chatId: string, text: string): Promise<void> {
 }
 
 /**
- * Sends to the given role's configured chat, plus the broadcast channel
- * (TELEGRAM_CHANNEL_ID) if one is set — deduped, so a role that happens to
- * share the channel's chat id doesn't get the message twice. A role whose
- * env var isn't set yet is silently skipped rather than throwing, so
- * wiring up one person doesn't block the others already working.
+ * Sends to the given role's (or roles') configured chat(s), plus the
+ * broadcast channel (TELEGRAM_CHANNEL_ID) if one is set — all deduped
+ * together in one Set, so a chat that happens to be one role's chat AND
+ * the channel AND another of the passed-in roles' chat still only gets the
+ * message once. Pass an array when one alert genuinely concerns more than
+ * one role (e.g. the movement-watch alert going to both OWNER and
+ * MECHANIC) — calling notifyRole separately per role would double-send to
+ * the shared channel instead. A role whose env var isn't set yet is
+ * silently skipped rather than throwing, so wiring up one person doesn't
+ * block the others already working.
  */
-export async function notifyRole(role: AlertRole, text: string): Promise<void> {
+export async function notifyRole(role: AlertRole | AlertRole[], text: string): Promise<void> {
   if (!process.env.TELEGRAM_BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN .env da yo'q");
 
-  const roleChatIds = parseChatIds(process.env[ROLE_ENV_VAR[role]]);
+  const roles = Array.isArray(role) ? role : [role];
+  const roleChatIds = roles.flatMap((r) => parseChatIds(process.env[ROLE_ENV_VAR[r]]));
   const channelIds = parseChatIds(process.env.TELEGRAM_CHANNEL_ID);
   const targets = new Set([...roleChatIds, ...channelIds]);
 

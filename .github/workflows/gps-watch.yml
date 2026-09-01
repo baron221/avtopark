@@ -12,11 +12,11 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Call movement-watch endpoint
+      # Movement-watch and signal-watch used to be two separate endpoints,
+      # each fetching the same Wialon unit list independently — doubling
+      # both the function invocation count and the Wialon calls for no
+      # benefit. Merged into one endpoint (see src/app/api/gps/watch).
+      - name: Call gps/watch endpoint
         run: |
-          curl -sf -X GET "${{ vars.APP_URL }}/api/gps/movement-watch" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
-      - name: Call signal-watch endpoint
-        run: |
-          curl -sf -X GET "${{ vars.APP_URL }}/api/gps/signal-watch" \
+          curl -sf -X GET "${{ vars.APP_URL }}/api/gps/watch" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
