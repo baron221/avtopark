@@ -182,9 +182,14 @@ async function getLatestOpeningBalance(): Promise<{ amount: number; setDate: Dat
  * The company's actual cash-on-hand: starting from the accountant's last
  * physical cash count (CashOpeningBalance — see its schema comment for
  * why this exists), everything dispatchers have handed over and the
- * accountant confirmed SINCE THEN, minus everything physically paid out
- * of that same cash pile since then — owner payouts, and every real
- * expense the business pays in cash. Without an opening balance, this
+ * accountant confirmed SINCE THEN, plus BUXGALTERIYA-point OtherIncome
+ * (cash the accountant received directly, e.g. GPS/license/monthly fees
+ * from non-fleet vehicles — see IncomeEntryCard; FARGONA/QUVA-point
+ * OtherIncome is already folded into the relevant day's handover amount
+ * by createHandoverForDate, so it isn't added again here), minus
+ * everything physically paid out of that same cash pile since then —
+ * owner payouts, and every real expense the business pays in cash.
+ * Without an opening balance, this
  * would sum ALL historical expenses (months of them) against a
  * CashHandover tracker that only started accruing a few days ago,
  * producing a deeply negative, meaningless number — so until one is set,
@@ -216,7 +221,7 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
   const since = openingBalance.setDate;
   const sincePayoutCutoff = utcDayStart(since);
 
-  const [confirmedHandovers, payoutAgg, expenseAgg, staffExpenseAgg, advanceAgg, salaryAgg, stationPaymentAgg] =
+  const [confirmedHandovers, buxgalterIncomeAgg, payoutAgg, expenseAgg, staffExpenseAgg, advanceAgg, salaryAgg, stationPaymentAgg] =
     await Promise.all([
       // Not an aggregate: a handover the accountant confirmed at a different
       // amount than the dispatcher declared (see confirmCashReceiptWith
@@ -226,6 +231,17 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
       prisma.cashHandover.findMany({
         where: { accountantConfirmedAt: { gte: since } },
         select: { amount: true, confirmedAmount: true },
+      }),
+      // BUXGALTERIYA-point OtherIncome (see IncomeEntryCard) is cash the
+      // accountant received directly, never via a dispatcher's CashHandover
+      // — FARGONA/QUVA-point OtherIncome already flows into the balance
+      // through createHandoverForDate folding it into that day's handover
+      // amount, but BUXGALTERIYA has no such handover to fold into, so
+      // without this it would count as real income everywhere else (see
+      // computeCashDetail) yet never move this balance at all.
+      prisma.otherIncome.aggregate({
+        _sum: { amount: true },
+        where: { point: "BUXGALTERIYA", incomeDate: { gte: since } },
       }),
       prisma.ownerPayout.aggregate({ _sum: { amount: true }, where: { payoutDate: { gte: sincePayoutCutoff } } }),
       prisma.expense.aggregate({
@@ -258,6 +274,7 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
     ]);
 
   const confirmed = confirmedHandovers.reduce((s, h) => s + Number(h.confirmedAmount ?? h.amount), 0);
+  const buxgalterIncome = Number(buxgalterIncomeAgg._sum.amount ?? BigInt(0));
   const paidToOwner = Number(payoutAgg._sum.amount ?? BigInt(0));
   const expenses = Number(expenseAgg._sum.amount ?? BigInt(0));
   const staffExpenses = Number(staffExpenseAgg._sum.amount ?? BigInt(0));
@@ -267,7 +284,8 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
 
   return (
     openingBalance.amount +
-    confirmed -
+    confirmed +
+    buxgalterIncome -
     paidToOwner -
     expenses -
     staffExpenses -
@@ -298,11 +316,16 @@ const BALANCE_POINT_LABELS: Record<string, string> = {
  * sum to (balance − openingBalance.amount).
  */
 async function computeBalanceLedger(since: Date, openingAmount: number): Promise<BalanceLedgerRow[]> {
-  const [confirmed, payouts, expenses, staffExpenses, advances, salaries, stationPayments] =
+  const [confirmed, buxgalterIncomes, payouts, expenses, staffExpenses, advances, salaries, stationPayments] =
     await Promise.all([
       prisma.cashHandover.findMany({
         where: { accountantConfirmedAt: { gte: since } },
         include: { dispatcherConfirmedByUser: true },
+      }),
+      // Same reasoning as computeCashBalance's own buxgalterIncomeAgg query.
+      prisma.otherIncome.findMany({
+        where: { point: "BUXGALTERIYA", incomeDate: { gte: since } },
+        include: { enteredByUser: true },
       }),
       // Same widened same-day cutoff as computeCashBalance — see utcDayStart.
       prisma.ownerPayout.findMany({
@@ -345,6 +368,16 @@ async function computeBalanceLedger(since: Date, openingAmount: number): Promise
         amount: Number(h.confirmedAmount ?? h.amount),
       };
     }),
+    ...buxgalterIncomes.map((i) => ({
+      id: i.id,
+      time: i.incomeDate,
+      sign: "IN" as const,
+      category: OTHER_INCOME_CATEGORY_LABELS[i.category] ?? i.category,
+      subtitle: i.plateNumber
+        ? `${i.plateNumber} · ${i.enteredByUser.fullName}${i.note ? ` · ${i.note}` : ""}`
+        : `${i.enteredByUser.fullName}${i.note ? ` · ${i.note}` : ""}`,
+      amount: Number(i.amount),
+    })),
     ...payouts.map((p) => ({
       id: p.id,
       time: p.payoutDate,
