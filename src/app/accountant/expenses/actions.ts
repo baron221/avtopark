@@ -17,10 +17,16 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export type AddExpenseState = { error: string };
 
-export async function addStaffExpenseAction(
-  _prevState: AddExpenseState,
-  formData: FormData
-): Promise<AddExpenseState> {
+/** Invoked from ExpenseEntryCard on /accountant/report, not a standalone
+ * /accountant/expenses/new route — see addOtherIncomeAction's own comment
+ * (accountant/income/actions.ts) for the full story: that standalone
+ * route pattern reproducibly cleared the accountant's session on submit,
+ * both locally and in production, and this action (with its original
+ * useActionState + redirect()) was the very first place that symptom
+ * surfaced. No redirect()/revalidatePath to the old page anymore — plain
+ * async action, client-side router.refresh() instead, same as
+ * addOtherIncomeAction. */
+export async function addStaffExpenseAction(formData: FormData): Promise<AddExpenseState> {
   const session = await auth();
   if (!session || (session.user.role !== "ACCOUNTANT" && !(await hasModuleAccess(session.user.role, "PAYROLL")))) {
     return { error: "Рухсат йўқ" };
@@ -46,8 +52,7 @@ export async function addStaffExpenseAction(
     },
   });
 
-  revalidatePath("/accountant/expenses");
-  redirect("/accountant/expenses");
+  return { error: "" };
 }
 
 export type UpdateExpenseState = { error: string };

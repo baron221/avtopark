@@ -1,6 +1,7 @@
 import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { normalizePhone } from "@/lib/phone";
 import type { Point, Role } from "@prisma/client";
@@ -13,7 +14,12 @@ export class AccountLockedError extends CredentialsSignin {
   code = ACCOUNT_LOCKED_CODE;
 }
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+const {
+  handlers,
+  auth: nextAuth,
+  signIn,
+  signOut,
+} = NextAuth({
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
   providers: [
@@ -82,3 +88,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 });
+
+// Memoized per-request: a Server Action's response re-renders the current
+// route in the same round-trip (see Next.js's "single response carries
+// data and UI" model), which calls auth() again from the layout — without
+// this, that second call was observed to sometimes fail to recover the
+// still-valid session (root cause unconfirmed, likely a next-auth v5 beta
+// JWT-rotation race triggered by two auth() calls landing in the same
+// request), bouncing the user to /login even though nothing was actually
+// wrong with their session. cache() makes every auth() call within one
+// request resolve to the exact same result instead of re-deriving it.
+export const auth = cache(nextAuth);
+export { handlers, signIn, signOut };
