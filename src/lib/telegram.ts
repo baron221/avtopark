@@ -13,6 +13,19 @@ const ROLE_ENV_VAR: Record<AlertRole, string> = {
   OWNER: "TELEGRAM_CHAT_OWNER",
 };
 
+/**
+ * A role's env var (or TELEGRAM_CHANNEL_ID) can hold more than one chat id,
+ * comma-separated (e.g. "238992785,5006989") — some roles have more than
+ * one real person who needs the same alerts (e.g. two owners).
+ */
+export function parseChatIds(value: string | undefined): string[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
+}
+
 async function sendToChat(chatId: string, text: string): Promise<void> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) throw new Error("TELEGRAM_BOT_TOKEN .env da yo'q");
@@ -36,9 +49,9 @@ async function sendToChat(chatId: string, text: string): Promise<void> {
 export async function notifyRole(role: AlertRole, text: string): Promise<void> {
   if (!process.env.TELEGRAM_BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN .env da yo'q");
 
-  const roleChatId = process.env[ROLE_ENV_VAR[role]];
-  const channelId = process.env.TELEGRAM_CHANNEL_ID;
-  const targets = new Set([roleChatId, channelId].filter((id): id is string => !!id));
+  const roleChatIds = parseChatIds(process.env[ROLE_ENV_VAR[role]]);
+  const channelIds = parseChatIds(process.env.TELEGRAM_CHANNEL_ID);
+  const targets = new Set([...roleChatIds, ...channelIds]);
 
   for (const chatId of targets) {
     await sendToChat(chatId, text);

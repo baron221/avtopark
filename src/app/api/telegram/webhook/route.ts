@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { sendMessage } from "@/lib/telegram";
+import { sendMessage, parseChatIds } from "@/lib/telegram";
 import { buildCashReminderReport, buildOilStatusReport, buildOnDemandDailySummary } from "@/lib/telegramReports";
 
 const WELCOME =
@@ -29,11 +29,11 @@ export async function POST(request: Request) {
   const text: string | undefined = update?.message?.text;
   if (!chatId || !text) return NextResponse.json({ ok: true });
 
-  const knownChats = new Set(
-    [process.env.TELEGRAM_CHAT_MECHANIC, process.env.TELEGRAM_CHAT_ACCOUNTANT, process.env.TELEGRAM_CHAT_OWNER].filter(
-      (id): id is string => !!id
-    )
-  );
+  const knownChats = new Set([
+    ...parseChatIds(process.env.TELEGRAM_CHAT_MECHANIC),
+    ...parseChatIds(process.env.TELEGRAM_CHAT_ACCOUNTANT),
+    ...parseChatIds(process.env.TELEGRAM_CHAT_OWNER),
+  ]);
   // An unregistered chat gets its own id back instead of silence — the
   // only way to onboard a new mechanic/accountant/owner is for them to
   // message the bot once and forward this id to whoever sets the
