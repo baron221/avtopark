@@ -9,13 +9,15 @@ export async function logoutAction() {
 }
 
 // The known-plates list behind the "Бошқа кирим" autocomplete (see
-// externalVehicle.ts) — both Dispatcher (who enters the income) and
-// Mechanic (who's often first to recognize a new outside vehicle) can
-// maintain it, so this lives at the app root rather than under either
-// role's own actions file.
-async function requireDispatcherOrMechanic() {
+// externalVehicle.ts) — Dispatcher (who enters the income), Mechanic
+// (who's often first to recognize a new outside vehicle), and Accountant
+// (who records these vehicles' monthly service payments — see
+// accountant/income) can all maintain it, so this lives at the app root
+// rather than under any one role's own actions file.
+async function requireDispatcherMechanicOrAccountant() {
   const session = await auth();
-  if (!session || (session.user.role !== "DISPATCHER" && session.user.role !== "MECHANIC")) {
+  const role = session?.user.role;
+  if (!session || (role !== "DISPATCHER" && role !== "MECHANIC" && role !== "ACCOUNTANT")) {
     throw new Error("Рухсат йўқ");
   }
   return session.user.id;
@@ -25,10 +27,11 @@ function revalidateExternalVehiclePages() {
   revalidatePath("/dispatcher/journal");
   revalidatePath("/dispatcher/point");
   revalidatePath("/mechanic/vehicles");
+  revalidatePath("/accountant/income/new");
 }
 
 export async function addExternalVehicleAction(formData: FormData) {
-  const userId = await requireDispatcherOrMechanic();
+  const userId = await requireDispatcherMechanicOrAccountant();
   const plate = String(formData.get("plate") ?? "").trim().toUpperCase();
   if (!plate) return;
 
@@ -42,7 +45,7 @@ export async function addExternalVehicleAction(formData: FormData) {
 }
 
 export async function deleteExternalVehicleAction(formData: FormData) {
-  await requireDispatcherOrMechanic();
+  await requireDispatcherMechanicOrAccountant();
   const id = String(formData.get("id") ?? "");
   await prisma.externalVehicle.delete({ where: { id } }).catch(() => {});
 

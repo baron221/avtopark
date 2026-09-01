@@ -120,6 +120,12 @@ enum OtherIncomeCategory {
   YOQILGI
   STOYANKA
   BOSHQA
+  // Monthly service fees paid by non-fleet vehicles (see ExternalVehicle) —
+  // GPS tracking, licensing, etc. that this company sells to outside
+  // vehicle owners, separate from the company's own trip revenue.
+  OYLIK_TOLOV
+  GPS
+  LITSENZIYA
 }
 
 // ---------- Models ----------

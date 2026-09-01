@@ -254,6 +254,12 @@ export default async function AccountantExpensesPage({
             ⬇ Excel
           </Link>
           <Link
+            href="/accountant/income/new"
+            className="bg-success text-white rounded-[10px] px-[18px] py-2.5 font-extrabold text-[13px]"
+          >
+            + Кирим қўшиш
+          </Link>
+          <Link
             href="/accountant/expenses/new"
             className="bg-danger text-white rounded-[10px] px-[18px] py-2.5 font-extrabold text-[13px]"
           >
