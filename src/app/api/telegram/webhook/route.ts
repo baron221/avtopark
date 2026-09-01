@@ -34,7 +34,18 @@ export async function POST(request: Request) {
       (id): id is string => !!id
     )
   );
-  if (!knownChats.has(chatId)) return NextResponse.json({ ok: true });
+  // An unregistered chat gets its own id back instead of silence — the
+  // only way to onboard a new mechanic/accountant/owner is for them to
+  // message the bot once and forward this id to whoever sets the
+  // TELEGRAM_CHAT_* env vars, since Telegram doesn't expose a lookup by
+  // username/phone for this.
+  if (!knownChats.has(chatId)) {
+    await sendMessage(
+      chatId,
+      `Сиз ҳали рўйхатга олинмагансиз.\n\nМана шу ID'ни админга юборинг: <code>${chatId}</code>`
+    ).catch(() => {});
+    return NextResponse.json({ ok: true });
+  }
 
   const command = text.split(/[\s@]/)[0];
 
