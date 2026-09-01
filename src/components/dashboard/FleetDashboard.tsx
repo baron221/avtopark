@@ -324,10 +324,15 @@ export function FleetDashboard({
           </div>
         )}
 
-        {/* Sum of the two point cards' own trip/order income, plus both
-            points' Бошқа кирим broken out as its own visible term (rather
-            than silently folded into each point's figure) — income only,
-            no expenses subtracted here. */}
+        {/* Sum of the two point cards' own trip/order income, plus ALL
+            Бошқа кирим (vm.otherIncomeTotal — every point, including
+            BUXGALTERIYA) broken out as its own visible term. Deliberately
+            not pointBreakdown's own p.otherIncome (that's filtered to
+            point===FARGONA/QUVA — see computeOwnerDashboardVM — so it
+            silently dropped BUXGALTERIYA-point income from both this term
+            and the grand total, understating it by however much the
+            accountant had recorded there). Income only, no expenses
+            subtracted here. */}
         {vm.pointBreakdown.length > 0 && (
           <Card className="p-5 flex flex-col items-center justify-center text-center gap-2">
             <span className="text-[13px] font-extrabold text-muted-2 uppercase tracking-wide">
@@ -341,11 +346,11 @@ export function FleetDashboard({
                 </span>
               ))}
               <span className="text-muted-2">+</span>
-              {formatSom(vm.pointBreakdown.reduce((s, p) => s + p.otherIncome, 0))}
+              {formatSom(vm.otherIncomeTotal)}
               <span className="text-muted-2">=</span>
               <span className="font-heading font-extrabold text-heading text-2xl">
                 {formatSom(
-                  vm.pointBreakdown.reduce((s, p) => s + (p.tripIncome + p.orderIncome + p.otherIncome), 0)
+                  vm.pointBreakdown.reduce((s, p) => s + p.tripIncome + p.orderIncome, 0) + vm.otherIncomeTotal
                 )}
               </span>
             </div>
