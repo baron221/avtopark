@@ -11,9 +11,9 @@ export function UpdateOdometerForm({ vehicleId, currentKm }: { vehicleId: string
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-[11px] font-extrabold text-primary self-start"
+        className="flex items-center justify-center gap-1.5 bg-page border-2 border-border text-heading rounded-xl py-2.5 font-extrabold text-sm"
       >
-        Мой алмаштирмасдан, фақат километражни тўғрилаш
+        📏 Мой алмаштирмасдан, фақат километражни тўғрилаш
       </button>
     );
   }

@@ -41,7 +41,7 @@ export default async function DriverPage() {
   const today = { from: startOfDay(now), to: endOfDay(now) };
   const monthStart = getMonthStart(now);
 
-  const [todayTrips, todayPlan, salary] = await Promise.all([
+  const [todayTrips, todayPlan, salary, monthTripsByPoint] = await Promise.all([
     prisma.trip.findMany({
       where: { driverId: driver.id, tripDate: { gte: today.from, lte: today.to } },
       orderBy: { createdAt: "asc" },
@@ -52,11 +52,20 @@ export default async function DriverPage() {
         })
       : null,
     prisma.salary.findUnique({ where: { userId_month: { userId: session.user.id, month: monthStart } } }),
+    prisma.trip.groupBy({
+      by: ["point"],
+      where: { driverId: driver.id, tripDate: { gte: monthStart } },
+      _count: true,
+    }),
   ]);
 
   const todayTripRevenue = todayTrips.reduce((s, t) => s + Number(t.revenue), 0);
   const todayPlanPaid = todayPlan ? Number(todayPlan.paidAmount) : 0;
   const todayTotal = todayTripRevenue + todayPlanPaid;
+
+  const monthFargonaCount = monthTripsByPoint.find((g) => g.point === "FARGONA")?._count ?? 0;
+  const monthQuvaCount = monthTripsByPoint.find((g) => g.point === "QUVA")?._count ?? 0;
+  const monthTripCount = monthFargonaCount + monthQuvaCount;
 
   return (
     <div className="max-w-[720px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
@@ -70,7 +79,12 @@ export default async function DriverPage() {
       <KpiCard variant="primary" label="Бугунги тушум" value={formatSom(todayTotal)} />
 
       <Card className="overflow-hidden">
-        <div className="px-5 py-3.5 font-heading font-bold text-[15px] text-heading">Бугунги рейслар</div>
+        <div className="px-5 py-3.5 flex justify-between items-center gap-2">
+          <div className="font-heading font-bold text-[15px] text-heading">Бугунги рейслар</div>
+          <div className="text-xs text-muted-2 font-bold">
+            {now.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" })}
+          </div>
+        </div>
         {todayTrips.map((t) => (
           <div
             key={t.id}
@@ -89,6 +103,12 @@ export default async function DriverPage() {
           </div>
         ))}
         {todayTrips.length === 0 && <p className="text-[13px] text-muted-2 px-5 py-4">Бугун ҳали рейс йўқ</p>}
+        <div className="px-5 py-3 border-t border-row-divider text-xs text-muted-2 font-bold flex justify-between flex-wrap gap-1">
+          <span>Бу ойда жами: {monthTripCount} рейс</span>
+          <span>
+            Фарғонадан: {monthFargonaCount} · Қувадан: {monthQuvaCount}
+          </span>
+        </div>
       </Card>
 
       <Card className="p-5">
