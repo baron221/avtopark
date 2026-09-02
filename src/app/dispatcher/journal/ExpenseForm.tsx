@@ -72,7 +72,16 @@ export function ExpenseForm({
               value={dateValue}
               min={monthStartStr}
               max={todayStr}
-              onChange={(e) => setDateValue(e.target.value || todayStr)}
+              onChange={(e) => {
+                // The native date input fires onChange with an empty value
+                // mid-edit (e.g. clearing the day segment to type a new one)
+                // before all three segments are valid again — falling back
+                // to todayStr there (the old behavior) snapped the field
+                // back to today on every keystroke, making it impossible to
+                // ever type a different date. Ignore the empty intermediate
+                // event instead, same as DatePicker.tsx already does.
+                if (e.target.value) setDateValue(e.target.value);
+              }}
               className="bg-page border-2 border-border rounded-xl px-3.5 py-2.5 text-sm font-semibold text-heading outline-none focus:border-danger"
             />
             {dateValue !== todayStr && <input type="hidden" name="date" value={dateValue} />}

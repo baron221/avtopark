@@ -15,6 +15,7 @@ import {
 } from "./actions";
 import { IncomeEntryCard } from "./IncomeEntryCard";
 import { ExpenseEntryCard } from "./ExpenseEntryCard";
+import { deleteOtherIncomeAction } from "../income/actions";
 
 function isPeriod(value: string | undefined): value is Period {
   return value === "DAY" || value === "WEEK" || value === "MONTH";
@@ -78,6 +79,7 @@ export default async function AccountantReportPage({
         recordPayoutAction={recordOwnerPayoutAction}
         cancelPayoutAction={cancelOwnerPayoutAction}
         setOpeningBalanceAction={setCashOpeningBalanceAction}
+        deleteOtherIncomeAction={isAccountant ? deleteOtherIncomeAction : undefined}
       />
     </>
   );

@@ -2,7 +2,8 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { OTHER_INCOME_CATEGORIES } from "@/lib/otherIncome";
+import { logDeletion } from "@/lib/deletionLog";
+import { OTHER_INCOME_CATEGORIES, OTHER_INCOME_CATEGORY_LABELS } from "@/lib/otherIncome";
 import type { OtherIncomePoint, OtherIncomeCategory } from "@prisma/client";
 
 export type AddOtherIncomeState = { error: string };
@@ -61,4 +62,30 @@ export async function addOtherIncomeAction(formData: FormData): Promise<AddOther
   });
 
   return { error: "" };
+}
+
+/** Deletes any OtherIncome row (any point, including FARGONA/QUVA entries a
+ * dispatcher recorded — unlike dispatcher/actions.ts's own
+ * deleteOtherIncomeAction, which only lets a dispatcher delete their own
+ * active point's rows) — the accountant sees every point's "Бошқа кирим" in
+ * one combined list (FleetDashboard's own card) and needs to be able to fix
+ * a mistaken entry regardless of which point it was recorded under. Same
+ * plain-async-action shape as addOtherIncomeAction, for the same reason
+ * (see its own doc comment) — rendered via ConfirmDeleteButton on
+ * /accountant/report, not a standalone route. */
+export async function deleteOtherIncomeAction(formData: FormData): Promise<void> {
+  const session = await auth();
+  if (!session || session.user.role !== "ACCOUNTANT") return;
+
+  const id = String(formData.get("id") ?? "");
+  const income = await prisma.otherIncome.findUnique({ where: { id } });
+  if (!income) return;
+
+  await logDeletion(
+    "OtherIncome",
+    income.id,
+    `${OTHER_INCOME_CATEGORY_LABELS[income.category]} · ${income.amount.toString()} сўм${income.plateNumber ? ` · ${income.plateNumber}` : ""}${income.note ? ` · ${income.note}` : ""}`,
+    session.user.id
+  );
+  await prisma.otherIncome.delete({ where: { id } });
 }

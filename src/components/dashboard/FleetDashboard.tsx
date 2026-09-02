@@ -11,6 +11,7 @@ import { CashOpeningBalanceForm } from "@/components/dashboard/CashOpeningBalanc
 import { CashHistorySection } from "@/components/dashboard/CashHistorySection";
 import { BalanceLedgerSection } from "@/components/dashboard/BalanceLedgerSection";
 import { CollapsibleCard } from "@/components/dashboard/CollapsibleCard";
+import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
 import { ConfirmReceiptRow } from "@/components/dashboard/ConfirmReceiptRow";
 import { OutsideExpensesCard } from "@/components/dashboard/OutsideExpensesCard";
 import type { OwnerDashboardVM, Period } from "@/lib/dashboard";
@@ -40,6 +41,7 @@ export function FleetDashboard({
   cancelPayoutAction,
   setOpeningBalanceAction,
   ownerPayoutSummary,
+  deleteOtherIncomeAction,
 }: {
   vm: OwnerDashboardVM;
   period: Period;
@@ -66,6 +68,10 @@ export function FleetDashboard({
   setOpeningBalanceAction?: (prevState: OwnerPayoutState, formData: FormData) => Promise<OwnerPayoutState>;
   /** Owner-only, read-only view of what's actually been paid out to them — passed only by /owner. */
   ownerPayoutSummary?: { thisMonth: number; lastMonth: number; trend: MonthlyPayoutPoint[] };
+  /** Accountant-only — lets them delete a mistaken "Бошқа кирим" row (any
+   * point, since this card shows every point's entries combined). Passed
+   * only by /accountant/report, same as cashLedger's own action props. */
+  deleteOtherIncomeAction?: (formData: FormData) => Promise<void>;
 }) {
   const initial = userName?.[0]?.toUpperCase() ?? "?";
   const activeVehicleCount = vm.vehicles.filter((v) => v.tripCount > 0 || v.income > 0).length;
@@ -777,18 +783,21 @@ export function FleetDashboard({
             }
           >
             {/* Desktop */}
-            <div className="hidden lg:grid grid-cols-[0.9fr_0.7fr_0.9fr_0.9fr_1.1fr_1.4fr] px-5 py-2.5 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
+            <div
+              className={`hidden lg:grid ${deleteOtherIncomeAction ? "grid-cols-[0.9fr_0.7fr_0.9fr_0.9fr_1.1fr_1.4fr_auto]" : "grid-cols-[0.9fr_0.7fr_0.9fr_0.9fr_1.1fr_1.4fr]"} px-5 py-2.5 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide`}
+            >
               <div>Вақт</div>
               <div>Пункт</div>
               <div>Тоифа</div>
               <div>Сумма</div>
               <div>Ким киритди</div>
               <div>Изоҳ</div>
+              {deleteOtherIncomeAction && <div />}
             </div>
             {vm.otherIncomes.map((i) => (
               <div
                 key={i.id}
-                className="hidden lg:grid grid-cols-[0.9fr_0.7fr_0.9fr_0.9fr_1.1fr_1.4fr] gap-x-2 px-5 py-3 border-t border-row-divider items-center text-sm"
+                className={`hidden lg:grid ${deleteOtherIncomeAction ? "grid-cols-[0.9fr_0.7fr_0.9fr_0.9fr_1.1fr_1.4fr_auto]" : "grid-cols-[0.9fr_0.7fr_0.9fr_0.9fr_1.1fr_1.4fr]"} gap-x-2 px-5 py-3 border-t border-row-divider items-center text-sm`}
               >
                 <div className="text-muted-2 font-bold">
                   {i.time.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" })} · {formatTime(i.time)}
@@ -804,6 +813,14 @@ export function FleetDashboard({
                 <div className="text-muted-2 font-semibold break-words">
                   {[i.plateNumber, i.note].filter(Boolean).join(" · ") || "—"}
                 </div>
+                {deleteOtherIncomeAction && (
+                  <ConfirmDeleteButton
+                    action={deleteOtherIncomeAction}
+                    id={i.id}
+                    confirmText="Ушбу кирим ёзувини ўчиришни тасдиқлайсизми?"
+                    className="text-muted-2 hover:text-danger font-bold px-1.5"
+                  />
+                )}
               </div>
             ))}
 
@@ -821,7 +838,17 @@ export function FleetDashboard({
                         {POINT_LABELS[i.point]}
                       </span>
                     </div>
-                    <span className="font-extrabold text-success">{formatSom(i.amount)}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-extrabold text-success">{formatSom(i.amount)}</span>
+                      {deleteOtherIncomeAction && (
+                        <ConfirmDeleteButton
+                          action={deleteOtherIncomeAction}
+                          id={i.id}
+                          confirmText="Ушбу кирим ёзувини ўчиришни тасдиқлайсизми?"
+                          className="text-muted-2 hover:text-danger font-bold px-1"
+                        />
+                      )}
+                    </div>
                   </div>
                   <div className="flex justify-between items-start gap-2">
                     <div className="min-w-0">
