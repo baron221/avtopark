@@ -6,7 +6,7 @@ import { MoneyInput } from "@/components/ui/MoneyInput";
 import { SearchableSelect } from "@/components/ui/SearchableSelect";
 import { addTripAction, addOtherIncomeAction, type TripReceipt } from "../actions";
 import { OTHER_INCOME_CATEGORIES, OTHER_INCOME_CATEGORY_LABELS } from "@/lib/otherIncome";
-import { formatSom } from "@/lib/format";
+import { formatSom, formatDayMonth } from "@/lib/format";
 import type { Point, OtherIncomeCategory } from "@prisma/client";
 
 type VehicleOption = { id: string; plate: string; driverName: string };
@@ -61,7 +61,6 @@ export function IncomeForm({
   baseFare,
   point,
   todayStr,
-  monthStartStr,
   defaultDateStr,
   externalVehiclePlates,
 }: {
@@ -69,15 +68,13 @@ export function IncomeForm({
   baseFare: number;
   /** Set only for a granted non-Dispatcher visitor, who has no point of their own. */
   point?: Point;
-  /** ISO yyyy-mm-dd — bounds for the backdate picker below. */
+  /** ISO yyyy-mm-dd */
   todayStr: string;
-  monthStartStr: string;
   /** ISO yyyy-mm-dd — the day new entries should land on, i.e. whichever
-   * day the page itself is currently showing (see its own date picker).
-   * Defaults to todayStr when the page is on today, same as before this
-   * prop existed. When it differs from todayStr, the date picker below
-   * starts already expanded, so it's obvious at a glance which day a new
-   * entry will be recorded under. */
+   * day the page itself is currently showing (see its own date picker at
+   * the top of the page — that's the only date control now; this form used
+   * to have its own second, independent date picker, which just duplicated
+   * the page's and confused which one actually controlled anything). */
   defaultDateStr?: string;
   /** Known non-fleet payers (see ExternalVehicleManager) — offered as
    * autocomplete suggestions, not a closed list: a one-off payer never
@@ -94,8 +91,6 @@ export function IncomeForm({
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
   const [resetKey, setResetKey] = useState(0);
-  const [showDate, setShowDate] = useState(initialDate !== todayStr);
-  const [dateValue, setDateValue] = useState(initialDate);
   const formRef = useRef<HTMLFormElement>(null);
   const savedTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [receipt, setReceipt] = useState<TripReceipt | null>(null);
@@ -141,43 +136,13 @@ export function IncomeForm({
         {/* Ignored by addOtherIncomeAction when kind is OTHER_INCOME — only addTripAction reads this. */}
         <input type="hidden" name="kind" value={kind} />
         {point && <input type="hidden" name="point" value={point} />}
-        {showDate ? (
-          <div className="flex items-center gap-2">
-            <input
-              type="date"
-              value={dateValue}
-              min={monthStartStr}
-              max={todayStr}
-              onChange={(e) => {
-                // See ExpenseForm.tsx's identical fix: the native date input
-                // fires onChange with an empty value mid-edit, and falling
-                // back to todayStr there snapped the field back to today on
-                // every keystroke — ignore the empty intermediate event
-                // instead, same as DatePicker.tsx already does.
-                if (e.target.value) setDateValue(e.target.value);
-              }}
-              className="bg-page border-2 border-border rounded-xl px-3.5 py-2.5 text-sm font-semibold text-heading outline-none focus:border-success"
-            />
-            {dateValue !== todayStr && <input type="hidden" name="date" value={dateValue} />}
-            <button
-              type="button"
-              onClick={() => {
-                setShowDate(false);
-                setDateValue(initialDate);
-              }}
-              className="text-muted-2 text-xs font-bold hover:text-danger"
-            >
-              {initialDate === todayStr ? "Бугунга қайтариш" : "Аслига қайтариш"}
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowDate(true)}
-            className="text-primary text-xs font-extrabold hover:underline self-start"
-          >
-            Санани ўзгартириш
-          </button>
+        {initialDate !== todayStr && (
+          <>
+            <input type="hidden" name="date" value={initialDate} />
+            <div className="text-xs font-bold text-primary">
+              {formatDayMonth(new Date(`${initialDate}T12:00:00Z`))} учун сақланади
+            </div>
+          </>
         )}
         <div className="grid grid-cols-3 gap-1.5">
           <button

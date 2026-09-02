@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 import { addStaffExpenseAction, addLunchAction } from "../actions";
+import { formatDayMonth } from "@/lib/format";
 import type { Point } from "@prisma/client";
 
 const CATEGORIES = [
@@ -19,17 +20,16 @@ export function ExpenseForm({
   point,
   people,
   todayStr,
-  monthStartStr,
   defaultDateStr,
 }: {
   point?: Point;
   people: LunchPerson[];
-  /** ISO yyyy-mm-dd — bounds for the backdate picker below. */
+  /** ISO yyyy-mm-dd */
   todayStr: string;
-  monthStartStr: string;
   /** ISO yyyy-mm-dd — the day new entries should land on, i.e. whichever
-   * day the page itself is currently showing. See IncomeForm's identical
-   * prop for the full rationale. */
+   * day the page itself is currently showing at the top of the page — see
+   * IncomeForm's identical prop for the full rationale (that's now the
+   * only date control; this form no longer has its own second one). */
   defaultDateStr?: string;
 }) {
   const router = useRouter();
@@ -39,8 +39,6 @@ export function ExpenseForm({
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
   const [resetKey, setResetKey] = useState(0);
-  const [showDate, setShowDate] = useState(initialDate !== todayStr);
-  const [dateValue, setDateValue] = useState(initialDate);
   const formRef = useRef<HTMLFormElement>(null);
   const savedTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -65,45 +63,13 @@ export function ExpenseForm({
       <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-3">
         {point && <input type="hidden" name="point" value={point} />}
         {!isLunch && <input type="hidden" name="category" value={category} />}
-        {showDate ? (
-          <div className="flex items-center gap-2">
-            <input
-              type="date"
-              value={dateValue}
-              min={monthStartStr}
-              max={todayStr}
-              onChange={(e) => {
-                // The native date input fires onChange with an empty value
-                // mid-edit (e.g. clearing the day segment to type a new one)
-                // before all three segments are valid again — falling back
-                // to todayStr there (the old behavior) snapped the field
-                // back to today on every keystroke, making it impossible to
-                // ever type a different date. Ignore the empty intermediate
-                // event instead, same as DatePicker.tsx already does.
-                if (e.target.value) setDateValue(e.target.value);
-              }}
-              className="bg-page border-2 border-border rounded-xl px-3.5 py-2.5 text-sm font-semibold text-heading outline-none focus:border-danger"
-            />
-            {dateValue !== todayStr && <input type="hidden" name="date" value={dateValue} />}
-            <button
-              type="button"
-              onClick={() => {
-                setShowDate(false);
-                setDateValue(initialDate);
-              }}
-              className="text-muted-2 text-xs font-bold hover:text-danger"
-            >
-              {initialDate === todayStr ? "Бугунга қайтариш" : "Аслига қайтариш"}
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowDate(true)}
-            className="text-primary text-xs font-extrabold hover:underline self-start"
-          >
-            Санани ўзгартириш
-          </button>
+        {initialDate !== todayStr && (
+          <>
+            <input type="hidden" name="date" value={initialDate} />
+            <div className="text-xs font-bold text-primary">
+              {formatDayMonth(new Date(`${initialDate}T12:00:00Z`))} учун сақланади
+            </div>
+          </>
         )}
         <div className="flex flex-wrap gap-2">
           {CATEGORIES.map((c) => (

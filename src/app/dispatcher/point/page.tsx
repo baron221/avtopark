@@ -216,7 +216,6 @@ export default async function DispatcherPointPage({
             baseFare={baseFareRoute?.baseFare ?? 20000}
             point={undefined}
             todayStr={todayStr}
-            monthStartStr={monthStartStr}
             defaultDateStr={viewDateStr}
             externalVehiclePlates={externalVehicles.map((v) => v.plate)}
           />

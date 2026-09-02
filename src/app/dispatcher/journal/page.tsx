@@ -231,7 +231,6 @@ export default async function DispatcherJournalPage({
               point={undefined}
               people={lunchPeople}
               todayStr={todayStr}
-              monthStartStr={monthStartStr}
               defaultDateStr={viewDateStr}
             />
           )}
