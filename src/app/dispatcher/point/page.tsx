@@ -254,11 +254,25 @@ export default async function DispatcherPointPage({
           </div>
           <div className="text-[13px] text-muted-2 font-semibold">
             {todaysHandover
-              ? `Топширилган сумма: ${formatSom(Number(todaysHandover.amount))}`
+              ? // netToHandover is this same point/day's current live kirim−chiqim
+                // (computed just above from tripsToday/otherIncomeToday/pointExpenseAgg/
+                // pointLunchAgg) — used here instead of the frozen todaysHandover.amount
+                // so a trip/expense edited after "Топшираман" was clicked still shows
+                // up immediately, rather than only reaching the owner's balance
+                // invisibly (see computeDailyCashAmounts's own comment on why the
+                // frozen column goes stale). A real accountant physical recount
+                // (confirmedAmount) still wins over either figure.
+                `Топширилган сумма: ${formatSom(Number(todaysHandover.confirmedAmount ?? netToHandover))}`
               : pointChiqimToday > 0
                 ? `Йиғилди ${formatSom(collectedToday)} − расход ${formatSom(pointChiqimToday)} = ${formatSom(netToHandover)}`
                 : `Йиғилган: ${formatSom(netToHandover)}`}
           </div>
+          {todaysHandover && Number(todaysHandover.amount) !== netToHandover && todaysHandover.confirmedAmount === null && (
+            <div className="text-[12px] text-primary font-semibold mt-0.5">
+              Дастлаб {formatSom(Number(todaysHandover.amount))} деб топширилган эди — кейинги тузатишлар билан
+              қайта ҳисобланди
+            </div>
+          )}
           {todaysHandover?.note && (
             <div className="text-[12px] text-danger font-semibold mt-0.5">Сабаб: {todaysHandover.note}</div>
           )}

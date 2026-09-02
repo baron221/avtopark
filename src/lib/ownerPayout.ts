@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { computeDailyCashAmounts, getDailyCashAmount } from "@/lib/cashHandover";
 import { monthStart, monthEnd } from "@/lib/month";
 import { uzMonthName, formatDayMonth, formatSom } from "@/lib/format";
 import { OTHER_INCOME_CATEGORY_LABELS } from "@/lib/otherIncome";
@@ -221,17 +222,28 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
   const since = openingBalance.setDate;
   const sincePayoutCutoff = utcDayStart(since);
 
-  const [confirmedHandovers, buxgalterIncomeAgg, payoutAgg, expenseAgg, staffExpenseAgg, advanceAgg, salaryAgg, stationPaymentAgg] =
+  const [confirmedHandovers, dailyCashAmounts, buxgalterIncomeAgg, payoutAgg, expenseAgg, staffExpenseAgg, advanceAgg, salaryAgg, stationPaymentAgg] =
     await Promise.all([
       // Not an aggregate: a handover the accountant confirmed at a different
       // amount than the dispatcher declared (see confirmCashReceiptWith
       // AdjustmentAction) has confirmedAmount set, and that — not `amount`
       // — is what actually reached the cash pile, so each row needs its own
-      // confirmedAmount-or-amount pick before summing.
+      // confirmedAmount-or-amount pick before summing. point/handoverDate
+      // are needed too, to recompute the live amount below when
+      // confirmedAmount isn't set (see computeDailyCashAmounts's own
+      // comment on why the frozen `amount` column goes stale).
       prisma.cashHandover.findMany({
         where: { accountantConfirmedAt: { gte: since } },
-        select: { amount: true, confirmedAmount: true },
+        select: { amount: true, confirmedAmount: true, point: true, handoverDate: true },
       }),
+      // Day-aligned, not `since` itself: `since` is often a precise
+      // mid-day instant (whenever the opening balance was actually set),
+      // and computeDailyCashAmounts groups by calendar day — starting it
+      // at `since` exactly would silently drop that boundary day's own
+      // earlier-that-day trips/expenses from the recomputed total (caught
+      // via a real before/after diff: a day's live total came back ~90%
+      // lower than its frozen amount, entirely from this truncation).
+      computeDailyCashAmounts(utcDayStart(since), new Date()),
       // BUXGALTERIYA-point OtherIncome (see IncomeEntryCard) is cash the
       // accountant received directly, never via a dispatcher's CashHandover
       // — FARGONA/QUVA-point OtherIncome already flows into the balance
@@ -273,7 +285,14 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
       prisma.stationPayment.aggregate({ _sum: { paidAmount: true }, where: { paidAt: { gte: since } } }),
     ]);
 
-  const confirmed = confirmedHandovers.reduce((s, h) => s + Number(h.confirmedAmount ?? h.amount), 0);
+  // confirmedAmount (a real physical recount) always wins when set; otherwise
+  // the live, current figure for that point/day — not the frozen `amount`
+  // column, which a later trip/expense edit for that day wouldn't touch.
+  const confirmed = confirmedHandovers.reduce(
+    (s, h) =>
+      s + Number(h.confirmedAmount ?? getDailyCashAmount(dailyCashAmounts, h.point, h.handoverDate) ?? h.amount),
+    0
+  );
   const buxgalterIncome = Number(buxgalterIncomeAgg._sum.amount ?? BigInt(0));
   const paidToOwner = Number(payoutAgg._sum.amount ?? BigInt(0));
   const expenses = Number(expenseAgg._sum.amount ?? BigInt(0));
@@ -316,12 +335,15 @@ const BALANCE_POINT_LABELS: Record<string, string> = {
  * sum to (balance − openingBalance.amount).
  */
 async function computeBalanceLedger(since: Date, openingAmount: number): Promise<BalanceLedgerRow[]> {
-  const [confirmed, buxgalterIncomes, payouts, expenses, staffExpenses, advances, salaries, stationPayments] =
+  const [confirmed, dailyCashAmounts, buxgalterIncomes, payouts, expenses, staffExpenses, advances, salaries, stationPayments] =
     await Promise.all([
       prisma.cashHandover.findMany({
         where: { accountantConfirmedAt: { gte: since } },
         include: { dispatcherConfirmedByUser: true },
       }),
+      // Same live-recompute reasoning as computeCashBalance's own call —
+      // and the same day-aligned-not-`since`-itself fix (see its comment).
+      computeDailyCashAmounts(utcDayStart(since), new Date()),
       // Same reasoning as computeCashBalance's own buxgalterIncomeAgg query.
       prisma.otherIncome.findMany({
         where: { point: "BUXGALTERIYA", incomeDate: { gte: since } },
@@ -355,7 +377,18 @@ async function computeBalanceLedger(since: Date, openingAmount: number): Promise
 
   const rows: Omit<BalanceLedgerRow, "balanceAfter">[] = [
     ...confirmed.map((h) => {
+      const liveAmount = getDailyCashAmount(dailyCashAmounts, h.point, h.handoverDate) ?? h.amount;
+      const effectiveAmount = h.confirmedAmount ?? liveAmount;
+      // Worth calling out in the subtitle either way: confirmedAmount means
+      // the accountant physically recounted and got a different number;
+      // liveAmount differing from the originally-declared amount means a
+      // trip/expense for this day was edited after the fact (see
+      // computeDailyCashAmounts's own comment) — both are "why doesn't this
+      // match what the dispatcher originally declared" answers worth
+      // showing, so a discrepancy is never silently invisible here.
       const adjusted = h.confirmedAmount !== null && h.confirmedAmount !== h.amount;
+      const correctedAfterTheFact = h.confirmedAmount === null && liveAmount !== h.amount;
+      const subtitleBase = `${BALANCE_POINT_LABELS[h.point] ?? h.point} · ${h.dispatcherConfirmedByUser.fullName}`;
       return {
         id: h.id,
         time: h.accountantConfirmedAt as Date,
@@ -363,9 +396,11 @@ async function computeBalanceLedger(since: Date, openingAmount: number): Promise
         sign: "IN" as const,
         category: "Топширилган",
         subtitle: adjusted
-          ? `${BALANCE_POINT_LABELS[h.point] ?? h.point} · ${h.dispatcherConfirmedByUser.fullName} · дастлаб ${formatSom(Number(h.amount))}, сабаб: ${h.confirmedNote}`
-          : `${BALANCE_POINT_LABELS[h.point] ?? h.point} · ${h.dispatcherConfirmedByUser.fullName}`,
-        amount: Number(h.confirmedAmount ?? h.amount),
+          ? `${subtitleBase} · дастлаб ${formatSom(Number(h.amount))}, сабаб: ${h.confirmedNote}`
+          : correctedAfterTheFact
+            ? `${subtitleBase} · дастлаб ${formatSom(Number(h.amount))} деб топширилган, кейинги тузатишлар билан қайта ҳисобланди`
+            : subtitleBase,
+        amount: Number(effectiveAmount),
       };
     }),
     ...buxgalterIncomes.map((i) => ({
@@ -740,6 +775,19 @@ export async function getCashLedgerSummary(period: Period, referenceDate: Date):
       computeCashDetail("DAY", yesterdayDate),
     ]);
 
+  // Recompute live rather than trust `amount` (frozen at submission) — same
+  // reasoning as computeCashBalance/computeBalanceLedger. Bounded to the
+  // pending set's own date span rather than a fixed `since`, since an
+  // unconfirmed handover isn't bounded by the opening-balance cutoff the
+  // way confirmed ones are.
+  const pendingDailyCashAmounts =
+    pending.length > 0
+      ? await computeDailyCashAmounts(
+          pending.reduce((min, h) => (h.handoverDate < min ? h.handoverDate : min), pending[0].handoverDate),
+          new Date()
+        )
+      : new Map<string, bigint>();
+
   const handoverSubmittedByPoint: Record<Point, boolean> = {
     FARGONA: handoversToday.some((h) => h.point === "FARGONA"),
     QUVA: handoversToday.some((h) => h.point === "QUVA"),
@@ -752,7 +800,7 @@ export async function getCashLedgerSummary(period: Period, referenceDate: Date):
       .map((h) => ({
         id: h.id,
         handoverDate: h.handoverDate,
-        amount: Number(h.amount),
+        amount: Number(getDailyCashAmount(pendingDailyCashAmounts, h.point, h.handoverDate) ?? h.amount),
         dispatcherName: h.dispatcherConfirmedByUser.fullName,
         note: h.note,
       })),

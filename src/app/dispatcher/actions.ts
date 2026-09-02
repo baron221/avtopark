@@ -12,6 +12,7 @@ import { sendSms } from "@/lib/sms";
 import { formatTime } from "@/lib/format";
 import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 import { ACTIVE_POINT_COOKIE, getActivePoint } from "@/lib/activePoint";
+import { computeDailyCashAmount } from "@/lib/cashHandover";
 import { OTHER_INCOME_CATEGORIES, OTHER_INCOME_CATEGORY_LABELS } from "@/lib/otherIncome";
 import { monthStart } from "@/lib/month";
 import type { Point, StaffExpenseCategory, StaffExpensePoint, TripKind, OtherIncomeCategory } from "@prisma/client";
@@ -288,28 +289,14 @@ async function createHandoverForDate(
   });
   if (existing) return { error: "" };
 
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const [trips, otherIncomes, expenses, lunches] = await Promise.all([
-    prisma.trip.findMany({ where: { tripDate: { gte: today, lt: tomorrow }, point }, select: { revenue: true } }),
-    prisma.otherIncome.findMany({
-      where: { point, incomeDate: { gte: today, lt: tomorrow } },
-      select: { amount: true },
-    }),
-    prisma.staffExpense.findMany({
-      where: { point: toStaffExpensePoint(point), expenseDate: { gte: today, lt: tomorrow } },
-      select: { amount: true },
-    }),
-    prisma.lunch.findMany({ where: { point, lunchDate: { gte: today, lt: tomorrow } }, select: { amount: true } }),
-  ]);
-  const kirim =
-    trips.reduce((s, t) => s + t.revenue, BigInt(0)) + otherIncomes.reduce((s, i) => s + i.amount, BigInt(0));
-  const chiqim =
-    expenses.reduce((s, e) => s + e.amount, BigInt(0)) + lunches.reduce((s, l) => s + l.amount, BigInt(0));
-  // What the dispatcher physically has left to hand over — that day's local
-  // expenses/lunches already came out of this same cash, so counting the
-  // raw trip total (the old behaviour) overstated it by exactly that much.
-  const computed = kirim - chiqim > BigInt(0) ? kirim - chiqim : BigInt(0);
+  // What the dispatcher physically has left to hand over — see
+  // computeDailyCashAmount's own comment. Note this is only a snapshot at
+  // submission time: computeCashBalance/computeBalanceLedger (ownerPayout.ts)
+  // recompute this live on every read rather than trusting the frozen
+  // CashHandover.amount column below, specifically so a trip/expense
+  // correction made after today's handover already exists still reaches
+  // the owner's balance instead of silently going stale.
+  const computed = await computeDailyCashAmount(point, today);
   const amount = overrideAmount ?? computed;
 
   await prisma.cashHandover.create({
