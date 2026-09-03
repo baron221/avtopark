@@ -245,11 +245,12 @@ export default async function DispatcherJournalPage({
 
         <Card className="overflow-hidden hidden lg:block">
           <div className="px-5 py-3.5 font-heading font-bold text-[15px] text-heading">{isToday ? "Бугунги журнал" : "Журнал"}</div>
-          {log.map((l) => (
+          {log.map((l, i) => (
             <div
               key={l.id}
-              className="grid grid-cols-[52px_100px_1fr_auto_48px] gap-2.5 px-5 py-2.5 border-t border-row-divider items-center text-[13px]"
+              className="grid grid-cols-[28px_52px_100px_1fr_auto_48px] gap-2.5 px-5 py-2.5 border-t border-row-divider items-center text-[13px]"
             >
+              <div className="text-muted-2 font-bold">{i + 1}</div>
               <div className="text-muted-2 font-bold">{formatTime(l.time)}</div>
               <div>
                 <span
@@ -279,10 +280,11 @@ export default async function DispatcherJournalPage({
 
         <Card className="overflow-hidden lg:hidden">
           <div className="px-5 py-3.5 font-heading font-bold text-[15px] text-heading">{isToday ? "Бугунги журнал" : "Журнал"}</div>
-          {log.map((l) => (
+          {log.map((l, i) => (
             <div key={l.id} className="flex flex-col gap-1.5 px-5 py-3 border-t border-row-divider text-[13px]">
               <div className="flex justify-between items-center gap-2">
                 <div className="flex items-center gap-2">
+                  <span className="text-muted-2 font-bold">{i + 1}.</span>
                   <span className="text-muted-2 font-bold">{formatTime(l.time)}</span>
                   <span
                     className="text-[11px] font-extrabold px-2.5 py-1 rounded-full"
