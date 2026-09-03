@@ -599,8 +599,14 @@ model Lunch {
   // for the same reason Trip.point exists.
   point     Point
   amount    BigInt
+  // Always UTC midnight (see startOfDay in dispatcher/actions.ts) — it's
+  // the per-day unique key (@@unique below), not when this was actually
+  // logged, so the journal list must not display this as a "time" (every
+  // lunch would show the same nonsense 05:00 Tashkent). createdAt below is
+  // for that; lunchDate stays date-only on purpose.
   lunchDate DateTime @map("lunch_date")
   enteredBy String   @map("entered_by")
+  createdAt DateTime @default(now()) @map("created_at")
 
   user          User @relation("LunchUser", fields: [userId], references: [id])
   enteredByUser User @relation("LunchEnteredBy", fields: [enteredBy], references: [id])

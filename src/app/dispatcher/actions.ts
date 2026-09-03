@@ -527,7 +527,22 @@ export async function deleteStaffExpenseAction(formData: FormData) {
 
 const DEFAULT_LUNCH_AMOUNT = 12_000;
 
-export async function addLunchAction(formData: FormData) {
+export type AddLunchState = { error: string };
+
+/** Lunch is uniquely keyed per (person, calendar day) — GLOBALLY, not per
+ * point — since a person only eats lunch once a day, regardless of which
+ * point's dispatcher happens to log it (the fleet is shared, so the same
+ * driver plausibly shows up in both points' own recipient lists the same
+ * day). Before this check, a second dispatcher logging the same person's
+ * lunch at the OTHER point silently overwrote the first one's point (the
+ * upsert's `update` branch always applied its own `point`) — the first
+ * dispatcher's entry then vanished from their own journal (filtered by
+ * their point) with no explanation, confirmed against real production
+ * data: a real driver's lunch really did flip from FARGONA to QUVA this
+ * way. Rejecting the conflicting submission with a clear reason — instead
+ * of silently reassigning it — trades a rare "already logged elsewhere"
+ * error for never again losing an entry without a trace. */
+export async function addLunchAction(formData: FormData): Promise<AddLunchState> {
   const { userId, point } = await requireDispatcherOrGranted(formData, "INCOME_EXPENSE_LOG");
   // A dispatcher can log lunch for any driver or dispatcher, not just
   // themselves — the "forUserId" field carries who it's for, and falls back
@@ -538,6 +553,16 @@ export async function addLunchAction(formData: FormData) {
   const now = new Date();
   const lunchDate = startOfDay(parseBackdate(formData, now) ?? now);
 
+  const existing = await prisma.lunch.findUnique({
+    where: { userId_lunchDate: { userId: forUserId, lunchDate } },
+    include: { user: true },
+  });
+  if (existing && existing.point !== point) {
+    return {
+      error: `${existing.user.fullName} учун бугун аллақачон ${POINT_LABELS[existing.point]} пунктида тушлик киритилган`,
+    };
+  }
+
   await prisma.lunch.upsert({
     where: { userId_lunchDate: { userId: forUserId, lunchDate } },
     create: { userId: forUserId, point, amount: BigInt(Math.round(amount)), lunchDate, enteredBy: userId },
@@ -546,6 +571,7 @@ export async function addLunchAction(formData: FormData) {
 
   revalidatePath("/dispatcher/journal");
   revalidatePath("/dispatcher/point");
+  return { error: "" };
 }
 
 export type UpdateLunchState = { error: string };

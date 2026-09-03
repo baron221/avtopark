@@ -38,6 +38,7 @@ export function ExpenseForm({
   const isLunch = category === "OBED";
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
   const [resetKey, setResetKey] = useState(0);
   const formRef = useRef<HTMLFormElement>(null);
   const savedTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -45,9 +46,18 @@ export function ExpenseForm({
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const action = isLunch ? addLunchAction : addStaffExpenseAction;
     startTransition(async () => {
-      await action(formData);
+      // addStaffExpenseAction has no failure case worth surfacing (unlike
+      // addLunchAction's cross-point conflict check — see its own comment).
+      let result = { error: "" };
+      if (isLunch) result = await addLunchAction(formData);
+      else await addStaffExpenseAction(formData);
+      if (result.error) {
+        setError(result.error);
+        setSaved(false);
+        return;
+      }
+      setError("");
       router.refresh();
       formRef.current?.reset();
       setResetKey((k) => k + 1);
@@ -120,6 +130,7 @@ export function ExpenseForm({
         >
           {pending ? "Сақланмоқда…" : "Сақлаш ✓"}
         </button>
+        {error && <p className="text-danger text-[13px] font-bold text-center">{error}</p>}
         {saved && (
           <div className="flex items-center justify-center gap-1.5 text-danger font-extrabold text-[13px]">
             <span>✓</span> Киритилди

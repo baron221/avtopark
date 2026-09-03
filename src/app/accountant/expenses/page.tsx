@@ -211,7 +211,9 @@ export default async function AccountantExpensesPage({
     ...lunches.map((l) => ({
       id: l.id,
       editable: false,
-      time: l.lunchDate,
+      // Not l.lunchDate — see Lunch's own schema comment, it's always UTC
+      // midnight (the per-day unique key), not when this was logged.
+      time: l.createdAt,
       personName: l.user.fullName,
       note: "Тушлик",
       point: l.point,

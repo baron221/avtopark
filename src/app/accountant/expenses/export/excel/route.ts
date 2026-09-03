@@ -112,7 +112,9 @@ export async function GET(request: Request) {
       amount: Number(e.amount),
     })),
     ...lunches.map((l) => ({
-      time: l.lunchDate,
+      // Not l.lunchDate — see Lunch's own schema comment, it's always UTC
+      // midnight (the per-day unique key), not when this was logged.
+      time: l.createdAt,
       name: l.user.fullName,
       point: l.point as string,
       category: "Обед",

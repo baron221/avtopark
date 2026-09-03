@@ -168,7 +168,10 @@ export default async function DispatcherJournalPage({
     })),
     ...lunches.map((l) => ({
       id: l.id,
-      time: l.lunchDate,
+      // Not l.lunchDate — that's always UTC midnight (the per-day unique
+      // key, see the model's own schema comment), so every lunch would
+      // otherwise show the same nonsense 05:00 Tashkent "time".
+      time: l.createdAt,
       kind: "Обед",
       kindBg: "#FFF3E0",
       kindColor: "#B26A00",
