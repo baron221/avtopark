@@ -3,9 +3,11 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
+import { KpiCard } from "@/components/ui/KpiCard";
 import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
-import { formatSom } from "@/lib/format";
+import { formatSom, formatMillions } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
+import { getMechanicCostSummary } from "@/lib/ownerPayout";
 import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 import { FuelLogForm } from "./FuelLogForm";
 import { AddStationForm } from "./AddStationForm";
@@ -28,7 +30,7 @@ export default async function MechanicFuelPage() {
   if (!session) redirect("/login");
   if (session.user.role !== "MECHANIC" && !(await hasModuleAccess(session.user.role, "FUEL"))) redirect("/coming-soon");
 
-  const [stations, payments, fuelLogs, vehicles] = await Promise.all([
+  const [stations, payments, fuelLogs, vehicles, mechanicCostSummary] = await Promise.all([
     prisma.fuelStation.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
     prisma.stationPayment.findMany({ include: { station: true }, orderBy: { periodEnd: "desc" }, take: 10 }),
     prisma.fuelLog.findMany({
@@ -41,6 +43,7 @@ export default async function MechanicFuelPage() {
       include: { driver: { include: { user: true } } },
       orderBy: { plate: "asc" },
     }),
+    getMechanicCostSummary(),
   ]);
 
   const grandTotal = payments.reduce((s, p) => s + Number(p.amount), 0);
@@ -57,6 +60,17 @@ export default async function MechanicFuelPage() {
           {session.user.name} · {stations.length} та заправка билан шартнома · машиналар рўйхати ва таъмир ҳам
           механик зиммасида
         </div>
+      </div>
+
+      {/* Ёқилғи/мой учун эгадан олинган пул — эгасининг ўз ҳисобидан
+          мексаникка тўғридан-тўғри тўланадиган харажатлар (буxгалтернинг
+          ўз кассасига тегмайди — see ownerPayout.ts's getMechanicCostSummary
+          own comment). */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <KpiCard label="Ёқилғи учун сарфланган" value={formatMillions(mechanicCostSummary.fuelSpent)} />
+        <KpiCard label="Мой учун сарфланган" value={formatMillions(mechanicCostSummary.oilSpent)} />
+        <KpiCard label="Жами сарфланган" value={formatMillions(mechanicCostSummary.totalSpent)} />
+        <KpiCard variant="primary" label="Эгасининг қолдиғи" value={formatMillions(mechanicCostSummary.balance)} />
       </div>
 
       <Card className="overflow-hidden">

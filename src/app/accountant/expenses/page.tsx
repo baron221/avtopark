@@ -12,6 +12,7 @@ import { hasModuleAccess } from "@/lib/access";
 import { rangeForPeriod, type Period } from "@/lib/dashboard";
 import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
 import { deleteExpenseAction } from "./actions";
+import { MECHANIC_COST_CUTOFF } from "@/lib/ownerPayout";
 import type { Point, StaffExpensePoint } from "@prisma/client";
 
 const POINT_LABELS: Record<string, string> = {
@@ -140,9 +141,16 @@ export default async function AccountantExpensesPage({
             orderBy: { lunchDate: "desc" },
           })
         : Promise.resolve([]),
+      // REPAIR dated on/after MECHANIC_COST_CUTOFF excluded — the owner pays
+      // the mechanic directly for these now (see ownerPayout.ts's own
+      // comment on the cutoff), so they no longer belong in the
+      // accountant's own expense list.
       includeVehicleExpense
         ? prisma.expense.findMany({
-            where: { expenseDate: { gte: from, lte: to } },
+            where: {
+              expenseDate: { gte: from, lte: to },
+              NOT: { category: "REPAIR", expenseDate: { gte: MECHANIC_COST_CUTOFF } },
+            },
             include: { vehicle: true },
             orderBy: { expenseDate: "desc" },
           })
@@ -164,7 +172,13 @@ export default async function AccountantExpensesPage({
         where: { lunchDate: { gte: from, lte: to } },
         _sum: { amount: true },
       }),
-      prisma.expense.aggregate({ _sum: { amount: true }, where: { expenseDate: { gte: from, lte: to } } }),
+      prisma.expense.aggregate({
+        _sum: { amount: true },
+        where: {
+          expenseDate: { gte: from, lte: to },
+          NOT: { category: "REPAIR", expenseDate: { gte: MECHANIC_COST_CUTOFF } },
+        },
+      }),
       prisma.advance.aggregate({ _sum: { amount: true }, where: { givenDate: { gte: from, lte: to } } }),
       prisma.user.findMany({ select: { id: true, fullName: true } }),
     ]);

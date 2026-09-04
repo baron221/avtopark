@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hasModuleAccess } from "@/lib/access";
 import { rangeForPeriod, type Period } from "@/lib/dashboard";
+import { MECHANIC_COST_CUTOFF } from "@/lib/ownerPayout";
 import type { Point, StaffExpensePoint } from "@prisma/client";
 
 const POINT_LABELS: Record<string, string> = {
@@ -83,9 +84,14 @@ export async function GET(request: Request) {
           orderBy: { lunchDate: "asc" },
         })
       : Promise.resolve([]),
+    // REPAIR dated on/after MECHANIC_COST_CUTOFF excluded — see
+    // ownerPayout.ts's own comment on the cutoff.
     includeVehicleExpense
       ? prisma.expense.findMany({
-          where: { expenseDate: { gte: from, lte: to } },
+          where: {
+            expenseDate: { gte: from, lte: to },
+            NOT: { category: "REPAIR", expenseDate: { gte: MECHANIC_COST_CUTOFF } },
+          },
           include: { vehicle: true },
           orderBy: { expenseDate: "asc" },
         })

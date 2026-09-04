@@ -15,7 +15,7 @@ import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
 import { ConfirmReceiptRow } from "@/components/dashboard/ConfirmReceiptRow";
 import { OutsideExpensesCard } from "@/components/dashboard/OutsideExpensesCard";
 import type { OwnerDashboardVM, Period } from "@/lib/dashboard";
-import type { CashLedgerSummary, OwnerPayoutState, MonthlyPayoutPoint } from "@/lib/ownerPayout";
+import type { CashLedgerSummary, OwnerPayoutState, MonthlyPayoutPoint, MechanicCostSummary } from "@/lib/ownerPayout";
 import { formatMillions, formatSom, formatTime } from "@/lib/format";
 import { logoutAction } from "@/app/actions";
 
@@ -42,6 +42,7 @@ export function FleetDashboard({
   setOpeningBalanceAction,
   ownerPayoutSummary,
   deleteOtherIncomeAction,
+  mechanicCostSummary,
 }: {
   vm: OwnerDashboardVM;
   period: Period;
@@ -72,6 +73,11 @@ export function FleetDashboard({
    * point, since this card shows every point's entries combined). Passed
    * only by /accountant/report, same as cashLedger's own action props. */
   deleteOtherIncomeAction?: (formData: FormData) => Promise<void>;
+  /** Owner + Admin + (drawn separately on its own page) Mechanic — never
+   * the accountant, who has no stake in this flow. See getMechanicCostSummary's
+   * own comment for why this tracks a separate direction of cash from
+   * cashLedger's own accountant-facing balance. */
+  mechanicCostSummary?: MechanicCostSummary;
 }) {
   const initial = userName?.[0]?.toUpperCase() ?? "?";
   const activeVehicleCount = vm.vehicles.filter((v) => v.tripCount > 0 || v.income > 0).length;
@@ -502,6 +508,19 @@ export function FleetDashboard({
                 })}
               </div>
             </Card>
+          </div>
+        )}
+
+        {/* Owner + Admin (+ Mechanic, drawn separately on its own page) —
+            money the mechanic draws directly from the owner for fuel/oil,
+            a different direction of cash from cashLedger's own accountant
+            balance above (see getMechanicCostSummary's own comment). */}
+        {mechanicCostSummary && (
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <KpiCard label="Ёқилғи учун сарфланган" value={formatMillions(mechanicCostSummary.fuelSpent)} />
+            <KpiCard label="Мой учун сарфланган" value={formatMillions(mechanicCostSummary.oilSpent)} />
+            <KpiCard label="Жами сарфланган" value={formatMillions(mechanicCostSummary.totalSpent)} />
+            <KpiCard variant="primary" label="Эгасининг қолдиғи" value={formatMillions(mechanicCostSummary.balance)} />
           </div>
         )}
 

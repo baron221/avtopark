@@ -216,14 +216,37 @@ function utcDayStart(d: Date): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 }
 
+/**
+ * Repair (mechanic-entered oil changes/vehicle repairs) and fuel-station
+ * payments stopped being paid out of the accountant's own cash pool as of
+ * this date — the owner now pays the mechanic directly for both instead
+ * (see getMechanicCostSummary). Everything dated BEFORE this was already
+ * correctly netted out of the accountant's balance under the old rule;
+ * re-including it now would inject a one-time historical windfall that
+ * never actually reached anyone's hands today, so this cutoff is a fixed
+ * date, not "since the opening balance" or "now" — deliberately, per the
+ * user's own instruction not to retroactively restore old paid amounts.
+ */
+export const MECHANIC_COST_CUTOFF = new Date("2026-09-05T00:00:00Z");
+
 async function computeCashBalance(opening?: { amount: number; setDate: Date } | null): Promise<number> {
   const openingBalance = opening === undefined ? await getLatestOpeningBalance() : opening;
   if (!openingBalance) return 0;
   const since = openingBalance.setDate;
   const sincePayoutCutoff = utcDayStart(since);
 
-  const [confirmedHandovers, dailyCashAmounts, buxgalterIncomeAgg, payoutAgg, expenseAgg, staffExpenseAgg, advanceAgg, salaryAgg, stationPaymentAgg] =
-    await Promise.all([
+  const [
+    confirmedHandovers,
+    dailyCashAmounts,
+    buxgalterIncomeAgg,
+    payoutAgg,
+    expenseAgg,
+    postCutoffRepairAgg,
+    staffExpenseAgg,
+    advanceAgg,
+    salaryAgg,
+    stationPaymentAgg,
+  ] = await Promise.all([
       // Not an aggregate: a handover the accountant confirmed at a different
       // amount than the dispatcher declared (see confirmCashReceiptWith
       // AdjustmentAction) has confirmedAmount set, and that — not `amount`
@@ -260,6 +283,18 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
         _sum: { amount: true },
         where: { category: { not: "FUEL" }, expenseDate: { gte: since } },
       }),
+      // REPAIR (mechanic-entered oil changes/vehicle repairs) counted above
+      // as part of the generic non-FUEL expense sum — this subtracts back
+      // out only the REPAIR portion dated on/after MECHANIC_COST_CUTOFF, so
+      // older REPAIR rows stay counted (old rule, left alone per the user's
+      // own instruction) while newer ones don't (paid by the owner directly
+      // now — see getMechanicCostSummary). Doing it as a separate
+      // subtraction rather than an upfront category filter keeps the
+      // pre-cutoff sum byte-for-byte identical to what it always was.
+      prisma.expense.aggregate({
+        _sum: { amount: true },
+        where: { category: "REPAIR", expenseDate: { gte: MECHANIC_COST_CUTOFF } },
+      }),
       // FARGONA/QUVA only — createHandoverForDate (dispatcher/actions.ts)
       // already nets that point's own StaffExpense (and Lunch — always
       // FARGONA/QUVA, Point has no other values) out of the handover amount
@@ -278,11 +313,14 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
       // latter let this-month payroll paid out after the opening balance was
       // set (i.e. basically always) go uncounted, since month-start < since.
       prisma.salary.aggregate({ _sum: { netPay: true }, where: { status: "PAID", paidAt: { gte: since } } }),
-      // StationPayment has no per-installment date, only paidAt (set once
-      // the bill is FULLY paid) — a bill partially paid after `since` but
-      // not yet fully settled won't be counted until it is. No better
-      // field exists on this model to do better than that approximation.
-      prisma.stationPayment.aggregate({ _sum: { paidAmount: true }, where: { paidAt: { gte: since } } }),
+      // Same before/after-cutoff split as REPAIR above, for the same reason
+      // (StationPayment is the other half of "paid by the owner directly
+      // now" — see getMechanicCostSummary): count only pre-cutoff here, so
+      // old bills stay counted and new ones don't.
+      prisma.stationPayment.aggregate({
+        _sum: { paidAmount: true },
+        where: { paidAt: { gte: since, lt: MECHANIC_COST_CUTOFF } },
+      }),
     ]);
 
   // confirmedAmount (a real physical recount) always wins when set; otherwise
@@ -295,7 +333,10 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
   );
   const buxgalterIncome = Number(buxgalterIncomeAgg._sum.amount ?? BigInt(0));
   const paidToOwner = Number(payoutAgg._sum.amount ?? BigInt(0));
-  const expenses = Number(expenseAgg._sum.amount ?? BigInt(0));
+  // expenseAgg still includes ALL non-FUEL categories (REPAIR included) —
+  // postCutoffRepair backs out only the post-cutoff REPAIR slice, so
+  // pre-cutoff REPAIR stays counted exactly as it always was.
+  const expenses = Number(expenseAgg._sum.amount ?? BigInt(0)) - Number(postCutoffRepairAgg._sum.amount ?? BigInt(0));
   const staffExpenses = Number(staffExpenseAgg._sum.amount ?? BigInt(0));
   const advances = Number(advanceAgg._sum.amount ?? BigInt(0));
   const salaries = Number(salaryAgg._sum.netPay ?? BigInt(0));
@@ -354,8 +395,17 @@ async function computeBalanceLedger(since: Date, openingAmount: number): Promise
         where: { payoutDate: { gte: utcDayStart(since) } },
         include: { enteredByUser: true },
       }),
+      // REPAIR dated on/after MECHANIC_COST_CUTOFF excluded — see
+      // computeCashBalance's own comment: paid by the owner directly now,
+      // not out of the accountant's cash, but only from that date forward
+      // (older REPAIR rows stay counted, per the user's own instruction not
+      // to retroactively restore old paid amounts).
       prisma.expense.findMany({
-        where: { category: { not: "FUEL" }, expenseDate: { gte: since } },
+        where: {
+          category: { not: "FUEL" },
+          expenseDate: { gte: since },
+          NOT: { category: "REPAIR", expenseDate: { gte: MECHANIC_COST_CUTOFF } },
+        },
         include: { vehicle: true },
       }),
       // FARGONA/QUVA excluded — see computeCashBalance's own comment: their
@@ -372,7 +422,11 @@ async function computeBalanceLedger(since: Date, openingAmount: number): Promise
         where: { status: "PAID", paidAt: { gte: since } },
         include: { user: true },
       }),
-      prisma.stationPayment.findMany({ where: { paidAt: { gte: since } }, include: { station: true } }),
+      // Pre-cutoff only — see computeCashBalance's own stationPaymentAgg comment.
+      prisma.stationPayment.findMany({
+        where: { paidAt: { gte: since, lt: MECHANIC_COST_CUTOFF } },
+        include: { station: true },
+      }),
     ]);
 
   const rows: Omit<BalanceLedgerRow, "balanceAfter">[] = [
@@ -563,8 +617,15 @@ async function computeCashDetail(period: Period, referenceDate: Date): Promise<C
       include: { user: true },
       orderBy: { lunchDate: "desc" },
     }),
+    // REPAIR dated on/after MECHANIC_COST_CUTOFF excluded — the owner pays
+    // the mechanic directly for these now, so they no longer belong in the
+    // accountant's own "where did the money go" picture (see
+    // computeCashBalance's own comment on the same cutoff).
     prisma.expense.findMany({
-      where: { expenseDate: { gte: from, lte: to } },
+      where: {
+        expenseDate: { gte: from, lte: to },
+        NOT: { category: "REPAIR", expenseDate: { gte: MECHANIC_COST_CUTOFF } },
+      },
       include: { vehicle: true },
       orderBy: { expenseDate: "desc" },
     }),
@@ -582,8 +643,9 @@ async function computeCashDetail(period: Period, referenceDate: Date): Promise<C
       include: { user: true },
       orderBy: { paidAt: "desc" },
     }),
+    // Pre-cutoff only — see computeCashBalance's own comment.
     prisma.stationPayment.findMany({
-      where: { paidAt: { gte: from, lte: to } },
+      where: { paidAt: { gte: from, lte: to, lt: MECHANIC_COST_CUTOFF } },
       include: { station: true },
       orderBy: { paidAt: "desc" },
     }),
@@ -894,4 +956,57 @@ export async function getOwnerPayoutMonthSummary(): Promise<{ thisMonth: number;
     thisMonth: Number(thisAgg._sum.amount ?? BigInt(0)),
     lastMonth: Number(lastAgg._sum.amount ?? BigInt(0)),
   };
+}
+
+export type MechanicCostSummary = {
+  /** All-time OwnerPayout total — the owner's own money, handed over by the
+   * accountant over the whole life of the business, not just since some
+   * cutoff. This is a brand-new figure with no prior on-screen value to
+   * protect from jumping (unlike computeCashBalance's own MECHANIC_COST_
+   * CUTOFF split), so it's simplest and most honest as a genuine all-time
+   * running total: what the owner has received, minus what's been spent
+   * from that same pool on fuel/oil since. */
+  paidToOwner: number;
+  /** All-time StationPayment.paidAmount — real cash already handed over to
+   * a fuel station, regardless of whether that bill is fully settled yet
+   * (a partial payment is still real money already spent). */
+  fuelSpent: number;
+  /** All-time REPAIR-category Expense — mechanic-entered oil changes and
+   * other vehicle repairs. */
+  oilSpent: number;
+  totalSpent: number;
+  /** paidToOwner − totalSpent — visible to owner/admin/mechanic (not the
+   * accountant, who has no stake in this flow — see getMechanicCostSummary's
+   * own comment). */
+  balance: number;
+};
+
+/**
+ * A second, independent running balance alongside computeCashBalance's own
+ * "Эгасига берилмаган қолдиқ" — that one tracks cash the accountant collects
+ * from dispatchers and still owes the owner; this one tracks the reverse
+ * direction, money the owner has already received that the mechanic then
+ * draws on directly for fuel and oil-change/repair costs (confirmed with
+ * the business owner: the mechanic gets paid for these straight from the
+ * owner, never out of the accountant's own collected cash — see
+ * computeCashBalance's own MECHANIC_COST_CUTOFF comment for the incident
+ * that surfaced this). "Marking paid" needs no separate action here: a
+ * mechanic entering a StationPayment installment (addStationPaymentInstall
+ * mentAction) or an oil change (addOilChangeAction) — both mechanic-only,
+ * see requireMechanic() in their own files — already *is* that record, so
+ * this just reads the same two sources computeCashBalance excludes.
+ */
+export async function getMechanicCostSummary(): Promise<MechanicCostSummary> {
+  const [payoutAgg, stationPaymentAgg, repairAgg] = await Promise.all([
+    prisma.ownerPayout.aggregate({ _sum: { amount: true } }),
+    prisma.stationPayment.aggregate({ _sum: { paidAmount: true } }),
+    prisma.expense.aggregate({ _sum: { amount: true }, where: { category: "REPAIR" } }),
+  ]);
+
+  const paidToOwner = Number(payoutAgg._sum.amount ?? BigInt(0));
+  const fuelSpent = Number(stationPaymentAgg._sum.paidAmount ?? BigInt(0));
+  const oilSpent = Number(repairAgg._sum.amount ?? BigInt(0));
+  const totalSpent = fuelSpent + oilSpent;
+
+  return { paidToOwner, fuelSpent, oilSpent, totalSpent, balance: paidToOwner - totalSpent };
 }
