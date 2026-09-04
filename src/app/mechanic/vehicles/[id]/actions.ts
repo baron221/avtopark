@@ -106,6 +106,7 @@ export async function deleteVehicleExpenseAction(formData: FormData) {
 
   revalidatePath(`/mechanic/vehicles/${expense.vehicleId}`);
   revalidatePath("/mechanic/vehicles");
+  revalidatePath("/mechanic/expenses");
   revalidatePath("/accountant/expenses");
 }
 
