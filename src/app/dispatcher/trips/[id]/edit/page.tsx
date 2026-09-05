@@ -35,8 +35,20 @@ export default async function EditTripPage({
   const trip = await prisma.trip.findUnique({ where: { id } });
   if (!trip || trip.point !== point) notFound();
 
-  const drivers = await prisma.driver.findMany({ include: { user: true }, orderBy: { user: { fullName: "asc" } } });
+  const drivers = await prisma.driver.findMany({
+    where: { user: { isActive: true } },
+    include: { user: true },
+    orderBy: { user: { fullName: "asc" } },
+  });
   const driverOptions = drivers.map((d) => ({ id: d.id, name: d.user.fullName }));
+  // A blocked driver can still be this specific trip's own (already
+  // recorded) driver — keep them selectable here so the form doesn't show
+  // blank for an existing trip, even though they're excluded above from
+  // being newly assignable elsewhere.
+  if (!driverOptions.some((d) => d.id === trip.driverId)) {
+    const currentDriver = await prisma.driver.findUnique({ where: { id: trip.driverId }, include: { user: true } });
+    if (currentDriver) driverOptions.unshift({ id: currentDriver.id, name: currentDriver.user.fullName });
+  }
 
   const backTo: "journal" | "point" = from === "point" ? "point" : "journal";
   const backHref = backTo === "point" ? "/dispatcher/point" : "/dispatcher/journal";

@@ -28,7 +28,7 @@ export default async function DispatcherShiftsPage({
   // Farg'ona <-> Quva), so shift assignment isn't point-scoped — every
   // dispatcher sees and manages the same shared vehicles/drivers, same as
   // the Mechanic/Admin shift screens.
-  const [vehicles, drivers, shifts] = await Promise.all([
+  const [vehicles, allDrivers, shifts] = await Promise.all([
     prisma.vehicle.findMany({ orderBy: { plate: "asc" } }),
     prisma.driver.findMany({
       include: { user: true, vehicle: true },
@@ -36,6 +36,13 @@ export default async function DispatcherShiftsPage({
     }),
     prisma.shift.findMany({ where: { month } }),
   ]);
+  // Blocked ("Блоклаш") drivers shouldn't be newly assignable, but a
+  // vehicle's already-recorded shift this month might reference one blocked
+  // after the fact — dropping that row's driver from the pick list would
+  // show blank instead of who's actually assigned, so it stays available as
+  // a fallback per-vehicle below via allDrivers.
+  const drivers = allDrivers.filter((d) => d.user.isActive);
+  const driversById = new Map(allDrivers.map((d) => [d.id, d]));
 
   const shiftByVehicle = new Map(shifts.map((s) => [s.vehicleId, s.driverId]));
 
@@ -67,7 +74,10 @@ export default async function DispatcherShiftsPage({
           <div>Ҳайдовчи (шу ой учун)</div>
           <div>Ҳолат</div>
         </div>
-        {vehicles.map((v) => (
+        {vehicles.map((v) => {
+          const assignedId = shiftByVehicle.get(v.id) ?? "";
+          const assignedBlocked = assignedId && !drivers.some((d) => d.id === assignedId) ? driversById.get(assignedId) : null;
+          return (
           <div
             key={v.id}
             className="grid grid-cols-1 lg:grid-cols-[1fr_2fr_0.8fr] gap-2 px-6 py-3.5 border-t border-row-divider items-center text-sm"
@@ -80,13 +90,19 @@ export default async function DispatcherShiftsPage({
             </div>
             <ShiftSelect
               name="driverId"
-              defaultValue={shiftByVehicle.get(v.id) ?? ""}
+              defaultValue={assignedId}
               vehicleId={v.id}
               month={monthStr}
               action={assignShiftAction}
               className="w-full max-w-[320px] bg-card border-2 border-border rounded-lg px-2.5 py-1.5 text-[13px] font-bold text-heading outline-none focus:border-primary"
             >
               <option value="">— тайинланмаган —</option>
+              {assignedBlocked && (
+                <option key={assignedBlocked.id} value={assignedBlocked.id}>
+                  {assignedBlocked.user.fullName}
+                  {assignedBlocked.vehicle ? ` · ${assignedBlocked.vehicle.plate}` : " · бўш"}
+                </option>
+              )}
               {drivers.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.user.fullName}
@@ -98,7 +114,8 @@ export default async function DispatcherShiftsPage({
               <StatusPill status={v.status} />
             </div>
           </div>
-        ))}
+          );
+        })}
         {vehicles.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Бу пунктда машина йўқ</p>}
       </Card>
     </div>

@@ -76,7 +76,11 @@ export default async function VehicleDetailPage({
     prisma.vehicle.findUnique({ where: { id }, include: { driver: { include: { user: true } } } }),
     getOwnerDashboardVM("MONTH"),
     prisma.expense.findMany({ where: { vehicleId: id }, orderBy: { expenseDate: "desc" }, take: 10 }),
-    prisma.driver.findMany({ include: { user: true, vehicle: true }, orderBy: { user: { fullName: "asc" } } }),
+    prisma.driver.findMany({
+      where: { user: { isActive: true } },
+      include: { user: true, vehicle: true },
+      orderBy: { user: { fullName: "asc" } },
+    }),
     prisma.oilChange.findMany({ where: { vehicleId: id }, orderBy: { changedAt: "desc" }, take: 10 }),
     getVehicleReport(id, period),
     getDriverAssignmentHistory(id),
@@ -148,6 +152,13 @@ export default async function VehicleDetailPage({
     name: d.user.fullName,
     currentPlate: d.vehicle?.plate ?? null,
   }));
+  // The drivers list above excludes blocked ("Блоклаш") staff so they can't
+  // be newly assigned — but if this vehicle's *current* driver was blocked
+  // after the assignment was made, they'd vanish from the dropdown's
+  // options entirely, showing blank instead of who's actually assigned.
+  if (vehicle.driver && !driverOptions.some((d) => d.id === vehicle.driver!.id)) {
+    driverOptions.unshift({ id: vehicle.driver.id, name: vehicle.driver.user.fullName, currentPlate: vehicle.plate });
+  }
 
   return (
     <div className="max-w-[1000px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
