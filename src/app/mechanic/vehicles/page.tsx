@@ -11,6 +11,7 @@ import { hasModuleAccess } from "@/lib/access";
 import { getExternalVehicles } from "@/lib/externalVehicle";
 import { ExternalVehicleManager } from "@/components/ExternalVehicleManager";
 import { addExternalVehicleAction, deleteExternalVehicleAction } from "@/app/actions";
+import { estimateFleetOdometerKm } from "@/lib/oilChange";
 
 const FILTERS = [
   { key: "ALL", label: "Барчаси" },
@@ -34,7 +35,11 @@ export default async function MechanicVehiclesPage({
   const status = FILTERS.some((f) => f.key === statusParam) ? statusParam! : "ALL";
   const page = parsePage(pageParam);
 
-  const [vm, externalVehicles] = await Promise.all([getOwnerDashboardVM("MONTH"), getExternalVehicles()]);
+  const [vm, externalVehicles, odometerByVehicle] = await Promise.all([
+    getOwnerDashboardVM("MONTH"),
+    getExternalVehicles(),
+    estimateFleetOdometerKm(),
+  ]);
   const filteredVehicles = status === "ALL" ? vm.vehicles : vm.vehicles.filter((v) => v.status === status);
   const skip = paginationSkip(page);
   const vehicles = filteredVehicles.slice(skip, skip + DEFAULT_PAGE_SIZE);
@@ -75,9 +80,10 @@ export default async function MechanicVehiclesPage({
       </div>
 
       <Card className="overflow-hidden">
-        <div className="hidden lg:grid grid-cols-[1.1fr_1fr_0.7fr_0.7fr_1.2fr_0.9fr_0.9fr_0.8fr] px-6 py-3 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
+        <div className="hidden lg:grid grid-cols-[1.1fr_1fr_0.8fr_0.7fr_0.7fr_1.2fr_0.9fr_0.9fr_0.8fr] px-6 py-3 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
           <div>Рақам</div>
           <div>Модел</div>
+          <div>Пробег</div>
           <div>Тури</div>
           <div>Режим</div>
           <div>Ҳайдовчи</div>
@@ -85,14 +91,19 @@ export default async function MechanicVehiclesPage({
           <div>Фойда</div>
           <div>Ҳолат</div>
         </div>
-        {vehicles.map((v) => (
+        {vehicles.map((v) => {
+          const odometerKm = odometerByVehicle.get(v.vehicleId) ?? null;
+          return (
           <Link
             key={v.vehicleId}
             href={`/mechanic/vehicles/${v.vehicleId}`}
-            className="grid grid-cols-2 lg:grid-cols-[1.1fr_1fr_0.7fr_0.7fr_1.2fr_0.9fr_0.9fr_0.8fr] gap-y-1 gap-x-2 px-6 py-3.5 border-t border-row-divider items-center text-sm hover:bg-page"
+            className="grid grid-cols-2 lg:grid-cols-[1.1fr_1fr_0.8fr_0.7fr_0.7fr_1.2fr_0.9fr_0.9fr_0.8fr] gap-y-1 gap-x-2 px-6 py-3.5 border-t border-row-divider items-center text-sm hover:bg-page"
           >
             <div className="font-extrabold text-primary font-heading">{v.plate}</div>
             <div className="font-semibold text-heading">{v.model}</div>
+            <div className="text-muted font-bold col-span-2 lg:col-span-1">
+              {odometerKm != null ? `${odometerKm.toLocaleString("uz-UZ")} км` : "—"}
+            </div>
             <div className="text-muted font-semibold">{v.type === "AVTOBUS" ? "Автобус" : "Фургон"}</div>
             <div className="text-muted font-bold">
               {v.incomeSource === "TRIPS" ? "Рейс" : v.incomeSource === "PLAN" ? "План" : "Ижара"}
@@ -104,7 +115,8 @@ export default async function MechanicVehiclesPage({
               <StatusPill status={v.status} />
             </div>
           </Link>
-        ))}
+          );
+        })}
         {vehicles.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Бу филтрга мос машина йўқ</p>}
         <Pagination page={page} totalPages={pages} basePath="/mechanic/vehicles" params={{ status }} />
       </Card>

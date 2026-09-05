@@ -30,6 +30,50 @@ export async function estimateCurrentOdometerKm(
  * Shared by the mechanic vehicle page and the Telegram /moy report so both
  * agree on the same current-km estimate.
  */
+/**
+ * Same estimate as estimateCurrentOdometerKm + resolveOdometerBase, but for
+ * every vehicle in the fleet at once (the mechanic's vehicle list) — three
+ * bulk queries instead of N+1 per-vehicle round trips. Falls back the same
+ * way the single-vehicle page does: GPS estimate, then the last known real
+ * reading, then null (never had one).
+ */
+export async function estimateFleetOdometerKm(): Promise<Map<string, number | null>> {
+  const [vehicles, oilChanges, mileages] = await Promise.all([
+    prisma.vehicle.findMany({ select: { id: true, odometerKm: true, odometerAsOf: true, purchaseDate: true } }),
+    prisma.oilChange.findMany({
+      orderBy: { changedAt: "desc" },
+      select: { vehicleId: true, odometerKm: true, changedAt: true },
+    }),
+    prisma.vehicleMileage.findMany({ select: { vehicleId: true, date: true, km: true } }),
+  ]);
+
+  const lastOilChangeByVehicle = new Map<string, { odometerKm: number; changedAt: Date }>();
+  for (const oc of oilChanges) {
+    if (!lastOilChangeByVehicle.has(oc.vehicleId)) {
+      lastOilChangeByVehicle.set(oc.vehicleId, { odometerKm: oc.odometerKm, changedAt: oc.changedAt });
+    }
+  }
+  const mileagesByVehicle = new Map<string, { date: Date; km: number }[]>();
+  for (const m of mileages) {
+    const arr = mileagesByVehicle.get(m.vehicleId);
+    if (arr) arr.push(m);
+    else mileagesByVehicle.set(m.vehicleId, [m]);
+  }
+
+  const result = new Map<string, number | null>();
+  for (const v of vehicles) {
+    const base = resolveOdometerBase(lastOilChangeByVehicle.get(v.id) ?? null, v);
+    if (!base) {
+      result.set(v.id, null);
+      continue;
+    }
+    const sinceBase = (mileagesByVehicle.get(v.id) ?? []).filter((m) => m.date > base.date);
+    const estimated = sinceBase.length > 0 ? Math.round(base.km + sinceBase.reduce((s, m) => s + m.km, 0)) : null;
+    result.set(v.id, estimated ?? v.odometerKm ?? base.km ?? null);
+  }
+  return result;
+}
+
 export function resolveOdometerBase(
   lastOilChange: { odometerKm: number; changedAt: Date } | null,
   vehicle: { odometerKm: number | null; odometerAsOf: Date | null; purchaseDate: Date }
