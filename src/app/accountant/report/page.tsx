@@ -12,6 +12,7 @@ import {
   recordOwnerPayoutAction,
   cancelOwnerPayoutAction,
   setCashOpeningBalanceAction,
+  sendDailyClosingReportAction,
 } from "./actions";
 import { IncomeEntryCard } from "./IncomeEntryCard";
 import { ExpenseEntryCard } from "./ExpenseEntryCard";
@@ -80,6 +81,7 @@ export default async function AccountantReportPage({
         cancelPayoutAction={cancelOwnerPayoutAction}
         setOpeningBalanceAction={setCashOpeningBalanceAction}
         deleteOtherIncomeAction={isAccountant ? deleteOtherIncomeAction : undefined}
+        sendDailyClosingAction={sendDailyClosingReportAction}
       />
     </>
   );

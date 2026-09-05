@@ -13,6 +13,7 @@ import { BalanceLedgerSection } from "@/components/dashboard/BalanceLedgerSectio
 import { CollapsibleCard } from "@/components/dashboard/CollapsibleCard";
 import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
 import { ConfirmReceiptRow } from "@/components/dashboard/ConfirmReceiptRow";
+import { SendDailyClosingButton } from "@/components/dashboard/SendDailyClosingButton";
 import { OutsideExpensesCard } from "@/components/dashboard/OutsideExpensesCard";
 import type { OwnerDashboardVM, Period } from "@/lib/dashboard";
 import type { CashLedgerSummary, OwnerPayoutState, MonthlyPayoutPoint, MechanicCostSummary } from "@/lib/ownerPayout";
@@ -43,6 +44,7 @@ export function FleetDashboard({
   ownerPayoutSummary,
   deleteOtherIncomeAction,
   mechanicCostSummary,
+  sendDailyClosingAction,
 }: {
   vm: OwnerDashboardVM;
   period: Period;
@@ -78,6 +80,12 @@ export function FleetDashboard({
    * own comment for why this tracks a separate direction of cash from
    * cashLedger's own accountant-facing balance. */
   mechanicCostSummary?: MechanicCostSummary;
+  /** Accountant-only — sends today's report to the owner's Telegram on
+   * demand (see sendDailyClosingReportAction). Passed only by
+   * /accountant/report, same as cashLedger's own action props; no cron or
+   * auto-send exists anymore, this button is the only trigger besides
+   * /hisobot. */
+  sendDailyClosingAction?: () => Promise<{ error: string }>;
 }) {
   const initial = userName?.[0]?.toUpperCase() ?? "?";
   const activeVehicleCount = vm.vehicles.filter((v) => v.tripCount > 0 || v.income > 0).length;
@@ -440,6 +448,7 @@ export function FleetDashboard({
                   )}
                 </div>
                 <div className="flex flex-col items-end gap-2">
+                  {sendDailyClosingAction && <SendDailyClosingButton action={sendDailyClosingAction} />}
                   {cashExportHref && (
                     <a
                       href={cashExportHref}

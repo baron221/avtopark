@@ -1,9 +1,10 @@
 // Telegram Bot API client (https://core.telegram.org/bots/api#sendmessage).
 // Each alert (gpsMovementWatch route, gps-signal route, cash-reminder route,
-// oil-due route, daily-summary route) picks the one role it's actually
-// about — this file's job is just delivering to that role's chat, plus
-// always CC-ing the broadcast channel so one person (owner/admin) can see
-// every alert without being individually subscribed to each role's chat.
+// oil-due route, the accountant's own "Кунни якунлаш" daily-closing send)
+// picks the one role it's actually about — this file's job is just
+// delivering to that role's chat, plus always CC-ing the broadcast channel
+// so one person (owner/admin) can see every alert without being
+// individually subscribed to each role's chat.
 
 export type AlertRole = "MECHANIC" | "ACCOUNTANT" | "OWNER";
 

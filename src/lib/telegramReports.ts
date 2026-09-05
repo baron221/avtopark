@@ -125,19 +125,86 @@ export async function buildOilStatusReport(): Promise<{ message: string }> {
   return { message: `🔧 <b>Барча машиналар — мой ҳолати</b>\n\n${lines}` };
 }
 
+// UTC-based, not formatDayMonth (which uses local getters) — `day` here is
+// always a UTC-midnight Date (utcDayStart), so extracting it with local
+// getters would only be correct when the running process's own timezone
+// happens to be UTC (true on Vercel, not guaranteed everywhere this could
+// run — see month.ts's own comment on the same bug class elsewhere).
+function dayMonthLabel(d: Date): string {
+  return `${String(d.getUTCDate()).padStart(2, "0")}.${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function fullDateLabel(d: Date): string {
+  return `${dayMonthLabel(d)}.${d.getUTCFullYear()}`;
+}
+
+/** Built once (by the accountant's own "Кунни якунлаш" button — see
+ * sendDailyClosingReportAction — or on demand via /hisobot), never
+ * automatically anymore: pushing this at a fixed cron time regardless of
+ * whether the day's numbers were actually final turned out to be more noise
+ * than signal, per explicit request. Sourced entirely from
+ * getCashLedgerSummary's already-correct/tested row data (no separate
+ * queries of its own) — the point/lunch/outside categories are just
+ * regrouped for this specific presentation: Фарғона/Қува split out from
+ * lunch (fleet-wide, shown as its own "Шофёрлар обеди" line since a driver's
+ * lunch isn't tied to one point — see Lunch's own schema comment), Аванс and
+ * Ишхона (labelled "Офис расходлари") pulled out of the generic "outside"
+ * bucket by category/subtitle, Йўлда and anything left over (vehicle
+ * repair/fuel/salary/station-payment rows) shown only when non-zero so an
+ * ordinary day's report isn't cluttered with empty categories. */
 export async function buildDailySummaryReport(referenceDate: Date = new Date()): Promise<{ message: string }> {
-  const cashLedger = await getCashLedgerSummary("DAY", referenceDate);
-  const { cashDetail } = cashLedger;
-  const dailyBalance = cashDetail.income.total - cashDetail.expense.total;
+  const day = utcDayStart(referenceDate);
+  const [totalVehicles, ledger] = await Promise.all([prisma.vehicle.count(), getCashLedgerSummary("DAY", day)]);
+  const { cashDetail } = ledger;
+
+  const ranVehicles = new Set(
+    [...cashDetail.income.fargona.rows, ...cashDetail.income.quva.rows].map((r) => r.vehiclePlate)
+  );
+
+  const isLunch = (r: { category: string }) => r.category === "Обед";
+  const fargonaPoint = cashDetail.expense.fargona.rows.filter((r) => !isLunch(r)).reduce((s, r) => s + r.amount, 0);
+  const quvaPoint = cashDetail.expense.quva.rows.filter((r) => !isLunch(r)).reduce((s, r) => s + r.amount, 0);
+  const lunchTotal =
+    cashDetail.expense.fargona.rows.filter(isLunch).reduce((s, r) => s + r.amount, 0) +
+    cashDetail.expense.quva.rows.filter(isLunch).reduce((s, r) => s + r.amount, 0);
+
+  const outside = cashDetail.expense.outside.rows;
+  const isAdvance = (r: { category: string }) => r.category === "Аванс";
+  const isIshxona = (r: { subtitle: string }) => r.subtitle.startsWith("Ишхона");
+  const isYolda = (r: { subtitle: string }) => r.subtitle.startsWith("Йўлда");
+  const advanceTotal = outside.filter(isAdvance).reduce((s, r) => s + r.amount, 0);
+  const ishxonaTotal = outside.filter(isIshxona).reduce((s, r) => s + r.amount, 0);
+  const yoldaTotal = outside.filter(isYolda).reduce((s, r) => s + r.amount, 0);
+  const otherOutsideTotal = outside
+    .filter((r) => !isAdvance(r) && !isIshxona(r) && !isYolda(r))
+    .reduce((s, r) => s + r.amount, 0);
+
+  const tripIncome = cashDetail.income.fargona.total + cashDetail.income.quva.total;
+  const totalExpense = fargonaPoint + quvaPoint + lunchTotal + advanceTotal + ishxonaTotal + yoldaTotal + otherOutsideTotal;
+  const dailyBalance = tripIncome + cashDetail.income.other.total - totalExpense;
+
+  const expenseLines = [
+    `Қува пункти − ${formatSom(quvaPoint)}`,
+    `Фарғона пункти − ${formatSom(fargonaPoint)}`,
+    `Шофёрлар обеди, сув − ${formatSom(lunchTotal)}`,
+    `Аванс − ${formatSom(advanceTotal)}`,
+    `Офис расходлари − ${formatSom(ishxonaTotal)}`,
+  ];
+  if (yoldaTotal > 0) expenseLines.push(`Йўлда − ${formatSom(yoldaTotal)}`);
+  if (otherOutsideTotal > 0) expenseLines.push(`Бошқа − ${formatSom(otherOutsideTotal)}`);
 
   const message =
-    `📊 <b>Кунлик хулоса · ${cashDetail.rangeLabel}</b>\n\n` +
-    `Фарғона: ${formatSom(cashDetail.income.fargona.total)} − ${formatSom(cashDetail.expense.fargona.total)}\n` +
-    `Қува: ${formatSom(cashDetail.income.quva.total)} − ${formatSom(cashDetail.expense.quva.total)}\n` +
-    `Бошқа тушум: ${formatSom(cashDetail.income.other.total)}\n` +
-    `Бошқа чиқим: ${formatSom(cashDetail.expense.outside.total)}\n\n` +
-    `Кунлик қолдиқ: ${formatSom(cashDetail.income.total)} − ${formatSom(cashDetail.expense.total)} = ${signed(dailyBalance)}\n\n` +
-    `Эгасига берилмаган қолдиқ: ${formatSom(cashLedger.balance)}`;
+    `<b>${fullDateLabel(day)}</b>\n\n` +
+    `Жами ${totalVehicles} та мошина\n` +
+    `${ranVehicles.size} та қатнаган машина\n\n` +
+    `Кирим Қува-Фар-Қува: ${formatSom(tripIncome)}\n` +
+    `Бошқа кирим: ${formatSom(cashDetail.income.other.total)}\n\n` +
+    `Жами кирим: ${formatSom(tripIncome + cashDetail.income.other.total)} сум\n\n` +
+    `<b>Расходлар</b>\n${expenseLines.join("\n")}\n\n` +
+    `Жами расход: ${formatSom(totalExpense)} сум\n\n` +
+    `${dayMonthLabel(day)} − Қолдиқ: ${signed(dailyBalance)} сум\n\n` +
+    `${ledger.yesterday.dateLabel} − Қолдиқ: ${signed(ledger.yesterday.balance)} сум\n\n` +
+    `Жами кассада (Эгасига берилмаган қолдиқ): ${formatSom(ledger.balance)} сум.`;
 
   return { message };
 }
@@ -173,23 +240,19 @@ export async function buildOnDemandDailySummary(): Promise<{ message: string }> 
 
   return {
     message:
-      `⏳ Бугунги ${pointList} пункти(лари) ҳали бухгалтерга топширилмаган ва тасдиқланмаган.\n` +
-      `Бухгалтер тасдиқласа, автоматик жўнатаман.\n\n` +
+      `⏳ Бугунги ${pointList} пункти(лари) ҳали бухгалтерга топширилмаган ва тасдиқланмаган.\n\n` +
       `Қуйида кечаги ҳисобот:\n\n${yesterdayMessage}`,
   };
 }
 
-/** Called after a cash handover confirm — if this confirm was for today
- * and it's the one that completes both points, push today's summary to
- * the owner right away instead of making them wait for /hisobot or the
- * end-of-day cron. A no-op for confirming a backlog day's handover. */
-export async function maybeAutoSendDailySummary(handoverDate: Date): Promise<void> {
-  const today = utcDayStart(new Date());
-  if (utcDayStart(handoverDate).getTime() !== today.getTime()) return;
-
-  const { ready } = await getCashReadiness(today);
-  if (!ready) return;
-
+/** The accountant's own "Кунни якунлаш" button (see
+ * sendDailyClosingReportAction in accountant/report/actions.ts) — the only
+ * way this report reaches the owner now besides an explicit /hisobot. No
+ * cron and no auto-send-on-confirm anymore (both removed per request):
+ * pushing this at a fixed time or the moment both points happened to get
+ * confirmed was more noise than signal — the accountant decides when the
+ * day is actually done. */
+export async function sendDailyClosingReport(): Promise<void> {
   const { message } = await buildDailySummaryReport();
   await notifyRole("OWNER", message);
 }

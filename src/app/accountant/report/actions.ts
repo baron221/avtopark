@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hasModuleAccess } from "@/lib/access";
 import { getCashBalance, type OwnerPayoutState } from "@/lib/ownerPayout";
-import { maybeAutoSendDailySummary } from "@/lib/telegramReports";
+import { sendDailyClosingReport } from "@/lib/telegramReports";
 
 export async function confirmCashReceiptAction(formData: FormData) {
   const session = await auth();
@@ -21,9 +21,6 @@ export async function confirmCashReceiptAction(formData: FormData) {
     where: { id },
     data: { accountantConfirmedBy: session.user.id, accountantConfirmedAt: new Date() },
   });
-
-  // Best-effort — a Telegram hiccup shouldn't fail the confirm itself.
-  await maybeAutoSendDailySummary(handover.handoverDate).catch((err) => console.error("Telegram авто-жўнатиш хатоси:", err));
 
   revalidatePath("/accountant/report");
 }
@@ -62,9 +59,6 @@ export async function confirmCashReceiptWithAdjustmentAction(
       confirmedNote: note,
     },
   });
-
-  // Best-effort — a Telegram hiccup shouldn't fail the confirm itself.
-  await maybeAutoSendDailySummary(handover.handoverDate).catch((err) => console.error("Telegram авто-жўнатиш хатоси:", err));
 
   revalidatePath("/accountant/report");
   return { error: "" };
@@ -174,4 +168,25 @@ export async function setCashOpeningBalanceAction(
 
   revalidatePath("/accountant/report");
   return { error: "" };
+}
+
+export type SendReportState = { error: string };
+
+/** "Кунни якунлаш" — the accountant's own explicit trigger for today's
+ * report (see FleetDashboard's SendDailyClosingButton), now the only way
+ * this reaches the owner besides /hisobot — no cron, no auto-send on
+ * confirm (both removed per request). */
+export async function sendDailyClosingReportAction(): Promise<SendReportState> {
+  const session = await auth();
+  if (!session || (session.user.role !== "ACCOUNTANT" && !(await hasModuleAccess(session.user.role, "FLEET_DASHBOARD")))) {
+    return { error: "Рухсат йўқ" };
+  }
+
+  try {
+    await sendDailyClosingReport();
+    return { error: "" };
+  } catch (err) {
+    console.error("Кунлик ҳисоботни жўнатишда хато:", err);
+    return { error: "Жўнатишда хато юз берди" };
+  }
 }
