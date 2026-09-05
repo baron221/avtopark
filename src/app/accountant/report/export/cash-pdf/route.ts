@@ -158,7 +158,7 @@ export async function GET(request: Request) {
     color: dailyBalance >= 0 ? GREEN : RED,
   });
   sectionGap();
-  row("Касса — эгасига берилмаган қолдиқ", fmtSom(cashLedger.balance), { boldLabel: true, color: INDIGO });
+  row("Кассадаги пул", fmtSom(cashLedger.balance), { boldLabel: true, color: INDIGO });
   if (cashLedger.openingBalance) {
     subtitle(
       `Бошланғич қолдиқ ${fmtSom(cashLedger.openingBalance.amount)} · ${fmtDate(cashLedger.openingBalance.setDate)}дан ҳисобланмоқда`

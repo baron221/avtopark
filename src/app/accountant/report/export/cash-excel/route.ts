@@ -55,7 +55,7 @@ export async function GET(request: Request) {
   summarySheet.addRow({ label: "Давр", value: cashDetail.periodWord });
   summarySheet.addRow({ label: "Сана", value: cashDetail.rangeLabel });
   summarySheet.addRow({
-    label: "Эгасига берилмаган қолдиқ (харажатлардан кейин)",
+    label: "Кассадаги пул (харажатлардан кейин)",
     value: cashLedger.balance,
   }).getCell("value").numFmt = "#,##0";
   if (cashLedger.openingBalance) {

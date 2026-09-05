@@ -465,7 +465,7 @@ export function FleetDashboard({
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
                   <div className="text-[11px] text-muted-2 font-bold uppercase">
-                    Эгасига берилмаган қолдиқ (харажатлардан кейин)
+                    Кассадаги пул (харажатлардан кейин)
                   </div>
                   <div className="font-heading font-extrabold text-2xl text-heading">
                     {formatSom(cashLedger.balance)}

@@ -204,7 +204,7 @@ export async function buildDailySummaryReport(referenceDate: Date = new Date()):
     `Жами расход: ${formatSom(totalExpense)} сум\n\n` +
     `${dayMonthLabel(day)} − Қолдиқ: ${signed(dailyBalance)} сум\n\n` +
     `${ledger.yesterday.dateLabel} − Қолдиқ: ${signed(ledger.yesterday.balance)} сум\n\n` +
-    `Жами кассада (Эгасига берилмаган қолдиқ): ${formatSom(ledger.balance)} сум.`;
+    `Жами кассадаги пул: ${formatSom(ledger.balance)} сум.`;
 
   return { message };
 }
