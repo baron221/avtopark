@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { FleetDashboard } from "@/components/dashboard/FleetDashboard";
 import { getOwnerDashboardVM, type Period } from "@/lib/dashboard";
 import { getOwnerPayoutMonthSummary, getOwnerPayoutTrend, getMechanicCostSummary } from "@/lib/ownerPayout";
+import { getPointContributionsForDay } from "@/lib/cashHandover";
 import { hasModuleAccess } from "@/lib/access";
 
 function isPeriod(value: string | undefined): value is Period {
@@ -21,12 +22,14 @@ export default async function OwnerPage({
 
   const { period: periodParam } = await searchParams;
   const period: Period = isPeriod(periodParam) ? periodParam : "DAY";
-  const [vm, monthSummary, trend, mechanicCostSummary] = await Promise.all([
+  const [vm, monthSummary, trend, mechanicCostSummary, pointContributions] = await Promise.all([
     getOwnerDashboardVM(period),
     // Personal payout data — only the real Owner sees it, not a granted role.
     isOwner ? getOwnerPayoutMonthSummary() : Promise.resolve(null),
     isOwner ? getOwnerPayoutTrend(6) : Promise.resolve(null),
     getMechanicCostSummary(),
+    // Only meaningful for a single day — see FleetDashboard's own comment.
+    period === "DAY" ? getPointContributionsForDay(new Date()) : Promise.resolve(undefined),
   ]);
 
   return (
@@ -38,6 +41,7 @@ export default async function OwnerPage({
       embedded
       ownerPayoutSummary={monthSummary && trend ? { ...monthSummary, trend } : undefined}
       mechanicCostSummary={mechanicCostSummary}
+      pointContributions={pointContributions}
     />
   );
 }

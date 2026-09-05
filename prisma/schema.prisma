@@ -785,7 +785,11 @@ model CashHandover {
   dispatcherConfirmedByUser User  @relation("CashHandoverDispatcher", fields: [dispatcherConfirmedBy], references: [id])
   accountantConfirmedByUser User? @relation("CashHandoverAccountant", fields: [accountantConfirmedBy], references: [id])
 
-  @@unique([point, handoverDate])
+  // Widened from [point, handoverDate] — dispatchers rotate shifts at the
+  // same point on the same day, and each now hands over only what they
+  // personally collected (see cashHandover.ts), so more than one handover
+  // per point/day is legitimate as long as each is a different dispatcher.
+  @@unique([point, handoverDate, dispatcherConfirmedBy])
   @@index([handoverDate])
   @@map("cash_handovers")
 }

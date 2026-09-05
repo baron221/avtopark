@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { FleetDashboard } from "@/components/dashboard/FleetDashboard";
 import { getOwnerDashboardVM, type Period } from "@/lib/dashboard";
 import { getMechanicCostSummary } from "@/lib/ownerPayout";
+import { getPointContributionsForDay } from "@/lib/cashHandover";
 
 function isPeriod(value: string | undefined): value is Period {
   return value === "DAY" || value === "WEEK" || value === "MONTH";
@@ -30,9 +31,11 @@ export default async function AdminPanelPage({
   const { period: periodParam, date: dateParam } = await searchParams;
   const period: Period = isPeriod(periodParam) ? periodParam : "MONTH";
   const { date, dateStr } = parseDateParam(dateParam);
-  const [vm, mechanicCostSummary] = await Promise.all([
+  const [vm, mechanicCostSummary, pointContributions] = await Promise.all([
     getOwnerDashboardVM(period, date),
     getMechanicCostSummary(),
+    // Only meaningful for a single day — see FleetDashboard's own comment.
+    period === "DAY" ? getPointContributionsForDay(date) : Promise.resolve(undefined),
   ]);
 
   return (
@@ -44,6 +47,7 @@ export default async function AdminPanelPage({
       embedded
       date={dateStr}
       mechanicCostSummary={mechanicCostSummary}
+      pointContributions={pointContributions}
     />
   );
 }

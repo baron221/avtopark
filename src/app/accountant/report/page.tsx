@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { FleetDashboard } from "@/components/dashboard/FleetDashboard";
 import { getOwnerDashboardVM, type Period } from "@/lib/dashboard";
 import { getCashLedgerSummary } from "@/lib/ownerPayout";
+import { getPointContributionsForDay } from "@/lib/cashHandover";
 import { getExternalVehicles } from "@/lib/externalVehicle";
 import { hasModuleAccess } from "@/lib/access";
 import {
@@ -49,10 +50,12 @@ export default async function AccountantReportPage({
   const { date, dateStr } = parseDateParam(dateParam);
   const isAccountant = session.user.role === "ACCOUNTANT";
   const canManageExpenses = isAccountant || (await hasModuleAccess(session.user.role, "PAYROLL"));
-  const [vm, cashLedger, externalVehicles] = await Promise.all([
+  const [vm, cashLedger, externalVehicles, pointContributions] = await Promise.all([
     getOwnerDashboardVM(period, date),
     getCashLedgerSummary(period, date),
     isAccountant ? getExternalVehicles() : Promise.resolve([]),
+    // Only meaningful for a single day — see FleetDashboard's own comment.
+    period === "DAY" ? getPointContributionsForDay(date) : Promise.resolve(undefined),
   ]);
 
   return (
@@ -82,6 +85,7 @@ export default async function AccountantReportPage({
         setOpeningBalanceAction={setCashOpeningBalanceAction}
         deleteOtherIncomeAction={isAccountant ? deleteOtherIncomeAction : undefined}
         sendDailyClosingAction={sendDailyClosingReportAction}
+        pointContributions={pointContributions}
       />
     </>
   );

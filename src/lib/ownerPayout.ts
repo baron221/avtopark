@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { computeDailyCashAmounts, getDailyCashAmount } from "@/lib/cashHandover";
+import { computeDailyCashAmounts, getLiveHandoverAmount } from "@/lib/cashHandover";
 import { monthStart, monthEnd } from "@/lib/month";
 import { uzMonthName, formatDayMonth, formatSom } from "@/lib/format";
 import { OTHER_INCOME_CATEGORY_LABELS } from "@/lib/otherIncome";
@@ -265,7 +265,14 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
       // comment on why the frozen `amount` column goes stale).
       prisma.cashHandover.findMany({
         where: { accountantConfirmedAt: { gte: since } },
-        select: { amount: true, confirmedAmount: true, point: true, handoverDate: true },
+        select: {
+          amount: true,
+          confirmedAmount: true,
+          point: true,
+          handoverDate: true,
+          dispatcherConfirmedBy: true,
+          createdAt: true,
+        },
       }),
       // Day-aligned, not `since` itself: `since` is often a precise
       // mid-day instant (whenever the opening balance was actually set),
@@ -336,7 +343,7 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
   // column, which a later trip/expense edit for that day wouldn't touch.
   const confirmed = confirmedHandovers.reduce(
     (s, h) =>
-      s + Number(h.confirmedAmount ?? getDailyCashAmount(dailyCashAmounts, h.point, h.handoverDate) ?? h.amount),
+      s + Number(h.confirmedAmount ?? getLiveHandoverAmount(dailyCashAmounts, h) ?? h.amount),
     0
   );
   const buxgalterIncome = Number(buxgalterIncomeAgg._sum.amount ?? BigInt(0));
@@ -439,7 +446,7 @@ async function computeBalanceLedger(since: Date, openingAmount: number): Promise
 
   const rows: Omit<BalanceLedgerRow, "balanceAfter">[] = [
     ...confirmed.map((h) => {
-      const liveAmount = getDailyCashAmount(dailyCashAmounts, h.point, h.handoverDate) ?? h.amount;
+      const liveAmount = getLiveHandoverAmount(dailyCashAmounts, h) ?? h.amount;
       const effectiveAmount = h.confirmedAmount ?? liveAmount;
       // Worth calling out in the subtitle either way: confirmedAmount means
       // the accountant physically recounted and got a different number;
@@ -870,7 +877,7 @@ export async function getCashLedgerSummary(period: Period, referenceDate: Date):
       .map((h) => ({
         id: h.id,
         handoverDate: h.handoverDate,
-        amount: Number(getDailyCashAmount(pendingDailyCashAmounts, h.point, h.handoverDate) ?? h.amount),
+        amount: Number(getLiveHandoverAmount(pendingDailyCashAmounts, h) ?? h.amount),
         dispatcherName: h.dispatcherConfirmedByUser.fullName,
         note: h.note,
       })),

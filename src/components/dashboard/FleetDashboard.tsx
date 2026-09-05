@@ -19,9 +19,16 @@ import type { OwnerDashboardVM, Period } from "@/lib/dashboard";
 import type { CashLedgerSummary, OwnerPayoutState, MonthlyPayoutPoint, MechanicCostSummary } from "@/lib/ownerPayout";
 import { formatMillions, formatSom, formatTime } from "@/lib/format";
 import { logoutAction } from "@/app/actions";
+import type { Point } from "@prisma/client";
 
 const CATEGORY_COLORS = ["#4F46E5", "#FFB84D", "#1B9E6B", "#D9534F", "#C9CBE3", "#8A8CA0", "#6B6D82"];
 const POINT_LABELS: Record<string, string> = { FARGONA: "Фарғона", QUVA: "Қува", BUXGALTERIYA: "Бухгалтер" };
+
+/** One dispatcher's own share of a point's day — see getPointDayContributions
+ * (src/lib/cashHandover.ts). Defined here rather than imported from a
+ * dispatcher-route-local file, since this shared dashboard component must
+ * not depend on any single route's own modules. */
+export type PointContributionRow = { dispatcherId: string; dispatcherName: string; amount: number; submitted: boolean };
 
 export function FleetDashboard({
   vm,
@@ -45,6 +52,7 @@ export function FleetDashboard({
   deleteOtherIncomeAction,
   mechanicCostSummary,
   sendDailyClosingAction,
+  pointContributions,
 }: {
   vm: OwnerDashboardVM;
   period: Period;
@@ -86,6 +94,17 @@ export function FleetDashboard({
    * auto-send exists anymore, this button is the only trigger besides
    * /hisobot. */
   sendDailyClosingAction?: () => Promise<{ error: string }>;
+  /** Per-point breakdown of who collected/owes how much *today* — only
+   * meaningful (and only passed) for period === "DAY", and only rendered
+   * when a point has more than one contributor (dispatchers rotate shifts
+   * at the same point on the same day; each hands over just their own
+   * share — see cashHandover.ts's getPointDayContributions). Shown as
+   * additional detail alongside the existing pooled "Бухгалтерга
+   * топшириладиган қолдиқ" figure, not a replacement for it — the two are
+   * computed by different formulas (this dashboard's own period totals vs
+   * the handover mechanism's per-dispatcher one) and aren't guaranteed to
+   * reconcile to the decimal beyond a single day. */
+  pointContributions?: Partial<Record<Point, PointContributionRow[]>>;
 }) {
   const initial = userName?.[0]?.toUpperCase() ?? "?";
   const activeVehicleCount = vm.vehicles.filter((v) => v.tripCount > 0 || v.income > 0).length;
@@ -317,6 +336,26 @@ export function FleetDashboard({
                       )}
                     </div>
                   </div>
+
+                  {pointContributions?.[p.point] && pointContributions[p.point]!.length > 1 && (
+                    <div className="flex flex-col gap-1 pl-2">
+                      {pointContributions[p.point]!.map((c) => (
+                        <div key={c.dispatcherId} className="flex justify-between items-center text-[12px]">
+                          <span className="font-semibold text-body">{c.dispatcherName}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-extrabold text-heading">{formatSom(c.amount)}</span>
+                            <span
+                              className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full whitespace-nowrap ${
+                                c.submitted ? "bg-success-tint text-success" : "bg-primary-tint text-primary"
+                              }`}
+                            >
+                              {c.submitted ? "✓" : "Кутилмоқда"}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {cashLedger &&
                     confirmReceiptAction &&

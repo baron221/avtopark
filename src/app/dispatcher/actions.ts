@@ -283,18 +283,20 @@ async function createHandoverForDate(
 ): Promise<{ error: string }> {
   const today = startOfDay(targetDate);
   const existing = await prisma.cashHandover.findUnique({
-    where: { point_handoverDate: { point, handoverDate: today } },
+    where: { point_handoverDate_dispatcherConfirmedBy: { point, handoverDate: today, dispatcherConfirmedBy: userId } },
   });
   if (existing) return { error: "" };
 
-  // What the dispatcher physically has left to hand over — see
-  // computeDailyCashAmount's own comment. Note this is only a snapshot at
-  // submission time: computeCashBalance/computeBalanceLedger (ownerPayout.ts)
-  // recompute this live on every read rather than trusting the frozen
-  // CashHandover.amount column below, specifically so a trip/expense
-  // correction made after today's handover already exists still reaches
-  // the owner's balance instead of silently going stale.
-  const computed = await computeDailyCashAmount(point, today);
+  // What THIS dispatcher personally has left to hand over — see
+  // computeDailyCashAmount's own comment. A colleague working the same
+  // point/day submits their own separate handover (dispatchers rotate
+  // shifts), each scoped to their own enteredBy trail. Note this is only a
+  // snapshot at submission time: computeCashBalance/computeBalanceLedger
+  // (ownerPayout.ts) recompute this live on every read rather than
+  // trusting the frozen CashHandover.amount column below, specifically so
+  // a trip/expense correction made after today's handover already exists
+  // still reaches the owner's balance instead of silently going stale.
+  const computed = await computeDailyCashAmount(point, today, userId);
   const amount = overrideAmount ?? computed;
 
   await prisma.cashHandover.create({
@@ -348,8 +350,10 @@ export async function cancelCashHandoverAction(formData: FormData) {
 
   const now = new Date();
   const targetDate = startOfDay(parseBackdate(formData, now) ?? now);
+  // Scoped to this dispatcher's own submission — a colleague's separate
+  // handover for the same point/day is untouched by this.
   const handover = await prisma.cashHandover.findUnique({
-    where: { point_handoverDate: { point, handoverDate: targetDate } },
+    where: { point_handoverDate_dispatcherConfirmedBy: { point, handoverDate: targetDate, dispatcherConfirmedBy: userId } },
   });
   if (!handover || handover.accountantConfirmedAt) return;
 

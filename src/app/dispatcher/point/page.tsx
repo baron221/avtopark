@@ -9,6 +9,7 @@ import { hasModuleAccess } from "@/lib/access";
 import { getActivePoint } from "@/lib/activePoint";
 import { getExternalVehicles } from "@/lib/externalVehicle";
 import { getVehiclesAndDrivers } from "@/lib/vehicleWithDriver";
+import { computeDailyCashBreakdown, getPointDayContributions } from "@/lib/cashHandover";
 import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 import { IncomeForm } from "../journal/IncomeForm";
 import { DriverTripsTable, type DriverGroup } from "./DriverTripsTable";
@@ -20,6 +21,7 @@ import {
 } from "../actions";
 import { HandoverForm } from "./HandoverForm";
 import { CancelHandoverButton } from "./CancelHandoverButton";
+import { PointContributions } from "./PointContributions";
 import { DatePicker } from "@/components/ui/DatePicker";
 import type { Point } from "@prisma/client";
 
@@ -73,18 +75,17 @@ export default async function DispatcherPointPage({
   const viewDateStr = from.toISOString().slice(0, 10);
   const isToday = from.getTime() === todayStart.getTime();
 
-  const staffExpensePoint = point === "FARGONA" ? "FARGONA" : "QUVA";
-
   const [
     { vehicles: allVehicles, drivers },
     tripsToday,
     otherIncomeToday,
     myExpenseAgg,
     baseFareRoute,
-    todaysHandover,
-    pointExpenseAgg,
+    handoversToday,
     pointLunchAgg,
     externalVehicles,
+    myBreakdown,
+    contributions,
   ] = await Promise.all([
     // Two flat queries joined in JS (see getVehiclesAndDrivers) instead of
     // vehicle.findMany's own doubly-nested include — measured far faster
@@ -107,16 +108,29 @@ export default async function DispatcherPointPage({
       where: { userId: session.user.id, expenseDate: { gte: from, lte: to } },
     }),
     prisma.route.findFirst({ where: { isActive: true } }),
-    prisma.cashHandover.findUnique({ where: { point_handoverDate: { point, handoverDate: from } } }),
-    // Point-wide (not just this dispatcher's own) — matches exactly what
-    // confirmCashHandoverAction nets out, so this display never disagrees
-    // with what clicking "Топшириш" actually records.
-    prisma.staffExpense.aggregate({
-      _sum: { amount: true },
-      where: { point: staffExpensePoint, expenseDate: { gte: from, lte: to } },
+    // Every handover for this point/day, not just this dispatcher's own —
+    // dispatchers rotate shifts, so more than one can exist (see
+    // CashHandover's widened unique key). myHandover below picks this
+    // dispatcher's own row out of the set; the rest feed PointContributions.
+    prisma.cashHandover.findMany({
+      where: { point, handoverDate: from },
+      include: { dispatcherConfirmedByUser: true },
     }),
+    // Point-wide (not just this dispatcher's own) — deliberately still
+    // pooled for the "Обед (пункт)" KPI below, which answers "what
+    // happened at this point today" for a rotating dispatcher's context,
+    // unlike myBreakdown below which is what THIS dispatcher must
+    // personally hand over.
     prisma.lunch.aggregate({ _sum: { amount: true }, where: { point, lunchDate: { gte: from, lte: to } } }),
     getExternalVehicles(),
+    // This dispatcher's own collected/spent/net for this point/day — the
+    // same formula createHandoverForDate uses to compute the actual
+    // handover amount, so this display never disagrees with what clicking
+    // "Топшираман" actually records (see computeDailyCashBreakdown).
+    computeDailyCashBreakdown(point, from, session.user.id),
+    // Every dispatcher (not just this one) who had any activity at this
+    // point/day, for the "Бугун ким қанча йиғди" panel below.
+    getPointDayContributions(point, from),
   ]);
 
   // Filtered/sorted here instead of in the query — see getVehiclesAndDrivers.
@@ -134,8 +148,20 @@ export default async function DispatcherPointPage({
   const vehiclesWithMoney = new Set(tripsToday.map((t) => t.vehicleId));
   const myExpenseToday = Number(myExpenseAgg._sum.amount ?? BigInt(0));
   const pointLunchToday = Number(pointLunchAgg._sum.amount ?? BigInt(0));
-  const pointChiqimToday = Number(pointExpenseAgg._sum.amount ?? BigInt(0)) + pointLunchToday;
-  const netToHandover = Math.max(0, collectedToday - pointChiqimToday);
+  // What THIS dispatcher personally must hand over — see
+  // computeDailyCashBreakdown's own comment. Deliberately not derived from
+  // the pooled collectedToday/pointLunchToday above (those stay pooled,
+  // for the KPI row's "what happened here today" context).
+  const myCollected = Number(myBreakdown.collected);
+  const mySpent = Number(myBreakdown.spent);
+  const myNet = Number(myBreakdown.net);
+  const myHandover = handoversToday.find((h) => h.dispatcherConfirmedBy === session.user.id) ?? null;
+  const contributionRows = contributions.map((c) => ({
+    dispatcherId: c.dispatcherId,
+    dispatcherName: c.dispatcherName,
+    amount: Number(c.amount),
+    submitted: handoversToday.some((h) => h.dispatcherConfirmedBy === c.dispatcherId),
+  }));
 
   const deletePoint = isDispatcher ? undefined : point;
 
@@ -260,43 +286,44 @@ export default async function DispatcherPointPage({
       <Card className="p-5 flex items-center justify-between flex-wrap gap-3">
         <div>
           <div className="font-heading font-bold text-[15px] text-heading">
-            Кунлик пул топшириш{!isToday && ` · ${viewDateStr}`}
+            Менинг кунлик пул топширишим{!isToday && ` · ${viewDateStr}`}
           </div>
           <div className="text-[13px] text-muted-2 font-semibold">
-            {todaysHandover
-              ? // netToHandover is this same point/day's current live kirim−chiqim
-                // (computed just above from tripsToday/otherIncomeToday/pointExpenseAgg/
-                // pointLunchAgg) — used here instead of the frozen todaysHandover.amount
-                // so a trip/expense edited after "Топшираман" was clicked still shows
-                // up immediately, rather than only reaching the owner's balance
-                // invisibly (see computeDailyCashAmounts's own comment on why the
-                // frozen column goes stale). A real accountant physical recount
-                // (confirmedAmount) still wins over either figure.
-                `Топширилган сумма: ${formatSom(Number(todaysHandover.confirmedAmount ?? netToHandover))}`
-              : pointChiqimToday > 0
-                ? `Йиғилди ${formatSom(collectedToday)} − расход ${formatSom(pointChiqimToday)} = ${formatSom(netToHandover)}`
-                : `Йиғилган: ${formatSom(netToHandover)}`}
+            {myHandover
+              ? // myNet is this dispatcher's own live kirim−chiqim for this
+                // point/day (computeDailyCashBreakdown, just above) — used
+                // here instead of the frozen myHandover.amount so a trip/
+                // expense edited after "Топшираман" was clicked still shows
+                // up immediately, rather than only reaching the owner's
+                // balance invisibly (see computeDailyCashAmounts's own
+                // comment on why the frozen column goes stale). A real
+                // accountant physical recount (confirmedAmount) still wins
+                // over either figure.
+                `Топширилган сумма: ${formatSom(Number(myHandover.confirmedAmount ?? myNet))}`
+              : mySpent > 0
+                ? `Йиғилди ${formatSom(myCollected)} − расход ${formatSom(mySpent)} = ${formatSom(myNet)}`
+                : `Йиғилган: ${formatSom(myNet)}`}
           </div>
-          {todaysHandover && Number(todaysHandover.amount) !== netToHandover && todaysHandover.confirmedAmount === null && (
+          {myHandover && Number(myHandover.amount) !== myNet && myHandover.confirmedAmount === null && (
             <div className="text-[12px] text-primary font-semibold mt-0.5">
-              Дастлаб {formatSom(Number(todaysHandover.amount))} деб топширилган эди — кейинги тузатишлар билан
-              қайта ҳисобланди
+              Дастлаб {formatSom(Number(myHandover.amount))} деб топширилган эди — кейинги тузатишлар билан қайта
+              ҳисобланди
             </div>
           )}
-          {todaysHandover?.note && (
-            <div className="text-[12px] text-danger font-semibold mt-0.5">Сабаб: {todaysHandover.note}</div>
+          {myHandover?.note && (
+            <div className="text-[12px] text-danger font-semibold mt-0.5">Сабаб: {myHandover.note}</div>
           )}
         </div>
-        {!todaysHandover && netToHandover > 0 && (
+        {!myHandover && myNet > 0 && (
           <HandoverForm
             point={!isDispatcher ? point : undefined}
             date={viewDateStr}
-            computedAmount={netToHandover}
+            computedAmount={myNet}
             action={confirmCashHandoverAction}
             adjustAction={confirmCashHandoverWithAdjustmentAction}
           />
         )}
-        {todaysHandover && !todaysHandover.accountantConfirmedAt && (
+        {myHandover && !myHandover.accountantConfirmedAt && (
           <div className="flex items-center gap-2.5">
             <span className="bg-primary-tint text-primary text-xs font-extrabold px-3 py-1.5 rounded-full whitespace-nowrap">
               Буxгалтер тасдиғини кутмоқда
@@ -304,12 +331,16 @@ export default async function DispatcherPointPage({
             <CancelHandoverButton action={cancelCashHandoverAction} point={!isDispatcher ? point : undefined} date={viewDateStr} />
           </div>
         )}
-        {todaysHandover?.accountantConfirmedAt && (
+        {myHandover?.accountantConfirmedAt && (
           <span className="bg-success/10 text-success text-xs font-extrabold px-3 py-1.5 rounded-full">
             ✓ Буxгалтер қабул қилди
           </span>
         )}
       </Card>
+
+      {contributionRows.length > 1 && (
+        <PointContributions contributions={contributionRows} currentUserId={session.user.id} />
+      )}
     </div>
   );
 }
