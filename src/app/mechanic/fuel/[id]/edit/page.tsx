@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { hasModuleAccess } from "@/lib/access";
+import { getVehiclesWithDriver } from "@/lib/vehicleWithDriver";
 import { EditFuelLogForm } from "./EditFuelLogForm";
 
 export default async function EditFuelLogPage({ params }: { params: Promise<{ id: string }> }) {
@@ -14,16 +15,18 @@ export default async function EditFuelLogPage({ params }: { params: Promise<{ id
   }
 
   const { id } = await params;
-  const [fuelLog, vehicles, stations] = await Promise.all([
+  const [fuelLog, allVehicles, stations] = await Promise.all([
     prisma.fuelLog.findUnique({ where: { id } }),
-    // Unfiltered by status — a historical entry may reference a vehicle
-    // that's since gone under repair/rented, and editing it shouldn't drop
-    // that option from the list.
-    prisma.vehicle.findMany({ include: { driver: { include: { user: true } } }, orderBy: { plate: "asc" } }),
+    // Two flat queries joined in JS instead of a doubly-nested include (see
+    // getVehiclesWithDriver's own comment). Unfiltered by status — a
+    // historical entry may reference a vehicle that's since gone under
+    // repair/rented, and editing it shouldn't drop that option from the list.
+    getVehiclesWithDriver(),
     prisma.fuelStation.findMany({ orderBy: { name: "asc" } }),
   ]);
   if (!fuelLog) notFound();
 
+  const vehicles = allVehicles.sort((a, b) => a.plate.localeCompare(b.plate));
   const vehicleOptions = vehicles
     .filter((v) => v.driver)
     .map((v) => ({ id: v.id, plate: v.plate, driverName: v.driver!.user.fullName }));

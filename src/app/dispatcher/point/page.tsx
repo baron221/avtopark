@@ -8,6 +8,7 @@ import { formatSom } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
 import { getActivePoint } from "@/lib/activePoint";
 import { getExternalVehicles } from "@/lib/externalVehicle";
+import { getVehiclesAndDrivers } from "@/lib/vehicleWithDriver";
 import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 import { IncomeForm } from "../journal/IncomeForm";
 import { DriverTripsTable, type DriverGroup } from "./DriverTripsTable";
@@ -75,7 +76,7 @@ export default async function DispatcherPointPage({
   const staffExpensePoint = point === "FARGONA" ? "FARGONA" : "QUVA";
 
   const [
-    vehicles,
+    { vehicles: allVehicles, drivers },
     tripsToday,
     otherIncomeToday,
     myExpenseAgg,
@@ -85,17 +86,19 @@ export default async function DispatcherPointPage({
     pointLunchAgg,
     externalVehicles,
   ] = await Promise.all([
-    // The fleet is shared between both points (the same vehicles shuttle
-    // Farg'ona <-> Quva), so every point's dispatcher picks from the whole
-    // active fleet rather than a per-point subset.
-    prisma.vehicle.findMany({
-      where: { status: { in: DISPATCHABLE_STATUSES } },
-      include: { driver: { include: { user: true } } },
-      orderBy: { plate: "asc" },
-    }),
+    // Two flat queries joined in JS (see getVehiclesAndDrivers) instead of
+    // vehicle.findMany's own doubly-nested include — measured far faster
+    // against this project's high-latency DB region (see dashboard.ts's own
+    // comment on the same fix). The fleet is shared between both points
+    // (the same vehicles shuttle Farg'ona <-> Quva), so every point's
+    // dispatcher picks from the whole active fleet rather than a per-point
+    // subset — filtered/sorted below instead of in the query.
+    getVehiclesAndDrivers(),
+    // select, not include: vehicle plate / driver name are resolved below
+    // from allVehicles/drivers instead, so this stays a single flat query.
     prisma.trip.findMany({
       where: { tripDate: { gte: from, lte: to }, point },
-      include: { vehicle: true, driver: { include: { user: true } } },
+      select: { id: true, createdAt: true, kind: true, tripNumber: true, revenue: true, driverId: true, vehicleId: true },
       orderBy: { createdAt: "asc" },
     }),
     prisma.otherIncome.findMany({ where: { point, incomeDate: { gte: from, lte: to } }, orderBy: { createdAt: "asc" } }),
@@ -116,6 +119,16 @@ export default async function DispatcherPointPage({
     getExternalVehicles(),
   ]);
 
+  // Filtered/sorted here instead of in the query — see getVehiclesAndDrivers.
+  const vehicles = allVehicles
+    .filter((v) => DISPATCHABLE_STATUSES.includes(v.status))
+    .sort((a, b) => a.plate.localeCompare(b.plate));
+  const vehicleById = new Map(allVehicles.map((v) => [v.id, v]));
+  // Keyed by driverId, not vehicleId — a trip's driverId is whoever actually
+  // made *that* trip, which can differ from the vehicle's *current* driver
+  // after a reassignment (see getVehiclesAndDrivers's own comment).
+  const driverById = new Map(drivers.map((d) => [d.id, d]));
+
   const otherIncomeTotal = otherIncomeToday.reduce((s, i) => s + Number(i.amount), 0);
   const collectedToday = tripsToday.reduce((s, t) => s + Number(t.revenue), 0) + otherIncomeTotal;
   const vehiclesWithMoney = new Set(tripsToday.map((t) => t.vehicleId));
@@ -131,6 +144,7 @@ export default async function DispatcherPointPage({
   // several runs in a day.
   const groupsByDriver = new Map<string, DriverGroup>();
   for (const t of tripsToday) {
+    const plate = vehicleById.get(t.vehicleId)?.plate ?? "—";
     const detail = {
       id: t.id,
       time: t.createdAt,
@@ -142,12 +156,12 @@ export default async function DispatcherPointPage({
     if (existing) {
       existing.trips.push(detail);
       existing.totalAmount += detail.amount;
-      existing.plate = t.vehicle.plate;
+      existing.plate = plate;
     } else {
       groupsByDriver.set(t.driverId, {
         driverId: t.driverId,
-        driverName: t.driver.user.fullName,
-        plate: t.vehicle.plate,
+        driverName: driverById.get(t.driverId)?.user.fullName ?? "—",
+        plate,
         totalAmount: detail.amount,
         trips: [detail],
       });

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { monthStart, monthEnd } from "@/lib/month";
+import { getVehiclesWithDriver } from "@/lib/vehicleWithDriver";
 import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 
 export type FuelEfficiencyRow = {
@@ -31,17 +32,17 @@ export async function getFuelEfficiencyRows(): Promise<FuelEfficiencyRow[]> {
   const from = monthStart(now);
   const to = monthEnd(now);
 
-  const [vehicles, fuelLogs, mileages] = await Promise.all([
-    prisma.vehicle.findMany({
-      where: { status: { in: DISPATCHABLE_STATUSES } },
-      include: { driver: { include: { user: true } } },
-    }),
+  const [allVehicles, fuelLogs, mileages] = await Promise.all([
+    // Two flat queries joined in JS instead of a doubly-nested include (see
+    // getVehiclesWithDriver's own comment).
+    getVehiclesWithDriver(),
     prisma.fuelLog.findMany({
       where: { filledAt: { gte: from, lte: to } },
       include: { station: { select: { fuelType: true } } },
     }),
     prisma.vehicleMileage.findMany({ where: { date: { gte: from, lte: to } } }),
   ]);
+  const vehicles = allVehicles.filter((v) => DISPATCHABLE_STATUSES.includes(v.status));
 
   const volumeByVehicleType = new Map<string, Map<string, number>>();
   for (const log of fuelLogs) {

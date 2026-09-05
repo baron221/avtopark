@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { hasModuleAccess } from "@/lib/access";
+import { getVehiclesWithDriver } from "@/lib/vehicleWithDriver";
 import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 import { getWialonUnits, matchVehiclesToWialonUnits, getWialonTodayStatsForUnits, type WialonUnit } from "@/lib/wialon";
 import { GpsList } from "@/components/gps/GpsList";
@@ -17,11 +17,12 @@ export default async function MechanicGpsPage() {
     redirect("/coming-soon");
   }
 
-  const vehicles = await prisma.vehicle.findMany({
-    where: { status: { in: DISPATCHABLE_STATUSES } },
-    include: { driver: { include: { user: true } } },
-    orderBy: { plate: "asc" },
-  });
+  // Two flat queries joined in JS instead of a doubly-nested include — see
+  // getVehiclesWithDriver's own comment (measured far faster against this
+  // project's high-latency DB region).
+  const vehicles = (await getVehiclesWithDriver())
+    .filter((v) => DISPATCHABLE_STATUSES.includes(v.status))
+    .sort((a, b) => a.plate.localeCompare(b.plate));
 
   const tripComparisonRows = await getGpsTripComparisonRows();
 
