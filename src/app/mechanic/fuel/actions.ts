@@ -174,6 +174,32 @@ export async function addFuelStationAction(formData: FormData) {
   revalidatePath("/mechanic/fuel");
 }
 
+/** Lets a mechanic update a station's price (or name/contract/pay period)
+ * after the fact — addFuelStationAction only ever set these once at
+ * creation, so a real price increase had no way to reach the app short of
+ * deleting and re-adding the station under a new id (losing its history
+ * link and cluttering the list). FuelLogForm's own suggested amount
+ * (volume × unitPrice) picks this up immediately since it always reads the
+ * station's current row, not a snapshot. */
+export async function updateFuelStationAction(formData: FormData) {
+  await requireMechanic();
+
+  const id = String(formData.get("id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  const fuelType = formData.get("fuelType") as FuelType;
+  const contractNo = String(formData.get("contractNo") ?? "").trim();
+  const unitPrice = Math.round(Number(formData.get("unitPrice") ?? 0));
+  const payPeriod = formData.get("payPeriod") as PayPeriod;
+  if (!id || !name || !fuelType || !contractNo || !(unitPrice > 0) || !payPeriod) return;
+
+  await prisma.fuelStation.update({
+    where: { id },
+    data: { name, fuelType, contractNo, unitPrice: BigInt(unitPrice), payPeriod },
+  });
+
+  revalidatePath("/mechanic/fuel");
+}
+
 export async function deleteFuelStationAction(formData: FormData) {
   await requireMechanic();
   const id = String(formData.get("id") ?? "");

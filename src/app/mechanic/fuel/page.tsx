@@ -50,7 +50,14 @@ export default async function MechanicFuelPage() {
   const grandRemaining = payments.reduce((s, p) => s + Math.max(0, Number(p.amount) - Number(p.paidAmount)), 0);
 
   const vehicleOptions = vehicles.filter((v) => v.driver).map((v) => ({ id: v.id, plate: v.plate, driverName: v.driver!.user.fullName }));
-  const stationOptions = stations.map((s) => ({ id: s.id, name: s.name, unitPrice: Number(s.unitPrice), fuelType: s.fuelType }));
+  const stationOptions = stations.map((s) => ({
+    id: s.id,
+    name: s.name,
+    unitPrice: Number(s.unitPrice),
+    fuelType: s.fuelType,
+    contractNo: s.contractNo,
+    payPeriod: s.payPeriod,
+  }));
 
   return (
     <div className="max-w-[1180px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
