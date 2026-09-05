@@ -14,7 +14,6 @@ import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 import { ACTIVE_POINT_COOKIE, getActivePoint } from "@/lib/activePoint";
 import { computeDailyCashAmount } from "@/lib/cashHandover";
 import { OTHER_INCOME_CATEGORIES, OTHER_INCOME_CATEGORY_LABELS } from "@/lib/otherIncome";
-import { monthStart } from "@/lib/month";
 import type { Point, StaffExpenseCategory, StaffExpensePoint, TripKind, OtherIncomeCategory } from "@prisma/client";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -22,10 +21,10 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 /** Backfilling past days (a client's paper records for other-vehicle income,
  * or trips nobody entered at the time) must land on their real date, not
  * today's — otherwise driver pay for that day would be lost, or worse,
- * silently miscounted as today's. Bounded to the current month: a trip/
- * income entered here still needs to reach the still-open month's live pay
- * calculation, but reopening an already-settled prior month invites the
- * exact mismatch this exists to prevent (see Salary's PAID lock elsewhere).
+ * silently miscounted as today's. Not bounded to the current month by
+ * request — a month whose payroll was already marked PAID stays protected
+ * separately (see accountant/payroll/actions.ts's own PAID check), so a
+ * backdated entry here can't silently corrupt an already-paid salary.
  * Returns null (meaning "use right now") for anything missing or out of
  * bounds, same as this file's other date inputs (see addAdvanceAction). */
 function parseBackdate(formData: FormData, now: Date): Date | null {
@@ -41,7 +40,6 @@ function parseBackdate(formData: FormData, now: Date): Date | null {
   const endOfToday = new Date(now);
   endOfToday.setHours(23, 59, 59, 999);
   if (picked > endOfToday) return null;
-  if (picked < monthStart(now)) return null;
   return picked;
 }
 

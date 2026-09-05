@@ -7,7 +7,6 @@ import { KpiCard } from "@/components/ui/KpiCard";
 import { formatSom } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
 import { getActivePoint } from "@/lib/activePoint";
-import { monthStart } from "@/lib/month";
 import { getExternalVehicles } from "@/lib/externalVehicle";
 import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 import { IncomeForm } from "../journal/IncomeForm";
@@ -56,17 +55,15 @@ export default async function DispatcherPointPage({
   const now = new Date();
   const todayStart = startOfDay(now);
   const todayStr = now.toISOString().slice(0, 10);
-  const monthStartDate = monthStart(now);
-  const monthStartStr = monthStartDate.toISOString().slice(0, 10);
 
   // A dispatcher isn't only ever looking at today — they might be catching
-  // up on a day they missed (see "Топшириш" below), so this whole page can
-  // show any day back to the start of the current month instead of always
-  // today. Falls back to today for anything missing/invalid/out of range.
+  // up on a day they missed (see "Топшириш" below) or reviewing any past
+  // month — so this whole page can show any past day, not just today.
+  // Falls back to today for anything missing/invalid/in the future.
   let viewDate = now;
   if (dateParam && DATE_RE.test(dateParam)) {
     const parsed = new Date(`${dateParam}T12:00:00Z`);
-    if (!Number.isNaN(parsed.getTime()) && parsed >= monthStartDate && parsed <= endOfDay(now)) {
+    if (!Number.isNaN(parsed.getTime()) && parsed <= endOfDay(now)) {
       viewDate = parsed;
     }
   }
@@ -183,7 +180,6 @@ export default async function DispatcherPointPage({
           <DatePicker
             basePath="/dispatcher/point"
             value={viewDateStr}
-            min={monthStartStr}
             extraParams={!isDispatcher ? { point } : undefined}
           />
           {!isDispatcher && (

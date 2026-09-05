@@ -6,7 +6,6 @@ import { Card } from "@/components/ui/Card";
 import { formatSom, formatTime } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
 import { getActivePoint } from "@/lib/activePoint";
-import { monthStart } from "@/lib/month";
 import { ExpenseForm } from "./ExpenseForm";
 import { DeleteEntryButton } from "./DeleteEntryButton";
 import { deleteTripAction, deleteStaffExpenseAction, deleteLunchAction, deleteOtherIncomeAction } from "../actions";
@@ -59,15 +58,13 @@ export default async function DispatcherJournalPage({
   const staffExpensePoint = point === "FARGONA" ? "FARGONA" : "QUVA";
   const now = new Date();
   const todayStr = now.toISOString().slice(0, 10);
-  const monthStartDate = monthStart(now);
-  const monthStartStr = monthStartDate.toISOString().slice(0, 10);
 
   // Same "which day am I looking at" picker as point/page.tsx — see its
-  // comment for why.
+  // comment for why (now unbounded — any past day, not just this month).
   let viewDate = now;
   if (dateParam && DATE_RE.test(dateParam)) {
     const parsed = new Date(`${dateParam}T12:00:00Z`);
-    if (!Number.isNaN(parsed.getTime()) && parsed >= monthStartDate && parsed <= endOfDay(now)) {
+    if (!Number.isNaN(parsed.getTime()) && parsed <= endOfDay(now)) {
       viewDate = parsed;
     }
   }
@@ -76,37 +73,55 @@ export default async function DispatcherJournalPage({
   const viewDateStr = from.toISOString().slice(0, 10);
   const isToday = from.getTime() === startOfDay(now).getTime();
 
-  const [trips, otherIncomes, expenses, lunches, drivers, dispatchers, externalVehicles] = await Promise.all([
-    prisma.trip.findMany({
-      where: { tripDate: { gte: from, lte: to }, point },
-      include: { vehicle: true },
-      orderBy: { createdAt: "asc" },
-    }),
-    prisma.otherIncome.findMany({
-      where: { point, incomeDate: { gte: from, lte: to } },
-      orderBy: { createdAt: "asc" },
-    }),
-    prisma.staffExpense.findMany({
-      where: { point: staffExpensePoint, expenseDate: { gte: from, lte: to } },
-    }),
-    prisma.lunch.findMany({
-      where: { lunchDate: { gte: from, lte: to }, point },
-      include: { user: true },
-    }),
-    prisma.driver.findMany({ include: { user: true, vehicle: true }, orderBy: { user: { fullName: "asc" } } }),
-    prisma.user.findMany({
-      where: { role: "DISPATCHER", isActive: true },
-      orderBy: { fullName: "asc" },
-    }),
-    getExternalVehicles(),
-  ]);
+  const [trips, otherIncomes, expenses, lunches, lunchesViewedDay, drivers, dispatchers, externalVehicles] =
+    await Promise.all([
+      prisma.trip.findMany({
+        where: { tripDate: { gte: from, lte: to }, point },
+        include: { vehicle: true },
+        orderBy: { createdAt: "asc" },
+      }),
+      prisma.otherIncome.findMany({
+        where: { point, incomeDate: { gte: from, lte: to } },
+        orderBy: { createdAt: "asc" },
+      }),
+      prisma.staffExpense.findMany({
+        where: { point: staffExpensePoint, expenseDate: { gte: from, lte: to } },
+      }),
+      prisma.lunch.findMany({
+        where: { lunchDate: { gte: from, lte: to }, point },
+        include: { user: true },
+      }),
+      // Lunch's unique key is per person per day, fleet-wide — not scoped to
+      // this point — so a person can already have a lunch entry logged by
+      // the OTHER point's dispatcher. Queried unfiltered by point (unlike
+      // `lunches` above, which stays point-scoped for the journal list
+      // itself) so the "already given lunch today" mark below is correct
+      // regardless of which point entered it.
+      prisma.lunch.findMany({ where: { lunchDate: { gte: from, lte: to } }, select: { userId: true } }),
+      // Blocked ("Блоклаш") drivers/staff must disappear from this list —
+      // otherwise a dispatcher keeps seeing (and can accidentally log lunch
+      // for) someone no longer working. Matches the dispatchers query below,
+      // which already filtered on isActive.
+      prisma.driver.findMany({
+        where: { user: { isActive: true } },
+        include: { user: true, vehicle: true },
+        orderBy: { user: { fullName: "asc" } },
+      }),
+      prisma.user.findMany({
+        where: { role: "DISPATCHER", isActive: true },
+        orderBy: { fullName: "asc" },
+      }),
+      getExternalVehicles(),
+    ]);
 
+  const lunchedUserIds = new Set(lunchesViewedDay.map((l) => l.userId));
   const lunchPeople = [
     ...drivers.map((d) => ({
       userId: d.userId,
       label: d.vehicle ? `${d.vehicle.plate} · ${d.user.fullName}` : d.user.fullName,
+      alreadyLunched: lunchedUserIds.has(d.userId),
     })),
-    ...dispatchers.map((u) => ({ userId: u.id, label: u.fullName })),
+    ...dispatchers.map((u) => ({ userId: u.id, label: u.fullName, alreadyLunched: lunchedUserIds.has(u.id) })),
   ];
 
   const kirim =
@@ -201,7 +216,6 @@ export default async function DispatcherJournalPage({
           <DatePicker
             basePath="/dispatcher/journal"
             value={viewDateStr}
-            min={monthStartStr}
             extraParams={!isDispatcher ? { point } : undefined}
           />
           {!isDispatcher && (

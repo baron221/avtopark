@@ -14,7 +14,7 @@ const CATEGORIES = [
   { value: "BOSHQA", label: "Бошқа расход" },
 ];
 
-type LunchPerson = { userId: string; label: string };
+type LunchPerson = { userId: string; label: string; alreadyLunched: boolean };
 
 export function ExpenseForm({
   point,
@@ -104,7 +104,7 @@ export function ExpenseForm({
             <option value="">Ўзим (сиз)</option>
             {people.map((p) => (
               <option key={p.userId} value={p.userId}>
-                {p.label}
+                {p.alreadyLunched ? `✓ ${p.label} (бугун тушлик олинган)` : p.label}
               </option>
             ))}
           </select>
