@@ -28,7 +28,7 @@ export function SendDailyClosingButton({ action }: { action: () => Promise<{ err
             }
           });
         }}
-        className="bg-primary text-white text-xs font-extrabold px-3 py-1.5 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60 whitespace-nowrap"
+        className="bg-card border border-border text-body text-xs font-extrabold px-3 py-1.5 rounded-lg hover:border-primary hover:text-primary transition-colors disabled:opacity-60 whitespace-nowrap"
       >
         {pending ? "Жўнатилмоқда…" : "Кунни якунлаш"}
       </button>
