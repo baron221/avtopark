@@ -103,7 +103,11 @@ export function ExpenseForm({
           >
             <option value="">Ўзим (сиз)</option>
             {people.map((p) => (
-              <option key={p.userId} value={p.userId}>
+              <option
+                key={p.userId}
+                value={p.userId}
+                style={p.alreadyLunched ? { color: "#D9534F", fontWeight: "bold" } : undefined}
+              >
                 {p.alreadyLunched ? `✓ ${p.label} (бугун тушлик олинган)` : p.label}
               </option>
             ))}
