@@ -272,7 +272,7 @@ export default async function MechanicFuelPage() {
 
         <div className="flex flex-col gap-4">
           <FuelLogForm vehicles={vehicleOptions} stations={stationOptions} />
-          <AddStationForm />
+          <AddStationForm stations={stationOptions} />
         </div>
       </div>
     </div>

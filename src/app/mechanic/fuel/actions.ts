@@ -173,3 +173,21 @@ export async function addFuelStationAction(formData: FormData) {
 
   revalidatePath("/mechanic/fuel");
 }
+
+export async function deleteFuelStationAction(formData: FormData) {
+  await requireMechanic();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  try {
+    await prisma.fuelStation.delete({ where: { id } });
+  } catch {
+    // Has real fuel-log/payment history — deleting would orphan those rows
+    // (or fail outright on the FK), so just hide it from future selection
+    // instead, same as blocking a driver with real trip history rather
+    // than deleting them (see admin/users/actions.ts's deleteUserAction).
+    await prisma.fuelStation.update({ where: { id }, data: { isActive: false } });
+  }
+
+  revalidatePath("/mechanic/fuel");
+}

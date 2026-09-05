@@ -3,28 +3,49 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { MoneyInput } from "@/components/ui/MoneyInput";
-import { addFuelStationAction } from "./actions";
+import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
+import { addFuelStationAction, deleteFuelStationAction } from "./actions";
 
-export function AddStationForm() {
+const FUEL_TYPE_LABELS: Record<string, string> = { METAN: "METAN", BENZIN: "БЕНЗИН", DIZEL: "ДИЗЕЛЬ" };
+
+type StationRow = { id: string; name: string; fuelType: string };
+
+export function AddStationForm({ stations }: { stations: StationRow[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
 
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="bg-card border border-border text-body rounded-2xl px-5 py-3 font-extrabold text-sm text-left hover:border-primary hover:text-primary transition-colors"
-      >
-        + Янги заправка қўшиш
-      </button>
-    );
-  }
-
   return (
     <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-3">
+      <div className="font-heading font-bold text-[15px] text-heading">Заправкалар ({stations.length})</div>
+      <div className="flex flex-col gap-1">
+        {stations.map((s) => (
+          <div key={s.id} className="flex items-center justify-between gap-2 bg-page rounded-lg px-3 py-2">
+            <span className="text-sm font-bold text-heading">
+              {s.name} · {FUEL_TYPE_LABELS[s.fuelType] ?? s.fuelType}
+            </span>
+            <ConfirmDeleteButton
+              action={deleteFuelStationAction}
+              id={s.id}
+              confirmText="Бу заправкани ўчиришни тасдиқлайсизми?"
+              className="text-muted-2 hover:text-danger font-extrabold text-base leading-none px-1"
+            />
+          </div>
+        ))}
+        {stations.length === 0 && <p className="text-xs text-muted-2 px-1">Ҳали йўқ</p>}
+      </div>
+
+      {!open ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="bg-page border border-border text-body rounded-xl px-4 py-2.5 font-extrabold text-sm text-left hover:border-primary hover:text-primary transition-colors"
+        >
+          + Янги заправка қўшиш
+        </button>
+      ) : (
+        <>
       <div className="font-heading font-bold text-[15px] text-heading">+ Янги заправка</div>
       <form
         ref={formRef}
@@ -93,6 +114,8 @@ export function AddStationForm() {
           </button>
         </div>
       </form>
+        </>
+      )}
     </div>
   );
 }
