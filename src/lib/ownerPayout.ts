@@ -226,8 +226,16 @@ function utcDayStart(d: Date): Date {
  * never actually reached anyone's hands today, so this cutoff is a fixed
  * date, not "since the opening balance" or "now" — deliberately, per the
  * user's own instruction not to retroactively restore old paid amounts.
+ *
+ * Originally set to 2026-09-05 (the day this feature shipped), then moved
+ * back one day per an explicit follow-up request to also pull the 4
+ * REPAIR rows from 2026-09-04 (the "Учинчи мой алмаштириш" batch that
+ * prompted this whole feature) out of the accountant's balance — checked
+ * against real data first: those are the only REPAIR rows on that date,
+ * and no StationPayment was paid that day, so moving the boundary here
+ * affects only those 4 rows and nothing else.
  */
-export const MECHANIC_COST_CUTOFF = new Date("2026-09-05T00:00:00Z");
+export const MECHANIC_COST_CUTOFF = new Date("2026-09-04T00:00:00Z");
 
 async function computeCashBalance(opening?: { amount: number; setDate: Date } | null): Promise<number> {
   const openingBalance = opening === undefined ? await getLatestOpeningBalance() : opening;
