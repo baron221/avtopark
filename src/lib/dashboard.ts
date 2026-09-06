@@ -282,9 +282,10 @@ function computeDailyBreakdown(
   for (const e of staffExpenses) {
     const i = dayIndex(e.expenseDate, from);
     if (i < 0 || i >= days) continue;
-    // StaffExpensePoint also has YOLDA/ISHXONA (see AddExpenseForm.tsx) —
-    // neither Farg'ona nor Quva, so they belong in outsideExpense; an
-    // unconditional else here would wrongly dump them into Farg'ona.
+    // StaffExpensePoint also has YOLDA/ISHXONA/BOSHQA (see
+    // ExpenseEntryCard.tsx) — none of Farg'ona/Quva, so they belong in
+    // outsideExpense; an unconditional else here would wrongly dump them
+    // into Farg'ona.
     if (e.point === "QUVA") rows[i].quvaExpense += Number(e.amount);
     else if (e.point === "FARGONA") rows[i].fargonaExpense += Number(e.amount);
     else rows[i].outsideExpense += Number(e.amount);

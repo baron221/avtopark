@@ -12,7 +12,7 @@ import { hasModuleAccess } from "@/lib/access";
 import { rangeForPeriod, type Period } from "@/lib/dashboard";
 import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
 import { deleteExpenseAction } from "./actions";
-import { MECHANIC_COST_CUTOFF } from "@/lib/ownerPayout";
+import { NOT_MECHANIC_PAID_EXPENSE } from "@/lib/ownerPayout";
 import type { Point, StaffExpensePoint } from "@prisma/client";
 
 const POINT_LABELS: Record<string, string> = {
@@ -20,6 +20,7 @@ const POINT_LABELS: Record<string, string> = {
   QUVA: "Қува",
   YOLDA: "Йўлда",
   ISHXONA: "Ишхона",
+  BOSHQA: "Бошқа",
   VEHICLE: "Машина",
   ADVANCE: "Аванс",
 };
@@ -51,6 +52,7 @@ const POINT_FILTERS: { value?: ExpenseFilter; label: string }[] = [
   { value: "QUVA", label: "Қува" },
   { value: "YOLDA", label: "Йўлда" },
   { value: "ISHXONA", label: "Ишхона" },
+  { value: "BOSHQA", label: "Бошқа" },
   { value: "VEHICLE", label: "Машина" },
   { value: "ADVANCE", label: "Аванс" },
 ];
@@ -76,6 +78,7 @@ function isExpenseFilter(value: string | undefined): value is ExpenseFilter {
     value === "QUVA" ||
     value === "YOLDA" ||
     value === "ISHXONA" ||
+    value === "BOSHQA" ||
     value === "VEHICLE" ||
     value === "ADVANCE"
   );
@@ -114,8 +117,8 @@ export default async function AccountantExpensesPage({
   // Advance (a driver/staff advance against salary — not a point expense at
   // all, listed here purely for visibility/tracking, same as this page's
   // other categories). Filter semantics: FARGONA/QUVA show StaffExpense+
-  // Lunch for that point; YOLDA/ISHXONA show StaffExpense only (Lunch/
-  // vehicle Expense/Advance can't have those points); VEHICLE shows only
+  // Lunch for that point; YOLDA/ISHXONA/BOSHQA show StaffExpense only
+  // (Lunch/vehicle Expense/Advance can't have those points); VEHICLE shows only
   // the generic Expense; ADVANCE shows only advances; "Барчаси" shows
   // everything.
   const staffPoint: StaffExpensePoint | undefined =
@@ -141,16 +144,12 @@ export default async function AccountantExpensesPage({
             orderBy: { lunchDate: "desc" },
           })
         : Promise.resolve([]),
-      // REPAIR dated on/after MECHANIC_COST_CUTOFF excluded — the owner pays
-      // the mechanic directly for these now (see ownerPayout.ts's own
-      // comment on the cutoff), so they no longer belong in the
-      // accountant's own expense list.
+      // Fuel/post-cutoff repair excluded — see NOT_MECHANIC_PAID_EXPENSE's
+      // own comment: the owner pays for these directly, so they don't
+      // belong in the accountant's own expense list.
       includeVehicleExpense
         ? prisma.expense.findMany({
-            where: {
-              expenseDate: { gte: from, lte: to },
-              NOT: { category: "REPAIR", expenseDate: { gte: MECHANIC_COST_CUTOFF } },
-            },
+            where: { ...NOT_MECHANIC_PAID_EXPENSE, expenseDate: { gte: from, lte: to } },
             include: { vehicle: true },
             orderBy: { expenseDate: "desc" },
           })
@@ -174,17 +173,22 @@ export default async function AccountantExpensesPage({
       }),
       prisma.expense.aggregate({
         _sum: { amount: true },
-        where: {
-          expenseDate: { gte: from, lte: to },
-          NOT: { category: "REPAIR", expenseDate: { gte: MECHANIC_COST_CUTOFF } },
-        },
+        where: { ...NOT_MECHANIC_PAID_EXPENSE, expenseDate: { gte: from, lte: to } },
       }),
       prisma.advance.aggregate({ _sum: { amount: true }, where: { givenDate: { gte: from, lte: to } } }),
       prisma.user.findMany({ select: { id: true, fullName: true } }),
     ]);
 
   const nameById = new Map(users.map((u) => [u.id, u.fullName]));
-  const pointTotal: Record<string, number> = { FARGONA: 0, QUVA: 0, YOLDA: 0, ISHXONA: 0, VEHICLE: 0, ADVANCE: 0 };
+  const pointTotal: Record<string, number> = {
+    FARGONA: 0,
+    QUVA: 0,
+    YOLDA: 0,
+    ISHXONA: 0,
+    BOSHQA: 0,
+    VEHICLE: 0,
+    ADVANCE: 0,
+  };
   for (const row of staffByPoint) pointTotal[row.point] += Number(row._sum.amount ?? BigInt(0));
   for (const row of lunchByPoint) pointTotal[row.point] += Number(row._sum.amount ?? BigInt(0));
   pointTotal.VEHICLE = Number(vehicleExpenseAgg._sum.amount ?? BigInt(0));
@@ -319,6 +323,14 @@ export default async function AccountantExpensesPage({
             <div className="text-xs font-bold text-muted-2 uppercase">Ишхона</div>
             <div className="font-heading font-extrabold text-xl text-danger mt-1">
               −{formatSom(pointTotal.ISHXONA)}
+            </div>
+          </Card>
+        )}
+        {pointTotal.BOSHQA > 0 && (
+          <Card className="p-4">
+            <div className="text-xs font-bold text-muted-2 uppercase">Бошқа</div>
+            <div className="font-heading font-extrabold text-xl text-danger mt-1">
+              −{formatSom(pointTotal.BOSHQA)}
             </div>
           </Card>
         )}

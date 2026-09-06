@@ -168,6 +168,10 @@ export async function buildDailySummaryReport(referenceDate: Date = new Date()):
     cashDetail.expense.fargona.rows.filter(isLunch).reduce((s, r) => s + r.amount, 0) +
     cashDetail.expense.quva.rows.filter(isLunch).reduce((s, r) => s + r.amount, 0);
 
+  // cashDetail.expense.outside already excludes fuel/post-cutoff-repair
+  // (NOT_MECHANIC_PAID_EXPENSE, applied at the source in computeCashDetail)
+  // — the owner pays for those directly, never out of the accountant's
+  // collected cash, so this report never needs to filter them out itself.
   const outside = cashDetail.expense.outside.rows;
   const isAdvance = (r: { category: string }) => r.category === "Аванс";
   const isIshxona = (r: { subtitle: string }) => r.subtitle.startsWith("Ишхона");

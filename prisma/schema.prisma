@@ -98,6 +98,9 @@ enum StaffExpensePoint {
   QUVA
   YOLDA
   ISHXONA
+  // A general company expense that isn't Йўлда/Ишхона either — see
+  // ExpenseEntryCard.tsx's "+ Бошқа расход" form.
+  BOSHQA
 }
 
 enum TripKind {

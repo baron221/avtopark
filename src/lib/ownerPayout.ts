@@ -4,7 +4,7 @@ import { monthStart, monthEnd } from "@/lib/month";
 import { uzMonthName, formatDayMonth, formatSom } from "@/lib/format";
 import { OTHER_INCOME_CATEGORY_LABELS } from "@/lib/otherIncome";
 import { rangeForPeriod, type Period } from "@/lib/dashboard";
-import type { Point, OtherIncomePoint } from "@prisma/client";
+import type { Point, OtherIncomePoint, Prisma } from "@prisma/client";
 
 export type PendingHandoverRow = {
   id: string;
@@ -150,9 +150,11 @@ export type CashLedgerSummary = {
    * this type), both points combined, with a full drill-down: which point
    * it came from/went to, and the individual trip/expense records behind
    * each figure. Unlike computeCashBalance below, expense here also counts
-   * vehicle repair/fuel/salary bills (not just what dispatchers hand over)
-   * — a fuller "where did the money go" picture than the cash-handover-only
-   * balance tracks. */
+   * vehicle salary/tax/insurance/toll bills (not just what dispatchers
+   * hand over) — a fuller "where did the money go" picture than the
+   * cash-handover-only balance tracks. Still excludes whatever
+   * NOT_MECHANIC_PAID_EXPENSE excludes (fuel, post-cutoff repair) — those
+   * are the owner's to pay, not the accountant's, in either view. */
   cashDetail: CashDetail;
   confirmedHistory: ConfirmedHandoverRow[];
   payoutHistory: OwnerPayoutRow[];
@@ -237,6 +239,26 @@ function utcDayStart(d: Date): Date {
  */
 export const MECHANIC_COST_CUTOFF = new Date("2026-09-04T00:00:00Z");
 
+/**
+ * Every vehicle Expense row the owner pays the mechanic directly for,
+ * never out of the accountant's own collected cash: FUEL always (a
+ * per-fill-up consumption log, not a cash-out-of-pocket event — see
+ * FuelLog's own schema comment), and REPAIR from MECHANIC_COST_CUTOFF
+ * onward. This is the single source of that rule — spread into any
+ * Expense `where` clause an accountant-facing money view builds (balance,
+ * ledger, expense list, exports, the daily Telegram report, ...) instead
+ * of re-deriving the category/cutoff logic at each call site. Duplicating
+ * it inline already caused a real bug once: a new report summed FUEL into
+ * its "other expenses" catch-all because its author (correctly) excluded
+ * REPAIR but didn't know to also exclude FUEL — a mistake this constant
+ * makes impossible to repeat, since every consumer now shares one
+ * definition instead of writing their own partial version of it.
+ */
+export const NOT_MECHANIC_PAID_EXPENSE: Prisma.ExpenseWhereInput = {
+  category: { not: "FUEL" },
+  NOT: { category: "REPAIR", expenseDate: { gte: MECHANIC_COST_CUTOFF } },
+};
+
 async function computeCashBalance(opening?: { amount: number; setDate: Date } | null): Promise<number> {
   const openingBalance = opening === undefined ? await getLatestOpeningBalance() : opening;
   if (!openingBalance) return 0;
@@ -249,7 +271,6 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
     buxgalterIncomeAgg,
     payoutAgg,
     expenseAgg,
-    postCutoffRepairAgg,
     staffExpenseAgg,
     advanceAgg,
     salaryAgg,
@@ -294,33 +315,23 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
         where: { point: "BUXGALTERIYA", incomeDate: { gte: since } },
       }),
       prisma.ownerPayout.aggregate({ _sum: { amount: true }, where: { payoutDate: { gte: sincePayoutCutoff } } }),
+      // FUEL/post-cutoff REPAIR excluded — see NOT_MECHANIC_PAID_EXPENSE's
+      // own comment (paid by the owner directly, never out of this cash).
       prisma.expense.aggregate({
         _sum: { amount: true },
-        where: { category: { not: "FUEL" }, expenseDate: { gte: since } },
-      }),
-      // REPAIR (mechanic-entered oil changes/vehicle repairs) counted above
-      // as part of the generic non-FUEL expense sum — this subtracts back
-      // out only the REPAIR portion dated on/after MECHANIC_COST_CUTOFF, so
-      // older REPAIR rows stay counted (old rule, left alone per the user's
-      // own instruction) while newer ones don't (paid by the owner directly
-      // now — see getMechanicCostSummary). Doing it as a separate
-      // subtraction rather than an upfront category filter keeps the
-      // pre-cutoff sum byte-for-byte identical to what it always was.
-      prisma.expense.aggregate({
-        _sum: { amount: true },
-        where: { category: "REPAIR", expenseDate: { gte: MECHANIC_COST_CUTOFF } },
+        where: { ...NOT_MECHANIC_PAID_EXPENSE, expenseDate: { gte: since } },
       }),
       // FARGONA/QUVA only — createHandoverForDate (dispatcher/actions.ts)
       // already nets that point's own StaffExpense (and Lunch — always
       // FARGONA/QUVA, Point has no other values) out of the handover amount
       // before the dispatcher hands it over, so subtracting them again here
       // double-counted every point-level expense a dispatcher paid out of
-      // pocket. YOLDA/ISHXONA aren't tied to any handover, so they still
-      // need to come off here — Lunch has no YOLDA/ISHXONA equivalent, so
+      // pocket. YOLDA/ISHXONA/BOSHQA aren't tied to any handover, so they
+      // still need to come off here — Lunch has no equivalent for those, so
       // it's dropped from this query entirely rather than filtered.
       prisma.staffExpense.aggregate({
         _sum: { amount: true },
-        where: { point: { in: ["YOLDA", "ISHXONA"] }, expenseDate: { gte: since } },
+        where: { point: { in: ["YOLDA", "ISHXONA", "BOSHQA"] }, expenseDate: { gte: since } },
       }),
       prisma.advance.aggregate({ _sum: { amount: true }, where: { givenDate: { gte: since } } }),
       // Filtered on paidAt (the exact moment "Ойлик бериш" was clicked per
@@ -348,10 +359,7 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
   );
   const buxgalterIncome = Number(buxgalterIncomeAgg._sum.amount ?? BigInt(0));
   const paidToOwner = Number(payoutAgg._sum.amount ?? BigInt(0));
-  // expenseAgg still includes ALL non-FUEL categories (REPAIR included) —
-  // postCutoffRepair backs out only the post-cutoff REPAIR slice, so
-  // pre-cutoff REPAIR stays counted exactly as it always was.
-  const expenses = Number(expenseAgg._sum.amount ?? BigInt(0)) - Number(postCutoffRepairAgg._sum.amount ?? BigInt(0));
+  const expenses = Number(expenseAgg._sum.amount ?? BigInt(0));
   const staffExpenses = Number(staffExpenseAgg._sum.amount ?? BigInt(0));
   const advances = Number(advanceAgg._sum.amount ?? BigInt(0));
   const salaries = Number(salaryAgg._sum.netPay ?? BigInt(0));
@@ -379,6 +387,7 @@ const BALANCE_POINT_LABELS: Record<string, string> = {
   QUVA: "Қува",
   YOLDA: "Йўлда",
   ISHXONA: "Ишхона",
+  BOSHQA: "Бошқа",
 };
 
 /**
@@ -410,17 +419,11 @@ async function computeBalanceLedger(since: Date, openingAmount: number): Promise
         where: { payoutDate: { gte: utcDayStart(since) } },
         include: { enteredByUser: true },
       }),
-      // REPAIR dated on/after MECHANIC_COST_CUTOFF excluded — see
-      // computeCashBalance's own comment: paid by the owner directly now,
-      // not out of the accountant's cash, but only from that date forward
-      // (older REPAIR rows stay counted, per the user's own instruction not
-      // to retroactively restore old paid amounts).
+      // FUEL/post-cutoff REPAIR excluded — see NOT_MECHANIC_PAID_EXPENSE's
+      // own comment (paid by the owner directly, never out of the
+      // accountant's cash).
       prisma.expense.findMany({
-        where: {
-          category: { not: "FUEL" },
-          expenseDate: { gte: since },
-          NOT: { category: "REPAIR", expenseDate: { gte: MECHANIC_COST_CUTOFF } },
-        },
+        where: { ...NOT_MECHANIC_PAID_EXPENSE, expenseDate: { gte: since } },
         include: { vehicle: true },
       }),
       // FARGONA/QUVA excluded — see computeCashBalance's own comment: their
@@ -429,7 +432,7 @@ async function computeBalanceLedger(since: Date, openingAmount: number): Promise
       // too would both double-count the balance and show the same real
       // expense as two separate rows.
       prisma.staffExpense.findMany({
-        where: { point: { in: ["YOLDA", "ISHXONA"] }, expenseDate: { gte: since } },
+        where: { point: { in: ["YOLDA", "ISHXONA", "BOSHQA"] }, expenseDate: { gte: since } },
         include: { enteredByUser: true },
       }),
       prisma.advance.findMany({ where: { givenDate: { gte: since } }, include: { user: true } }),
@@ -569,7 +572,7 @@ const POINT_EXPENSE_CATEGORY_LABELS: Record<string, string> = {
 // expense/advance/salary/station payments — omitting them here silently
 // understated the кунлик/ҳафталик/ойлик расход total by however much
 // Йўлда/Ишхона expense a period had.
-const OFF_POINT_LABELS: Record<string, string> = { YOLDA: "Йўлда", ISHXONA: "Ишхона" };
+const OFF_POINT_LABELS: Record<string, string> = { YOLDA: "Йўлда", ISHXONA: "Ишхона", BOSHQA: "Бошқа" };
 
 const PERIOD_WORDS: Record<Period, string> = { DAY: "Кунлик", WEEK: "Ҳафталик", MONTH: "Ойлик" };
 
@@ -632,15 +635,14 @@ async function computeCashDetail(period: Period, referenceDate: Date): Promise<C
       include: { user: true },
       orderBy: { lunchDate: "desc" },
     }),
-    // REPAIR dated on/after MECHANIC_COST_CUTOFF excluded — the owner pays
-    // the mechanic directly for these now, so they no longer belong in the
-    // accountant's own "where did the money go" picture (see
-    // computeCashBalance's own comment on the same cutoff).
+    // FUEL/post-cutoff REPAIR excluded — see NOT_MECHANIC_PAID_EXPENSE's
+    // own comment: the owner pays for these directly, so they don't belong
+    // in the accountant's own "where did the money go" picture. (FUEL's
+    // exclusion here was missing for a while — a per-fill-up log slipped
+    // into a daily report's "other expenses" catch-all before this was
+    // centralized; see NOT_MECHANIC_PAID_EXPENSE's own comment.)
     prisma.expense.findMany({
-      where: {
-        expenseDate: { gte: from, lte: to },
-        NOT: { category: "REPAIR", expenseDate: { gte: MECHANIC_COST_CUTOFF } },
-      },
+      where: { ...NOT_MECHANIC_PAID_EXPENSE, expenseDate: { gte: from, lte: to } },
       include: { vehicle: true },
       orderBy: { expenseDate: "desc" },
     }),
@@ -750,7 +752,7 @@ async function computeCashDetail(period: Period, referenceDate: Date): Promise<C
       note: e.note,
     })),
     ...staffExpenses
-      .filter((e) => e.point === "YOLDA" || e.point === "ISHXONA")
+      .filter((e) => e.point === "YOLDA" || e.point === "ISHXONA" || e.point === "BOSHQA")
       .map((e) => ({
         id: e.id,
         time: e.expenseDate,

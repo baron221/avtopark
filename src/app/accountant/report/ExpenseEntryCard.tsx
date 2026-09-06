@@ -62,6 +62,7 @@ export function ExpenseEntryCard() {
               <option value="QUVA">Қува</option>
               <option value="YOLDA">Йўлда</option>
               <option value="ISHXONA">Ишхона</option>
+              <option value="BOSHQA">Бошқа</option>
             </select>
           </div>
           <div>

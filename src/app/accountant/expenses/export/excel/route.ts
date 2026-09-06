@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hasModuleAccess } from "@/lib/access";
 import { rangeForPeriod, type Period } from "@/lib/dashboard";
-import { MECHANIC_COST_CUTOFF } from "@/lib/ownerPayout";
+import { NOT_MECHANIC_PAID_EXPENSE } from "@/lib/ownerPayout";
 import type { Point, StaffExpensePoint } from "@prisma/client";
 
 const POINT_LABELS: Record<string, string> = {
@@ -12,6 +12,7 @@ const POINT_LABELS: Record<string, string> = {
   QUVA: "Қува",
   YOLDA: "Йўлда",
   ISHXONA: "Ишхона",
+  BOSHQA: "Бошқа",
   VEHICLE: "Машина",
 };
 
@@ -41,7 +42,14 @@ function isPeriod(value: string | null): value is Period {
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function isExpenseFilter(value: string | null): value is ExpenseFilter {
-  return value === "FARGONA" || value === "QUVA" || value === "YOLDA" || value === "ISHXONA" || value === "VEHICLE";
+  return (
+    value === "FARGONA" ||
+    value === "QUVA" ||
+    value === "YOLDA" ||
+    value === "ISHXONA" ||
+    value === "BOSHQA" ||
+    value === "VEHICLE"
+  );
 }
 
 export async function GET(request: Request) {
@@ -84,14 +92,11 @@ export async function GET(request: Request) {
           orderBy: { lunchDate: "asc" },
         })
       : Promise.resolve([]),
-    // REPAIR dated on/after MECHANIC_COST_CUTOFF excluded — see
-    // ownerPayout.ts's own comment on the cutoff.
+    // Fuel/post-cutoff repair excluded — see NOT_MECHANIC_PAID_EXPENSE's own
+    // comment (paid by the owner directly, not the accountant).
     includeVehicleExpense
       ? prisma.expense.findMany({
-          where: {
-            expenseDate: { gte: from, lte: to },
-            NOT: { category: "REPAIR", expenseDate: { gte: MECHANIC_COST_CUTOFF } },
-          },
+          where: { ...NOT_MECHANIC_PAID_EXPENSE, expenseDate: { gte: from, lte: to } },
           include: { vehicle: true },
           orderBy: { expenseDate: "asc" },
         })
