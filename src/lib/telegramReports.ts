@@ -144,14 +144,17 @@ function fullDateLabel(d: Date): string {
  * whether the day's numbers were actually final turned out to be more noise
  * than signal, per explicit request. Sourced entirely from
  * getCashLedgerSummary's already-correct/tested row data (no separate
- * queries of its own) — the point/lunch/outside categories are just
- * regrouped for this specific presentation: Фарғона/Қува split out from
- * lunch (fleet-wide, shown as its own "Шофёрлар обеди" line since a driver's
- * lunch isn't tied to one point — see Lunch's own schema comment), Аванс and
- * Ишхона (labelled "Офис расходлари") pulled out of the generic "outside"
- * bucket by category/subtitle, Йўлда and anything left over (vehicle
- * repair/fuel/salary/station-payment rows) shown only when non-zero so an
- * ordinary day's report isn't cluttered with empty categories. */
+ * queries of its own) — the point/lunch/outside/other-income categories are
+ * just regrouped for this specific presentation: Фарғона/Қува lunch shown
+ * as two separate lines per explicit request (even though Lunch itself is
+ * fleet-wide, not point-scoped — see Lunch's own schema comment — cashDetail
+ * already splits its rows by which point's dispatcher logged them), Аванс
+ * and Ишхона (labelled "Офис расходлари") pulled out of the generic
+ * "outside" bucket by category/subtitle, Йўлда and anything left over
+ * (vehicle repair/fuel/salary/station-payment rows) shown only when
+ * non-zero so an ordinary day's report isn't cluttered with empty
+ * categories, and "Бошқа кирим" broken down by its own category
+ * (Солиқ/Ойлик тўлов/...) instead of one lump sum, per explicit request. */
 export async function buildDailySummaryReport(referenceDate: Date = new Date()): Promise<{ message: string }> {
   const day = utcDayStart(referenceDate);
   const [totalVehicles, ledger] = await Promise.all([prisma.vehicle.count(), getCashLedgerSummary("DAY", day)]);
@@ -164,9 +167,13 @@ export async function buildDailySummaryReport(referenceDate: Date = new Date()):
   const isLunch = (r: { category: string }) => r.category === "Обед";
   const fargonaPoint = cashDetail.expense.fargona.rows.filter((r) => !isLunch(r)).reduce((s, r) => s + r.amount, 0);
   const quvaPoint = cashDetail.expense.quva.rows.filter((r) => !isLunch(r)).reduce((s, r) => s + r.amount, 0);
-  const lunchTotal =
-    cashDetail.expense.fargona.rows.filter(isLunch).reduce((s, r) => s + r.amount, 0) +
-    cashDetail.expense.quva.rows.filter(isLunch).reduce((s, r) => s + r.amount, 0);
+  // Shown as two separate lines (Фарғона/Қува), not combined, per explicit
+  // request — even though Lunch itself is fleet-wide, not point-scoped
+  // (see Lunch's own schema comment), cashDetail already splits its rows
+  // by which point's dispatcher logged them.
+  const fargonaLunch = cashDetail.expense.fargona.rows.filter(isLunch).reduce((s, r) => s + r.amount, 0);
+  const quvaLunch = cashDetail.expense.quva.rows.filter(isLunch).reduce((s, r) => s + r.amount, 0);
+  const lunchTotal = fargonaLunch + quvaLunch;
 
   // cashDetail.expense.outside already excludes fuel/post-cutoff-repair
   // (NOT_MECHANIC_PAID_EXPENSE, applied at the source in computeCashDetail)
@@ -187,10 +194,23 @@ export async function buildDailySummaryReport(referenceDate: Date = new Date()):
   const totalExpense = fargonaPoint + quvaPoint + lunchTotal + advanceTotal + ishxonaTotal + yoldaTotal + otherOutsideTotal;
   const dailyBalance = tripIncome + cashDetail.income.other.total - totalExpense;
 
+  // Broken down by category (Солиқ/Ойлик тўлов/ГПС/...) instead of one lump
+  // sum, per explicit request — cashDetail.income.other.rows already
+  // carries each row's category as its human label (OTHER_INCOME_CATEGORY_
+  // LABELS, applied in computeCashDetail), so this is just a regroup.
+  const otherIncomeByCategory = new Map<string, number>();
+  for (const r of cashDetail.income.other.rows) {
+    otherIncomeByCategory.set(r.category, (otherIncomeByCategory.get(r.category) ?? 0) + r.amount);
+  }
+  const otherIncomeLines = [...otherIncomeByCategory.entries()].map(
+    ([category, amount]) => `  ${category}: ${formatSom(amount)}`
+  );
+
   const expenseLines = [
     `Қува пункти − ${formatSom(quvaPoint)}`,
     `Фарғона пункти − ${formatSom(fargonaPoint)}`,
-    `Шофёрлар обеди, сув − ${formatSom(lunchTotal)}`,
+    `Фарғона обеди, сув − ${formatSom(fargonaLunch)}`,
+    `Қува обеди, сув − ${formatSom(quvaLunch)}`,
     `Аванс − ${formatSom(advanceTotal)}`,
     `Офис расходлари − ${formatSom(ishxonaTotal)}`,
   ];
@@ -202,7 +222,9 @@ export async function buildDailySummaryReport(referenceDate: Date = new Date()):
     `Жами ${totalVehicles} та мошина\n` +
     `${ranVehicles.size} та қатнаган машина\n\n` +
     `Кирим Қува-Фар-Қува: ${formatSom(tripIncome)}\n` +
-    `Бошқа кирим: ${formatSom(cashDetail.income.other.total)}\n\n` +
+    `Бошқа кирим: ${formatSom(cashDetail.income.other.total)}\n` +
+    (otherIncomeLines.length > 0 ? `${otherIncomeLines.join("\n")}\n` : "") +
+    `\n` +
     `Жами кирим: ${formatSom(tripIncome + cashDetail.income.other.total)} сум\n\n` +
     `<b>Расходлар</b>\n${expenseLines.join("\n")}\n\n` +
     `Жами расход: ${formatSom(totalExpense)} сум\n\n` +
