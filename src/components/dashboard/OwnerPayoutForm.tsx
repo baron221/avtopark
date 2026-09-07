@@ -29,7 +29,7 @@ export function OwnerPayoutForm({
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="bg-primary text-white rounded-lg px-3 py-1.5 text-xs font-extrabold whitespace-nowrap"
+        className="bg-card border border-border text-body text-xs font-extrabold px-3 py-1.5 rounded-lg hover:border-primary hover:text-primary transition-colors whitespace-nowrap"
       >
         Эгасига тўладим
       </button>
