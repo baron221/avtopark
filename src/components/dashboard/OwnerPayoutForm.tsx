@@ -29,12 +29,12 @@ export function OwnerPayoutForm({
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="bg-card border border-border text-body text-xs font-extrabold px-3 py-1.5 rounded-lg hover:border-primary hover:text-primary transition-colors whitespace-nowrap"
+        className="w-60 text-center bg-card border border-border text-body text-xs font-extrabold px-3 py-1.5 rounded-lg hover:border-primary hover:text-primary transition-colors whitespace-nowrap"
       >
         Эгасига тўладим
       </button>
       {expanded && (
-        <form action={formAction} className="mt-2 flex flex-col gap-1.5 bg-page rounded-xl p-3 w-56">
+        <form action={formAction} className="mt-2 flex flex-col gap-1.5 bg-page rounded-xl p-3 w-60">
           <label className="text-[11px] font-bold text-muted-2 uppercase">
             Сумма (қолдиқ: {formatSom(balance)})
           </label>

@@ -491,7 +491,7 @@ export function FleetDashboard({
                   {cashExportHref && (
                     <a
                       href={cashExportHref}
-                      className="bg-card border border-border text-body text-xs font-extrabold px-3 py-1.5 rounded-lg hover:border-primary hover:text-primary transition-colors whitespace-nowrap"
+                      className="w-60 text-center bg-card border border-border text-body text-xs font-extrabold px-3 py-1.5 rounded-lg hover:border-primary hover:text-primary transition-colors whitespace-nowrap"
                     >
                       ⬇ Excel
                     </a>
@@ -499,7 +499,7 @@ export function FleetDashboard({
                   {cashPdfExportHref && (
                     <a
                       href={cashPdfExportHref}
-                      className="bg-card border border-border text-body text-xs font-extrabold px-3 py-1.5 rounded-lg hover:border-primary hover:text-primary transition-colors whitespace-nowrap"
+                      className="w-60 text-center bg-card border border-border text-body text-xs font-extrabold px-3 py-1.5 rounded-lg hover:border-primary hover:text-primary transition-colors whitespace-nowrap"
                     >
                       ⬇ Ҳисобот PDF
                     </a>
