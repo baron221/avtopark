@@ -13,8 +13,14 @@ const CATEGORIES = [
   { value: "OTHER", label: "Бошқа" },
 ];
 
-export function ExpenseForm({ vehicleId }: { vehicleId: string }) {
+export function ExpenseForm({ vehicleId, repairMinDate }: { vehicleId: string; repairMinDate: string }) {
   const [category, setCategory] = useState("REPAIR");
+  // FUEL/other categories never touch the accountant's balance either way
+  // (NOT_MECHANIC_PAID_EXPENSE), but a REPAIR row backdated before
+  // MECHANIC_COST_CUTOFF falls into the old (pre-separation) rule and would
+  // retroactively shrink a balance the accountant already reconciled — so
+  // only this category has its earliest pickable date fenced off.
+  const minDate = category === "REPAIR" ? repairMinDate : undefined;
 
   return (
     <form action={addVehicleExpenseAction} className="flex flex-col gap-3">
@@ -35,6 +41,15 @@ export function ExpenseForm({ vehicleId }: { vehicleId: string }) {
         ))}
       </div>
       <div className="flex gap-2">
+        <input
+          name="expenseDate"
+          type="date"
+          required
+          defaultValue={new Date().toISOString().slice(0, 10)}
+          min={minDate}
+          max={new Date().toISOString().slice(0, 10)}
+          className="bg-page border-2 border-border rounded-xl px-3.5 py-2.5 font-bold text-sm text-heading outline-none focus:border-primary"
+        />
         <MoneyInput
           name="amount"
           required

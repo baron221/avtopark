@@ -10,12 +10,22 @@ function isPeriod(value: string | undefined): value is Period {
   return value === "DAY" || value === "WEEK" || value === "MONTH";
 }
 
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function parseDateParam(value: string | undefined): Date {
+  if (value && DATE_RE.test(value)) {
+    const parsed = new Date(`${value}T00:00:00Z`);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+  return new Date();
+}
+
 export default async function VehicleReportPrintPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ period?: string; date?: string }>;
 }) {
   const session = await auth();
   if (!session) redirect("/login");
@@ -24,10 +34,11 @@ export default async function VehicleReportPrintPage({
   }
 
   const { id } = await params;
-  const { period: periodParam } = await searchParams;
+  const { period: periodParam, date: dateParam } = await searchParams;
   const period: Period = isPeriod(periodParam) ? periodParam : "MONTH";
+  const date = parseDateParam(dateParam);
 
-  const report = await getVehicleReport(id, period);
+  const report = await getVehicleReport(id, period, date);
   if (!report) notFound();
 
   return (

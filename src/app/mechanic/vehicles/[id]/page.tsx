@@ -6,10 +6,12 @@ import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { PeriodToggle } from "@/components/ui/PeriodToggle";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { formatSom } from "@/lib/format";
 import { getOwnerDashboardVM, type Period } from "@/lib/dashboard";
 import { getVehicleReport } from "@/lib/vehicleReport";
+import { MECHANIC_COST_CUTOFF } from "@/lib/ownerPayout";
 import { getDriverAssignmentHistory } from "@/lib/driverAssignment";
 import { getWialonUnitByPlate, getWialonMileageToday, type WialonUnit } from "@/lib/wialon";
 import { estimateCurrentOdometerKm, resolveOdometerBase } from "@/lib/oilChange";
@@ -32,6 +34,17 @@ export const maxDuration = 30;
 
 function isPeriod(value: string | undefined): value is Period {
   return value === "DAY" || value === "WEEK" || value === "MONTH";
+}
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function parseDateParam(value: string | undefined): { date: Date; dateStr: string } {
+  if (value && DATE_RE.test(value)) {
+    const parsed = new Date(`${value}T00:00:00Z`);
+    if (!Number.isNaN(parsed.getTime())) return { date: parsed, dateStr: value };
+  }
+  const today = new Date();
+  return { date: today, dateStr: today.toISOString().slice(0, 10) };
 }
 
 const FUEL_MONTH_RE = /^\d{4}-\d{2}$/;
@@ -60,21 +73,22 @@ export default async function VehicleDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ period?: string; fuelMonth?: string }>;
+  searchParams: Promise<{ period?: string; date?: string; fuelMonth?: string }>;
 }) {
   const session = await auth();
   if (!session) redirect("/login");
   if (session.user.role !== "MECHANIC" && !(await hasModuleAccess(session.user.role, "VEHICLES"))) redirect("/coming-soon");
 
   const { id } = await params;
-  const { period: periodParam, fuelMonth: fuelMonthParam } = await searchParams;
+  const { period: periodParam, date: dateParam, fuelMonth: fuelMonthParam } = await searchParams;
   const period: Period = isPeriod(periodParam) ? periodParam : "MONTH";
+  const { date, dateStr } = parseDateParam(dateParam);
   const fuelMonth = parseFuelMonthParam(fuelMonthParam);
   const fuelMonthStr = `${fuelMonth.getUTCFullYear()}-${String(fuelMonth.getUTCMonth() + 1).padStart(2, "0")}`;
 
   const [vehicle, vm, expenses, drivers, oilChanges, report, assignmentHistory, mileageHistory] = await Promise.all([
     prisma.vehicle.findUnique({ where: { id }, include: { driver: { include: { user: true } } } }),
-    getOwnerDashboardVM("MONTH"),
+    getOwnerDashboardVM(period, date),
     prisma.expense.findMany({ where: { vehicleId: id }, orderBy: { expenseDate: "desc" }, take: 10 }),
     prisma.driver.findMany({
       where: { user: { isActive: true } },
@@ -82,7 +96,7 @@ export default async function VehicleDetailPage({
       orderBy: { user: { fullName: "asc" } },
     }),
     prisma.oilChange.findMany({ where: { vehicleId: id }, orderBy: { changedAt: "desc" }, take: 10 }),
-    getVehicleReport(id, period),
+    getVehicleReport(id, period, date),
     getDriverAssignmentHistory(id),
     prisma.vehicleMileage.findMany({ where: { vehicleId: id }, orderBy: { date: "desc" }, take: 30 }),
   ]);
@@ -277,7 +291,7 @@ export default async function VehicleDetailPage({
               basePath={`/mechanic/vehicles/${vehicle.id}`}
               value={fuelMonthStr}
               paramName="fuelMonth"
-              extraParams={{ period }}
+              extraParams={{ period, date: dateStr }}
             />
           </div>
           <Suspense
@@ -294,6 +308,21 @@ export default async function VehicleDetailPage({
         </Card>
       )}
 
+      <div className="flex justify-end items-center gap-2 flex-wrap">
+        <DatePicker
+          basePath={`/mechanic/vehicles/${vehicle.id}`}
+          period={period}
+          value={dateStr}
+          extraParams={{ fuelMonth: fuelMonthStr }}
+        />
+        <PeriodToggle
+          active={period}
+          basePath={`/mechanic/vehicles/${vehicle.id}`}
+          date={dateStr}
+          extraParams={{ fuelMonth: fuelMonthStr }}
+        />
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard label={`Тушум · ${vm.periodLabel}`} value={formatSom(row?.income ?? 0)} />
         <KpiCard label={`Харажат · ${vm.periodLabel}`} value={formatSom(row?.expense ?? 0)} hintColor="danger" />
@@ -306,7 +335,7 @@ export default async function VehicleDetailPage({
           <div className="font-heading font-bold text-base text-heading">Охирги харажатлар</div>
         </div>
         <div className="px-6 pb-4">
-          <ExpenseForm vehicleId={vehicle.id} />
+          <ExpenseForm vehicleId={vehicle.id} repairMinDate={MECHANIC_COST_CUTOFF.toISOString().slice(0, 10)} />
         </div>
         {expenses.map((e) => (
           <div
@@ -400,13 +429,8 @@ export default async function VehicleDetailPage({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <PeriodToggle
-                active={period}
-                basePath={`/mechanic/vehicles/${vehicle.id}`}
-                extraParams={{ fuelMonth: fuelMonthStr }}
-              />
               <a
-                href={`/print/vehicle/${vehicle.id}?period=${period}`}
+                href={`/print/vehicle/${vehicle.id}?period=${period}&date=${dateStr}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-page border border-border text-heading text-xs font-extrabold px-3 py-2 rounded-lg hover:border-primary hover:text-primary transition-colors"

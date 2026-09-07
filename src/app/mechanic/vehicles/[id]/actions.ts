@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { currentMonthDate, syncDriverVehicleAssignment } from "@/lib/driverAssignment";
 import { hasModuleAccess } from "@/lib/access";
+import { MECHANIC_COST_CUTOFF } from "@/lib/ownerPayout";
 import { normalizePhone } from "@/lib/phone";
 import { logDeletion } from "@/lib/deletionLog";
 import type { ExpenseCategory, Point, SalaryType, VehicleStatus, VehicleType } from "@prisma/client";
@@ -63,12 +64,25 @@ export async function addVehicleExpenseAction(formData: FormData) {
   const note = String(formData.get("note") ?? "").trim() || null;
   if (!vehicleId || !category || !(amount > 0)) return;
 
+  // Midday UTC, not midnight, so the picked calendar date can't shift by a
+  // day depending on which timezone this runs in — same convention as
+  // addFuelLogAction's own filledAt parsing.
+  const expenseDateStr = String(formData.get("expenseDate") ?? "");
+  const parsedExpenseDate = expenseDateStr ? new Date(`${expenseDateStr}T12:00:00Z`) : null;
+  let expenseDate = parsedExpenseDate && !Number.isNaN(parsedExpenseDate.getTime()) ? parsedExpenseDate : new Date();
+  // Defense-in-depth for the same rule ExpenseForm's date input already
+  // enforces via `min` — see NOT_MECHANIC_PAID_EXPENSE's own comment: a
+  // REPAIR row backdated before this cutoff would retroactively shrink an
+  // already-reconciled accountant balance, so it can't land there even if
+  // the client-side restriction is bypassed.
+  if (category === "REPAIR" && expenseDate < MECHANIC_COST_CUTOFF) expenseDate = new Date();
+
   await prisma.expense.create({
     data: {
       vehicleId,
       category,
       amount: BigInt(Math.round(amount)),
-      expenseDate: new Date(),
+      expenseDate,
       note,
       enteredBy: userId,
     },

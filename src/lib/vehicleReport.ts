@@ -26,14 +26,18 @@ function fmtDate(d: Date) {
   return d.toLocaleDateString("uz-UZ", { day: "numeric", month: "long" });
 }
 
-export async function getVehicleReport(vehicleId: string, period: Period): Promise<VehicleReport | null> {
+export async function getVehicleReport(
+  vehicleId: string,
+  period: Period,
+  referenceDate: Date = new Date()
+): Promise<VehicleReport | null> {
   const vehicle = await prisma.vehicle.findUnique({
     where: { id: vehicleId },
     include: { driver: { include: { user: true } } },
   });
   if (!vehicle) return null;
 
-  const now = new Date();
+  const now = referenceDate;
   const { from, to } = rangeForPeriod(period, now);
   const days = Math.floor((to.getTime() - from.getTime()) / 86_400_000) + 1;
   const monthStart = getMonthStart(now);
