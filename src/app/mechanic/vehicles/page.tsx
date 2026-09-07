@@ -4,8 +4,10 @@ import { redirect } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { Pagination } from "@/components/ui/Pagination";
+import { PeriodToggle } from "@/components/ui/PeriodToggle";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { DEFAULT_PAGE_SIZE, parsePage, paginationSkip, totalPages } from "@/lib/paginate";
-import { getOwnerDashboardVM } from "@/lib/dashboard";
+import { getOwnerDashboardVM, type Period } from "@/lib/dashboard";
 import { formatSom } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
 import { getExternalVehicles } from "@/lib/externalVehicle";
@@ -22,21 +24,38 @@ const FILTERS = [
   { key: "RENTED", label: "Ижарада" },
 ] as const;
 
+function isPeriod(value: string | undefined): value is Period {
+  return value === "DAY" || value === "WEEK" || value === "MONTH";
+}
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function parseDateParam(value: string | undefined): { date: Date; dateStr: string } {
+  if (value && DATE_RE.test(value)) {
+    const parsed = new Date(`${value}T00:00:00Z`);
+    if (!Number.isNaN(parsed.getTime())) return { date: parsed, dateStr: value };
+  }
+  const today = new Date();
+  return { date: today, dateStr: today.toISOString().slice(0, 10) };
+}
+
 export default async function MechanicVehiclesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; page?: string }>;
+  searchParams: Promise<{ status?: string; page?: string; period?: string; date?: string }>;
 }) {
   const session = await auth();
   if (!session) redirect("/login");
   if (session.user.role !== "MECHANIC" && !(await hasModuleAccess(session.user.role, "VEHICLES"))) redirect("/coming-soon");
 
-  const { status: statusParam, page: pageParam } = await searchParams;
+  const { status: statusParam, page: pageParam, period: periodParam, date: dateParam } = await searchParams;
   const status = FILTERS.some((f) => f.key === statusParam) ? statusParam! : "ALL";
   const page = parsePage(pageParam);
+  const period: Period = isPeriod(periodParam) ? periodParam : "MONTH";
+  const { date, dateStr } = parseDateParam(dateParam);
 
   const [vm, externalVehicles, odometerByVehicle] = await Promise.all([
-    getOwnerDashboardVM("MONTH"),
+    getOwnerDashboardVM(period, date),
     getExternalVehicles(),
     estimateFleetOdometerKm(),
   ]);
@@ -57,19 +76,23 @@ export default async function MechanicVehiclesPage({
     <div className="max-w-[1180px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
       <div className="flex justify-between items-center flex-wrap gap-3">
         <div className="font-heading font-bold text-xl text-heading">Машиналар</div>
-        <Link
-          href="/mechanic/vehicles/new"
-          className="bg-primary text-white rounded-[10px] px-[18px] py-2.5 font-extrabold text-[13px]"
-        >
-          + Машина қўшиш
-        </Link>
+        <div className="flex gap-2 flex-wrap items-center">
+          <DatePicker basePath="/mechanic/vehicles" period={period} value={dateStr} extraParams={{ status }} />
+          <PeriodToggle active={period} basePath="/mechanic/vehicles" date={dateStr} extraParams={{ status }} />
+          <Link
+            href="/mechanic/vehicles/new"
+            className="bg-primary text-white rounded-[10px] px-[18px] py-2.5 font-extrabold text-[13px]"
+          >
+            + Машина қўшиш
+          </Link>
+        </div>
       </div>
 
       <div className="flex gap-2 flex-wrap">
         {FILTERS.map((f) => (
           <Link
             key={f.key}
-            href={`/mechanic/vehicles?status=${f.key}`}
+            href={`/mechanic/vehicles?status=${f.key}&period=${period}&date=${dateStr}`}
             className={`rounded-full px-4 py-1.5 text-[13px] font-extrabold ${
               status === f.key ? "bg-primary text-white" : "bg-card border border-border text-muted"
             }`}
@@ -118,7 +141,12 @@ export default async function MechanicVehiclesPage({
           );
         })}
         {vehicles.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Бу филтрга мос машина йўқ</p>}
-        <Pagination page={page} totalPages={pages} basePath="/mechanic/vehicles" params={{ status }} />
+        <Pagination
+          page={page}
+          totalPages={pages}
+          basePath="/mechanic/vehicles"
+          params={{ status, period, date: dateStr }}
+        />
       </Card>
 
       <div className="max-w-[420px] w-full">
