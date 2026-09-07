@@ -153,8 +153,10 @@ function fullDateLabel(d: Date): string {
  * "outside" bucket by category/subtitle, Йўлда and anything left over
  * (vehicle repair/fuel/salary/station-payment rows) shown only when
  * non-zero so an ordinary day's report isn't cluttered with empty
- * categories, and "Бошқа кирим" broken down by its own category
- * (Солиқ/Ойлик тўлов/...) instead of one lump sum, per explicit request. */
+ * categories, "Бошқа кирим" broken down by its own category (Солиқ/Ойлик
+ * тўлов/...) instead of one lump sum, and the expense-side "Бошқа" bucket
+ * broken down per row by its note (or subtitle when there's no note) —
+ * both per explicit request. */
 export async function buildDailySummaryReport(referenceDate: Date = new Date()): Promise<{ message: string }> {
   const day = utcDayStart(referenceDate);
   const [totalVehicles, ledger] = await Promise.all([prisma.vehicle.count(), getCashLedgerSummary("DAY", day)]);
@@ -164,7 +166,12 @@ export async function buildDailySummaryReport(referenceDate: Date = new Date()):
     [...cashDetail.income.fargona.rows, ...cashDetail.income.quva.rows].map((r) => r.vehiclePlate)
   );
 
-  const isLunch = (r: { category: string }) => r.category === "Обед";
+  // "Шахсий озиқ-овқат" (StaffExpense's OZIQ_OVQAT category) counts as lunch
+  // here too, per explicit request — in practice it's the same driver-meal
+  // spending as the Lunch model's own "Обед" rows, just logged through a
+  // different form, so it belongs in the "обеди, сув" line rather than the
+  // generic пункт line.
+  const isLunch = (r: { category: string }) => r.category === "Обед" || r.category === "Шахсий озиқ-овқат";
   const fargonaPoint = cashDetail.expense.fargona.rows.filter((r) => !isLunch(r)).reduce((s, r) => s + r.amount, 0);
   const quvaPoint = cashDetail.expense.quva.rows.filter((r) => !isLunch(r)).reduce((s, r) => s + r.amount, 0);
   // Shown as two separate lines (Фарғона/Қува), not combined, per explicit
@@ -186,9 +193,15 @@ export async function buildDailySummaryReport(referenceDate: Date = new Date()):
   const advanceTotal = outside.filter(isAdvance).reduce((s, r) => s + r.amount, 0);
   const ishxonaTotal = outside.filter(isIshxona).reduce((s, r) => s + r.amount, 0);
   const yoldaTotal = outside.filter(isYolda).reduce((s, r) => s + r.amount, 0);
-  const otherOutsideTotal = outside
-    .filter((r) => !isAdvance(r) && !isIshxona(r) && !isYolda(r))
-    .reduce((s, r) => s + r.amount, 0);
+  const otherOutsideRows = outside.filter((r) => !isAdvance(r) && !isIshxona(r) && !isYolda(r));
+  const otherOutsideTotal = otherOutsideRows.reduce((s, r) => s + r.amount, 0);
+  // This bucket mixes a few different sources (Бошқа-point StaffExpense,
+  // salary, fuel-station payments) with no shared category label worth
+  // grouping by, so — per explicit request — each row is listed with
+  // whatever actually identifies it: its own note when the accountant typed
+  // one, otherwise the subtitle already computed for it in computeCashDetail
+  // (a person's or station's name).
+  const otherOutsideLines = otherOutsideRows.map((r) => `  ${r.note || r.subtitle}: ${formatSom(r.amount)}`);
 
   const tripIncome = cashDetail.income.fargona.total + cashDetail.income.quva.total;
   const totalExpense = fargonaPoint + quvaPoint + lunchTotal + advanceTotal + ishxonaTotal + yoldaTotal + otherOutsideTotal;
@@ -215,7 +228,10 @@ export async function buildDailySummaryReport(referenceDate: Date = new Date()):
     `Офис расходлари − ${formatSom(ishxonaTotal)}`,
   ];
   if (yoldaTotal > 0) expenseLines.push(`Йўлда − ${formatSom(yoldaTotal)}`);
-  if (otherOutsideTotal > 0) expenseLines.push(`Бошқа − ${formatSom(otherOutsideTotal)}`);
+  if (otherOutsideTotal > 0) {
+    expenseLines.push(`Бошқа − ${formatSom(otherOutsideTotal)}`);
+    expenseLines.push(...otherOutsideLines);
+  }
 
   const message =
     `<b>${fullDateLabel(day)}</b>\n\n` +
