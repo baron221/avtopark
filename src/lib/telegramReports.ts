@@ -152,11 +152,11 @@ function fullDateLabel(d: Date): string {
  * here), Аванс and Ишхона (labelled "Офис расходлари") pulled out of the
  * generic "outside" bucket by category/subtitle, Йўлда shown only when
  * non-zero so an ordinary day's report isn't cluttered with an empty
- * category, "Бошқа кирим" broken down by its own category (Солиқ/Ойлик
- * тўлов/...) instead of one lump sum, and the expense-side "Бошқа" bucket
- * printed as one "Бошқа - <note>: <amount>" line per row instead of a lump
- * total (a single row would otherwise print its own amount twice) — all
- * per explicit request. */
+ * category, "Бошқа кирим" printed as one "Бошқа кирим - <category>: <amount>"
+ * line per category and the expense-side "Бошқа" bucket as one
+ * "Бошқа - <note>: <amount>" line per row — both instead of a lump total
+ * above the breakdown, which with a single row/category used to print the
+ * exact same number twice — all per explicit request. */
 export async function buildDailySummaryReport(referenceDate: Date = new Date()): Promise<{ message: string }> {
   const day = utcDayStart(referenceDate);
   const [totalVehicles, ledger] = await Promise.all([prisma.vehicle.count(), getCashLedgerSummary("DAY", day)]);
@@ -210,13 +210,17 @@ export async function buildDailySummaryReport(referenceDate: Date = new Date()):
   // Broken down by category (Солиқ/Ойлик тўлов/ГПС/...) instead of one lump
   // sum, per explicit request — cashDetail.income.other.rows already
   // carries each row's category as its human label (OTHER_INCOME_CATEGORY_
-  // LABELS, applied in computeCashDetail), so this is just a regroup.
+  // LABELS, applied in computeCashDetail), so this is just a regroup. One
+  // "Бошқа кирим - <category>: <amount>" line per category, not a lump
+  // total above the breakdown — with a single category, the old format
+  // printed the exact same number twice (same fix as the expense-side
+  // "Бошқа" bucket below).
   const otherIncomeByCategory = new Map<string, number>();
   for (const r of cashDetail.income.other.rows) {
     otherIncomeByCategory.set(r.category, (otherIncomeByCategory.get(r.category) ?? 0) + r.amount);
   }
   const otherIncomeLines = [...otherIncomeByCategory.entries()].map(
-    ([category, amount]) => `  ${category}: ${formatSom(amount)}`
+    ([category, amount]) => `Бошқа кирим - ${category}: ${formatSom(amount)}`
   );
 
   const expenseLines = [
@@ -234,7 +238,6 @@ export async function buildDailySummaryReport(referenceDate: Date = new Date()):
     `Жами ${totalVehicles} та мошина\n` +
     `${ranVehicles.size} та қатнаган машина\n\n` +
     `Кирим Қува-Фар-Қува: ${formatSom(tripIncome)}\n` +
-    `Бошқа кирим: ${formatSom(cashDetail.income.other.total)}\n` +
     (otherIncomeLines.length > 0 ? `${otherIncomeLines.join("\n")}\n` : "") +
     `\n` +
     `Жами кирим: ${formatSom(tripIncome + cashDetail.income.other.total)} сум\n\n` +

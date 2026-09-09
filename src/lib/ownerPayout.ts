@@ -163,9 +163,12 @@ export type CashLedgerSummary = {
    * accountant has confirmed it. Drives the "Топширилди/Топширилмади" badge
    * on each point card; only meaningful for a single day, not a week/month. */
   handoverSubmittedByPoint: Record<Point, boolean>;
-  /** The calendar day right before referenceDate's own kirim−chiqim net —
-   * always DAY-scoped regardless of the page's selected period, since this
-   * is specifically "yesterday", not "the previous period". */
+  /** The actual cash-on-hand balance as of the end of the calendar day right
+   * before referenceDate — not that day's own income-minus-expense net,
+   * since a net figure would ignore whatever the accountant already paid
+   * out to the owner that same day (see getCashLedgerSummary's own
+   * comment). Always DAY-scoped regardless of the page's selected period,
+   * since this is specifically "yesterday", not "the previous period". */
   yesterday: { dateLabel: string; balance: number };
 };
 
@@ -885,6 +888,20 @@ export async function getCashLedgerSummary(period: Period, referenceDate: Date):
       })),
   }));
 
+  // balanceLedger is most-recent-first, so the first row before today is
+  // the latest one — its balanceAfter already reflects every payout the
+  // accountant made on that day, unlike yesterdayDetail's own raw
+  // income-minus-expense net (see this field's own doc comment on
+  // CashLedgerSummary). Falls back to the opening balance itself when
+  // nothing happened between it being set and today, and to 0 when there's
+  // no opening balance at all (balance is meaningless either way then).
+  const lastLedgerRowBeforeToday = balanceLedger.find((r) => r.time < referenceDay);
+  const cashBalanceAsOfYesterday = lastLedgerRowBeforeToday
+    ? lastLedgerRowBeforeToday.balanceAfter
+    : openingBalance && openingBalance.setDate < referenceDay
+      ? openingBalance.amount
+      : 0;
+
   return {
     pointPending,
     balance,
@@ -912,7 +929,7 @@ export async function getCashLedgerSummary(period: Period, referenceDate: Date):
     handoverSubmittedByPoint,
     yesterday: {
       dateLabel: yesterdayDetail.rangeLabel,
-      balance: yesterdayDetail.income.total - yesterdayDetail.expense.total,
+      balance: cashBalanceAsOfYesterday,
     },
   };
 }
