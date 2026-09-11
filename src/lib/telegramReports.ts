@@ -203,9 +203,19 @@ export async function buildDailySummaryReport(referenceDate: Date = new Date()):
   // twice — once as the total, once as that row's own breakdown line).
   const otherOutsideLines = otherOutsideRows.map((r) => `Бошқа - ${r.note || r.subtitle}: ${formatSom(r.amount)}`);
 
+  // cashDetail never carries OwnerPayout rows (see computeCashDetail) — an
+  // owner payout made on `day` would otherwise be invisible in this figure,
+  // same bug getCashLedgerSummary's own `yesterday` field had before it
+  // switched to balanceLedger's balanceAfter. balanceLedger already covers
+  // this exact day (fetched since the opening balance, which predates any
+  // day this report runs for), so filter it down instead of another query.
+  const dayPayoutTotal = ledger.balanceLedger
+    .filter((r) => r.category === "Эгасига тўланган" && utcDayStart(r.time).getTime() === day.getTime())
+    .reduce((s, r) => s + r.amount, 0);
+
   const tripIncome = cashDetail.income.fargona.total + cashDetail.income.quva.total;
   const totalExpense = fargonaPoint + quvaPoint + lunchTotal + advanceTotal + ishxonaTotal + yoldaTotal + otherOutsideTotal;
-  const dailyBalance = tripIncome + cashDetail.income.other.total - totalExpense;
+  const dailyBalance = tripIncome + cashDetail.income.other.total - totalExpense - dayPayoutTotal;
 
   // Broken down by category (Солиқ/Ойлик тўлов/ГПС/...) instead of one lump
   // sum, per explicit request — cashDetail.income.other.rows already
