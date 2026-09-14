@@ -272,6 +272,7 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
     confirmedHandovers,
     dailyCashAmounts,
     buxgalterIncomeAgg,
+    debtSettlementAgg,
     payoutAgg,
     expenseAgg,
     staffExpenseAgg,
@@ -317,6 +318,17 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
         _sum: { amount: true },
         where: { point: "BUXGALTERIYA", incomeDate: { gte: since } },
       }),
+      // An ORDER's remaining (revenue − collectedAmount) an accountant later
+      // marks collected (see settleTripDebtAction) — cash that, like
+      // buxgalterIncome above, reaches the accountant directly rather than
+      // through a dispatcher's handover, so it needs its own line here too.
+      // collectedAmount itself never changes at settlement (see Trip's own
+      // schema comment), so revenue−collectedAmount still yields the correct
+      // owed amount even after debtSettledAt is set.
+      prisma.trip.aggregate({
+        _sum: { revenue: true, collectedAmount: true },
+        where: { debtSettledAt: { gte: since } },
+      }),
       prisma.ownerPayout.aggregate({ _sum: { amount: true }, where: { payoutDate: { gte: sincePayoutCutoff } } }),
       // FUEL/post-cutoff REPAIR excluded — see NOT_MECHANIC_PAID_EXPENSE's
       // own comment (paid by the owner directly, never out of this cash).
@@ -361,6 +373,8 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
     0
   );
   const buxgalterIncome = Number(buxgalterIncomeAgg._sum.amount ?? BigInt(0));
+  const debtSettled =
+    Number(debtSettlementAgg._sum.revenue ?? BigInt(0)) - Number(debtSettlementAgg._sum.collectedAmount ?? BigInt(0));
   const paidToOwner = Number(payoutAgg._sum.amount ?? BigInt(0));
   const expenses = Number(expenseAgg._sum.amount ?? BigInt(0));
   const staffExpenses = Number(staffExpenseAgg._sum.amount ?? BigInt(0));
@@ -371,7 +385,8 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
   return (
     openingBalance.amount +
     confirmed +
-    buxgalterIncome -
+    buxgalterIncome +
+    debtSettled -
     paidToOwner -
     expenses -
     staffExpenses -
@@ -403,7 +418,7 @@ const BALANCE_POINT_LABELS: Record<string, string> = {
  * sum to (balance − openingBalance.amount).
  */
 async function computeBalanceLedger(since: Date, openingAmount: number): Promise<BalanceLedgerRow[]> {
-  const [confirmed, dailyCashAmounts, buxgalterIncomes, payouts, expenses, staffExpenses, advances, salaries, stationPayments] =
+  const [confirmed, dailyCashAmounts, buxgalterIncomes, debtSettlements, payouts, expenses, staffExpenses, advances, salaries, stationPayments] =
     await Promise.all([
       prisma.cashHandover.findMany({
         where: { accountantConfirmedAt: { gte: since } },
@@ -416,6 +431,11 @@ async function computeBalanceLedger(since: Date, openingAmount: number): Promise
       prisma.otherIncome.findMany({
         where: { point: "BUXGALTERIYA", incomeDate: { gte: since } },
         include: { enteredByUser: true },
+      }),
+      // Same reasoning as computeCashBalance's own debtSettlementAgg query.
+      prisma.trip.findMany({
+        where: { debtSettledAt: { gte: since } },
+        include: { vehicle: true, debtSettledByUser: true },
       }),
       // Same widened same-day cutoff as computeCashBalance — see utcDayStart.
       prisma.ownerPayout.findMany({
@@ -487,6 +507,14 @@ async function computeBalanceLedger(since: Date, openingAmount: number): Promise
         ? `${i.plateNumber} · ${i.enteredByUser.fullName}${i.note ? ` · ${i.note}` : ""}`
         : `${i.enteredByUser.fullName}${i.note ? ` · ${i.note}` : ""}`,
       amount: Number(i.amount),
+    })),
+    ...debtSettlements.map((t) => ({
+      id: t.id,
+      time: t.debtSettledAt as Date,
+      sign: "IN" as const,
+      category: "Насия ёпилди",
+      subtitle: `${t.vehicle.plate}${t.note ? ` · ${t.note}` : ""} · ${t.debtSettledByUser?.fullName ?? "—"}`,
+      amount: Number(t.revenue) - Number(t.collectedAmount),
     })),
     ...payouts.map((p) => ({
       id: p.id,
@@ -601,6 +629,7 @@ async function computeCashDetail(period: Period, referenceDate: Date): Promise<C
     drivers,
     vehicles,
     otherIncomes,
+    debtSettlements,
     staffExpenses,
     lunches,
     expenses,
@@ -618,6 +647,7 @@ async function computeCashDetail(period: Period, referenceDate: Date): Promise<C
         vehicleId: true,
         driverId: true,
         revenue: true,
+        collectedAmount: true,
         note: true,
       },
     }),
@@ -627,6 +657,14 @@ async function computeCashDetail(period: Period, referenceDate: Date): Promise<C
       where: { incomeDate: { gte: from, lte: to } },
       include: { enteredByUser: true },
       orderBy: { createdAt: "desc" },
+    }),
+    // Same reasoning as computeCashBalance's own debtSettlementAgg query —
+    // shown as a synthetic "Бошқа кирим" row (below) so the existing
+    // PDF/Excel/Telegram exports, which already iterate income.other.rows,
+    // pick it up with no further changes.
+    prisma.trip.findMany({
+      where: { debtSettledAt: { gte: from, lte: to } },
+      include: { vehicle: true, debtSettledByUser: true },
     }),
     prisma.staffExpense.findMany({
       where: { expenseDate: { gte: from, lte: to }, category: { not: "OBED" } },
@@ -675,30 +713,50 @@ async function computeCashDetail(period: Period, referenceDate: Date): Promise<C
   const vehicleById = new Map(vehicles.map((v) => [v.id, v]));
 
   const tripRows: (TripIncomeDetailRow & { point: Point })[] = trips
-    .map((t) => ({
-      id: t.id,
-      time: t.createdAt,
-      point: t.point,
-      kind: t.kind,
-      vehiclePlate: vehicleById.get(t.vehicleId)?.plate ?? "—",
-      driverName: driverById.get(t.driverId)?.user.fullName ?? "—",
-      amount: Number(t.revenue),
-      note: t.note,
-    }))
+    .map((t) => {
+      // collectedAmount, not revenue — this report is about cash that
+      // actually moved, same as the balance ledger (see Trip.collectedAmount's
+      // own schema comment). An ORDER still owing money says so right in its
+      // note, so the gap against revenue is never silently invisible here;
+      // once settled it shows up as its own "Насия ёпилди" row instead.
+      const owed = Number(t.revenue) - Number(t.collectedAmount);
+      return {
+        id: t.id,
+        time: t.createdAt,
+        point: t.point,
+        kind: t.kind,
+        vehiclePlate: vehicleById.get(t.vehicleId)?.plate ?? "—",
+        driverName: driverById.get(t.driverId)?.user.fullName ?? "—",
+        amount: Number(t.collectedAmount),
+        note: owed > 0 ? `${t.note ? `${t.note} · ` : ""}насия: ${formatSom(owed)}` : t.note,
+      };
+    })
     .sort((a, b) => b.time.getTime() - a.time.getTime());
   const fargonaTripRows = tripRows.filter((t) => t.point === "FARGONA");
   const quvaTripRows = tripRows.filter((t) => t.point === "QUVA");
 
-  const otherIncomeRows: OtherIncomeDetailRow[] = otherIncomes.map((i) => ({
-    id: i.id,
-    time: i.createdAt,
-    point: i.point,
-    category: OTHER_INCOME_CATEGORY_LABELS[i.category] ?? i.category,
-    amount: Number(i.amount),
-    plateNumber: i.plateNumber,
-    note: i.note,
-    enteredByName: i.enteredByUser.fullName,
-  }));
+  const otherIncomeRows: OtherIncomeDetailRow[] = [
+    ...otherIncomes.map((i) => ({
+      id: i.id,
+      time: i.createdAt,
+      point: i.point,
+      category: OTHER_INCOME_CATEGORY_LABELS[i.category] ?? i.category,
+      amount: Number(i.amount),
+      plateNumber: i.plateNumber,
+      note: i.note,
+      enteredByName: i.enteredByUser.fullName,
+    })),
+    ...debtSettlements.map((t) => ({
+      id: t.id,
+      time: t.debtSettledAt as Date,
+      point: "BUXGALTERIYA" as const,
+      category: "Насия ёпилди",
+      amount: Number(t.revenue) - Number(t.collectedAmount),
+      plateNumber: t.vehicle.plate,
+      note: t.note,
+      enteredByName: t.debtSettledByUser?.fullName ?? "—",
+    })),
+  ];
 
   const fargonaExpenseRows: PointExpenseDetailRow[] = [
     ...staffExpenses

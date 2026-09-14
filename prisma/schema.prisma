@@ -148,6 +148,7 @@ model User {
 
   driver                     Driver?
   enteredTrips               Trip[]               @relation("TripEnteredBy")
+  settledTripDebts           Trip[]               @relation("TripDebtSettledBy")
   enteredOtherIncomes        OtherIncome[]        @relation("OtherIncomeEnteredBy")
   externalVehiclesCreated    ExternalVehicle[]    @relation("ExternalVehicleCreatedBy")
   enteredExpenses            Expense[]            @relation("ExpenseEnteredBy")
@@ -415,15 +416,32 @@ model Trip {
   passengerCount Int      @map("passenger_count")
   tripNumber     Int?     @map("trip_number")
   revenue        BigInt
+  // How much of `revenue` was actually collected in hand when this Trip was
+  // entered — equal to `revenue` for every TRIP-kind row and for a fully-paid
+  // ORDER, lower than `revenue` for an ORDER taken as an advance/credit sale
+  // (see debtSettledAt). This, not `revenue`, is what feeds the cash-on-hand
+  // side of the app (computeDailyCashAmounts and everything built on it) —
+  // `revenue` itself stays the full sale price everywhere else (owner
+  // reports, driver pay, vehicle reports), since that's real business
+  // volume regardless of when the cash physically arrives.
+  collectedAmount BigInt  @map("collected_amount")
+  // Set once an accountant marks an ORDER's remaining (revenue -
+  // collectedAmount) as finally collected — see settleTripDebtAction. NULL
+  // means either nothing is owed, or it's owed and still outstanding;
+  // distinguishing those two only ever requires comparing collectedAmount
+  // to revenue, so no separate "is this a debt" flag is needed.
+  debtSettledAt  DateTime? @map("debt_settled_at")
+  debtSettledBy  String?   @map("debt_settled_by")
   kind           TripKind @default(TRIP)
   note           String?
   enteredBy      String   @map("entered_by")
   createdAt      DateTime @default(now()) @map("created_at")
 
-  vehicle       Vehicle @relation(fields: [vehicleId], references: [id])
-  driver        Driver  @relation(fields: [driverId], references: [id])
-  route         Route   @relation(fields: [routeId], references: [id])
-  enteredByUser User    @relation("TripEnteredBy", fields: [enteredBy], references: [id])
+  vehicle         Vehicle @relation(fields: [vehicleId], references: [id])
+  driver          Driver  @relation(fields: [driverId], references: [id])
+  route           Route   @relation(fields: [routeId], references: [id])
+  enteredByUser   User    @relation("TripEnteredBy", fields: [enteredBy], references: [id])
+  debtSettledByUser User? @relation("TripDebtSettledBy", fields: [debtSettledBy], references: [id])
 
   @@index([vehicleId, tripDate])
   @@index([driverId])

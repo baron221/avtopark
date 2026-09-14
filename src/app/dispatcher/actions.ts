@@ -164,6 +164,23 @@ export async function addTripAction(formData: FormData): Promise<TripReceipt | n
   }
   if (!(revenue > 0) || !Number.isFinite(passengerCount) || passengerCount < 1) return null;
 
+  // Only an ORDER can be anything other than fully paid on the spot — a
+  // scheduled "Рейс" always is (see IncomeForm's own OrderPayment comment).
+  // collectedAmount, not revenue, is what feeds the cash-on-hand side of the
+  // app (computeDailyCashAmounts and everything built on it) — see Trip.
+  // collectedAmount's own schema comment.
+  let collectedAmount = revenue;
+  if (kind === "ORDER") {
+    const paymentType = formData.get("paymentType");
+    if (paymentType === "CREDIT") {
+      collectedAmount = 0;
+    } else if (paymentType === "ADVANCE") {
+      const collectedNow = Number(formData.get("collectedNow") ?? 0);
+      if (!(collectedNow > 0) || collectedNow >= revenue) return null;
+      collectedAmount = collectedNow;
+    }
+  }
+
   const now = new Date();
   const backdate = parseBackdate(formData, now);
   const tripDate = backdate ?? now;
@@ -178,6 +195,7 @@ export async function addTripAction(formData: FormData): Promise<TripReceipt | n
       passengerCount,
       tripNumber,
       revenue: BigInt(Math.round(revenue)),
+      collectedAmount: BigInt(Math.round(collectedAmount)),
       kind,
       note,
       enteredBy: userId,

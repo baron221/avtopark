@@ -177,6 +177,7 @@ async function main() {
       const tripsToday = randInt(2, 5);
       for (let t = 0; t < tripsToday; t++) {
         const passengerCount = randInt(8, 16);
+        const revenue = BigInt(passengerCount * route.baseFare);
         await prisma.trip.create({
           data: {
             vehicleId: vehicles[i].id,
@@ -186,7 +187,8 @@ async function main() {
             tripDate: daysAgo(d),
             departureTime: daysAgo(d),
             passengerCount,
-            revenue: BigInt(passengerCount * route.baseFare),
+            revenue,
+            collectedAmount: revenue,
             enteredBy: driverId === driverByVehicleIndex[0].driverId ? owner.id : admin.id,
           },
         });

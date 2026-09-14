@@ -103,7 +103,11 @@ export async function computeDailyCashAmounts(since: Date, until: Date): Promise
   const [trips, otherIncomes, staffExpenses, lunches] = await Promise.all([
     prisma.trip.findMany({
       where: { tripDate: { gte: since, lte: until }, point: { in: ["FARGONA", "QUVA"] } },
-      select: { point: true, tripDate: true, revenue: true, enteredBy: true },
+      // collectedAmount, not revenue: an ORDER taken as an advance/credit
+      // sale hasn't put its full price in the dispatcher's hand yet — see
+      // Trip.collectedAmount's own schema comment. Equal to revenue for
+      // every other row, so this is a no-op everywhere else.
+      select: { point: true, tripDate: true, collectedAmount: true, enteredBy: true },
     }),
     prisma.otherIncome.findMany({
       where: { point: { in: ["FARGONA", "QUVA"] }, incomeDate: { gte: since, lte: until } },
@@ -126,7 +130,7 @@ export async function computeDailyCashAmounts(since: Date, until: Date): Promise
   const map = new Map<string, bigint>();
   const add = (k: string, delta: bigint) => map.set(k, (map.get(k) ?? BigInt(0)) + delta);
 
-  for (const t of trips) add(dayKey(t.point, t.tripDate, t.enteredBy), t.revenue);
+  for (const t of trips) add(dayKey(t.point, t.tripDate, t.enteredBy), t.collectedAmount);
   for (const i of otherIncomes) add(dayKey(i.point, i.incomeDate, i.enteredBy), i.amount);
   for (const e of staffExpenses) add(dayKey(e.point, e.expenseDate, e.enteredBy), -e.amount);
   for (const l of lunches) add(dayKey(l.point, l.lunchDate, l.enteredBy), -l.amount);
@@ -239,14 +243,15 @@ export async function computeDailyCashBreakdown(point: Point, day: Date, dispatc
   const scope = { point, enteredBy: dispatcherId } as const;
 
   const [tripAgg, otherIncomeAgg, staffExpenseAgg, lunchAgg] = await Promise.all([
-    prisma.trip.aggregate({ _sum: { revenue: true }, where: { ...scope, tripDate: { gte: dayStart, lte: dayEnd } } }),
+    // collectedAmount, not revenue — see computeDailyCashAmounts's own comment.
+    prisma.trip.aggregate({ _sum: { collectedAmount: true }, where: { ...scope, tripDate: { gte: dayStart, lte: dayEnd } } }),
     prisma.otherIncome.aggregate({ _sum: { amount: true }, where: { ...scope, incomeDate: { gte: dayStart, lte: dayEnd } } }),
     prisma.staffExpense.aggregate({ _sum: { amount: true }, where: { ...scope, expenseDate: { gte: dayStart, lte: dayEnd } } }),
     // enteredBy, not userId — see computeDailyCashAmounts's own comment.
     prisma.lunch.aggregate({ _sum: { amount: true }, where: { ...scope, lunchDate: { gte: dayStart, lte: dayEnd } } }),
   ]);
 
-  const collected = (tripAgg._sum.revenue ?? BigInt(0)) + (otherIncomeAgg._sum.amount ?? BigInt(0));
+  const collected = (tripAgg._sum.collectedAmount ?? BigInt(0)) + (otherIncomeAgg._sum.amount ?? BigInt(0));
   const spent = (staffExpenseAgg._sum.amount ?? BigInt(0)) + (lunchAgg._sum.amount ?? BigInt(0));
   const net = collected - spent;
   return { collected, spent, net: net < BigInt(0) ? BigInt(0) : net };

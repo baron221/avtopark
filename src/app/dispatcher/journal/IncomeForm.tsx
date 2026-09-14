@@ -11,6 +11,10 @@ import type { Point, OtherIncomeCategory } from "@prisma/client";
 
 type VehicleOption = { id: string; plate: string; driverName: string };
 type Kind = "TRIP" | "ORDER" | "OTHER_INCOME";
+/** Only meaningful for kind === "ORDER" — a scheduled "Рейс" is always paid
+ * in full on the spot, so this toggle doesn't apply to it (see
+ * addTripAction's own handling). */
+type OrderPayment = "FULL" | "ADVANCE" | "CREDIT";
 
 const POINT_LABELS: Record<Point, string> = { FARGONA: "Фарғона", QUVA: "Қува" };
 
@@ -84,6 +88,7 @@ export function IncomeForm({
   const router = useRouter();
   const initialDate = defaultDateStr ?? todayStr;
   const [kind, setKind] = useState<Kind>("TRIP");
+  const [orderPayment, setOrderPayment] = useState<OrderPayment>("FULL");
   const [category, setCategory] = useState<OtherIncomeCategory>("BOSHQA");
   const [passengerCountText, setPassengerCountText] = useState("");
   const passengerCount = Number(passengerCountText) || 0;
@@ -108,6 +113,7 @@ export function IncomeForm({
       router.refresh();
       formRef.current?.reset();
       setResetKey((k) => k + 1);
+      setOrderPayment("FULL");
       setSaved(true);
       if (savedTimeout.current) clearTimeout(savedTimeout.current);
       savedTimeout.current = setTimeout(() => setSaved(false), 2500);
@@ -135,6 +141,8 @@ export function IncomeForm({
       <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-3">
         {/* Ignored by addOtherIncomeAction when kind is OTHER_INCOME — only addTripAction reads this. */}
         <input type="hidden" name="kind" value={kind} />
+        {/* Ignored unless kind is ORDER — see addTripAction's own handling. */}
+        <input type="hidden" name="paymentType" value={orderPayment} />
         {point && <input type="hidden" name="point" value={point} />}
         {initialDate !== todayStr && (
           <>
@@ -147,7 +155,10 @@ export function IncomeForm({
         <div className="grid grid-cols-3 gap-1.5">
           <button
             type="button"
-            onClick={() => setKind("TRIP")}
+            onClick={() => {
+              setKind("TRIP");
+              setOrderPayment("FULL");
+            }}
             className={`rounded-[10px] py-2.5 text-center font-extrabold text-[12px] ${
               kind === "TRIP" ? "bg-success text-white" : "bg-page border-2 border-border text-muted"
             }`}
@@ -165,7 +176,10 @@ export function IncomeForm({
           </button>
           <button
             type="button"
-            onClick={() => setKind("OTHER_INCOME")}
+            onClick={() => {
+              setKind("OTHER_INCOME");
+              setOrderPayment("FULL");
+            }}
             className={`rounded-[10px] py-2.5 text-center font-extrabold text-[12px] ${
               kind === "OTHER_INCOME" ? "bg-success text-white" : "bg-page border-2 border-border text-muted"
             }`}
@@ -262,13 +276,49 @@ export function IncomeForm({
                 />
               </>
             ) : (
-              <MoneyInput
-                name="revenue"
-                required
-                placeholder="Сумма"
-                key={`order-${resetKey}`}
-                className="bg-page border-2 border-success rounded-xl px-3.5 py-3 font-heading text-xl font-bold text-heading outline-none"
-              />
+              <>
+                <MoneyInput
+                  name="revenue"
+                  required
+                  placeholder="Сумма"
+                  key={`order-${resetKey}`}
+                  className="bg-page border-2 border-success rounded-xl px-3.5 py-3 font-heading text-xl font-bold text-heading outline-none"
+                />
+                <div className="grid grid-cols-3 gap-1.5">
+                  {(
+                    [
+                      ["FULL", "Тўлиқ"],
+                      ["ADVANCE", "Аванс"],
+                      ["CREDIT", "Насия"],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setOrderPayment(value)}
+                      className={`rounded-lg py-2 text-center font-extrabold text-[11px] ${
+                        orderPayment === value ? "bg-primary text-white" : "bg-page border-2 border-border text-muted"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {orderPayment === "ADVANCE" && (
+                  <MoneyInput
+                    name="collectedNow"
+                    required
+                    placeholder="Ҳозир олинган сумма"
+                    key={`collected-${resetKey}`}
+                    className="bg-page border-2 border-primary rounded-xl px-3.5 py-2.5 font-bold text-sm text-heading outline-none"
+                  />
+                )}
+                {orderPayment === "CREDIT" && (
+                  <p className="text-[11px] text-muted-2 font-semibold px-1">
+                    Ҳозир пул олинмайди — тўлиқ сумма қарз сифатида қайд этилади. Кимга берилгани изоҳда ёзилсин.
+                  </p>
+                )}
+              </>
             )}
 
             <input

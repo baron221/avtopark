@@ -9,6 +9,7 @@ const NAV = [
   { href: "/accountant/advances", label: "Аванслар", icon: "◈" },
   { href: "/accountant/fines", label: "Жарималар", icon: "▥" },
   { href: "/accountant/expenses", label: "Расходлар", icon: "◉" },
+  { href: "/accountant/debtors", label: "Қарздорлар", icon: "◐" },
 ];
 
 type NavItem = { href: string; label: string; icon: string };
