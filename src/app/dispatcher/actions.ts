@@ -427,9 +427,24 @@ export async function updateTripAction(
     );
   }
 
+  // This form has no avans/nasiya control of its own (that's IncomeForm's
+  // job, at creation time only) — a TRIP is always fully paid, so its
+  // collectedAmount tracks revenue exactly, same as at creation. An ORDER
+  // that still has money owed keeps whatever was actually already collected
+  // untouched (editing the agreed price shouldn't rewrite physical cash
+  // history) and only its remaining debt moves with the new revenue; an
+  // ORDER that was already fully paid stays fully paid at the new price,
+  // same as a TRIP.
+  const newCollectedAmount =
+    trip.collectedAmount >= trip.revenue
+      ? newRevenue
+      : trip.collectedAmount > newRevenue
+        ? newRevenue
+        : trip.collectedAmount;
+
   await prisma.trip.update({
     where: { id },
-    data: { driverId, kind, passengerCount, tripNumber, revenue: newRevenue, note },
+    data: { driverId, kind, passengerCount, tripNumber, revenue: newRevenue, collectedAmount: newCollectedAmount, note },
   });
 
   const backTo = String(formData.get("backTo") ?? "") === "point" ? "/dispatcher/point" : "/dispatcher/journal";
