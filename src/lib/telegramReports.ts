@@ -242,15 +242,17 @@ export async function buildDailySummaryReport(referenceDate: Date = new Date()):
     `Жами кирим: ${formatSom(tripIncome + cashDetail.income.other.total)} сум\n\n` +
     `<b>Расходлар</b>\n${expenseLines.join("\n")}\n\n` +
     `Жами расход: ${formatSom(totalExpense)} сум\n\n` +
-    // Both lines are the actual cash-on-hand at that day's close (ledger.
-    // balance is "as of right now", meaningful as "end of `day`" only when
-    // this report runs for today) — not a same-day income-minus-expense
-    // net, which used to make a day with a large owner payout read as a
-    // large loss even though the register was never actually short. Per
-    // explicit request: this reads as "how much is in the register", same
-    // question both days answer, not "what did today's business net".
+    // Both "Қолдиқ" lines are the actual cash-on-hand at that day's close
+    // (ledger.balance is "as of right now", meaningful as "end of `day`"
+    // only when this report runs for today) — not a same-day income-minus-
+    // expense net, which used to make a day with a large owner payout read
+    // as a big loss even though the register was never actually short.
+    // "Жами кассадаги пул" duplicates today's own figure on purpose, per
+    // explicit request — kept as its own always-present line rather than
+    // folded into the day line above.
     `${dayMonthLabel(day)} − Қолдиқ: ${signed(ledger.balance)} сум\n\n` +
-    `${ledger.yesterday.dateLabel} − Қолдиқ: ${signed(ledger.yesterday.balance)} сум.`;
+    `${ledger.yesterday.dateLabel} − Қолдиқ: ${signed(ledger.yesterday.balance)} сум\n\n` +
+    `Жами кассадаги пул: ${formatSom(ledger.balance)} сум.`;
 
   return { message };
 }
