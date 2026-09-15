@@ -206,12 +206,14 @@ export async function buildDailySummaryReport(referenceDate: Date = new Date()):
   const tripIncome = cashDetail.income.fargona.total + cashDetail.income.quva.total;
   const totalExpense = fargonaPoint + quvaPoint + lunchTotal + advanceTotal + ishxonaTotal + yoldaTotal + otherOutsideTotal;
   const totalIncome = tripIncome + cashDetail.income.other.total;
-  // Plain income-minus-expense for `day` itself, no owner-payout
-  // subtraction — a payout is now accounted for on the "yesterday" line
-  // instead (see getCashLedgerSummary's referenceDayPayoutTotal): once it
-  // fully clears what was carried in, that line reads 0 and this one is
-  // free to be exactly today's own business result, per explicit request.
-  const dailyBalance = totalIncome - totalExpense;
+  // Income-minus-expense for `day` itself, minus only the slice of any
+  // same-day owner payout that came out of `day`'s OWN cash — the rest of
+  // a payout (whatever it took to clear the balance carried in from the
+  // day before) is already accounted for by the "yesterday" line reading 0
+  // instead (see getCashLedgerSummary's own referenceDayPayoutFromOwnCash
+  // comment), so subtracting the payout's full amount here too would
+  // double-count it.
+  const dailyBalance = totalIncome - totalExpense - ledger.referenceDayPayoutFromOwnCash;
 
   // Broken down by category (Солиқ/Ойлик тўлов/ГПС/...) instead of one lump
   // sum, per explicit request — cashDetail.income.other.rows already
@@ -249,13 +251,15 @@ export async function buildDailySummaryReport(referenceDate: Date = new Date()):
     `Жами кирим: ${formatSom(totalIncome)} сум\n\n` +
     `<b>Расходлар</b>\n${expenseLines.join("\n")}\n\n` +
     `Жами расход: ${formatSom(totalExpense)} сум\n\n` +
-    // `day`'s own equation (kirim − расход), not touched by any owner
-    // payout — a payout is accounted for on the "yesterday" line instead
-    // (see getCashLedgerSummary's referenceDayPayoutTotal): once it fully
-    // clears what was carried in, that line reads 0, leaving this one free
-    // to be exactly today's own business result. "Жами кассадаги пул" is
-    // the real running total (kecha + бугун), kept as its own line.
-    `${dayMonthLabel(day)} − Қолдиқ: ${formatSom(totalIncome)} − ${formatSom(totalExpense)} = ${signed(dailyBalance)} сум\n\n` +
+    // `day`'s own equation (kirim − расход, plus a same-day owner payout
+    // term only when one actually came out of `day`'s own cash — see
+    // dailyBalance's own comment; most days have nothing to add here, since
+    // a payout that only cleared the carried-in balance is entirely
+    // reflected by the "yesterday" line reading 0 instead). "Жами кассадаги
+    // пул" is the real running total (kecha + бугун), kept as its own line.
+    `${dayMonthLabel(day)} − Қолдиқ: ${formatSom(totalIncome)} − ${formatSom(totalExpense)}` +
+    (ledger.referenceDayPayoutFromOwnCash > 0 ? ` − ${formatSom(ledger.referenceDayPayoutFromOwnCash)}` : "") +
+    ` = ${signed(dailyBalance)} сум\n\n` +
     `${ledger.yesterday.dateLabel} − Қолдиқ: ${signed(ledger.yesterday.balance)} сум\n\n` +
     `Жами кассадаги пул: ${formatSom(ledger.balance)} сум.`;
 

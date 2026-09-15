@@ -172,6 +172,15 @@ export type CashLedgerSummary = {
    * DAY-scoped regardless of the page's selected period, since this is
    * specifically "yesterday", not "the previous period". */
   yesterday: { dateLabel: string; balance: number };
+  /** The slice of referenceDate's own owner payout(s) that came out of
+   * referenceDate's OWN cash rather than the balance carried in from the
+   * day before (already reflected by `yesterday` reading 0 when that
+   * carryover was the one fully cleared) — see getCashLedgerSummary's own
+   * comment. A same-day net figure (e.g. telegramReports.ts's
+   * dailyBalance) needs to subtract this on top of `yesterday` zeroing out,
+   * or a payout bigger than the carryover — or made on a day with none at
+   * all — would silently vanish from both figures. */
+  referenceDayPayoutFromOwnCash: number;
 };
 
 export type OwnerPayoutState = { error: string };
@@ -975,6 +984,17 @@ export async function getCashLedgerSummary(period: Period, referenceDate: Date):
     .reduce((s, r) => s + r.amount, 0);
   const yesterdayBalanceForDisplay =
     cashBalanceAsOfYesterday > 0 && referenceDayPayoutTotal >= cashBalanceAsOfYesterday ? 0 : cashBalanceAsOfYesterday;
+  // How much of referenceDay's own payout(s) came out of referenceDay's OWN
+  // cash rather than the carried-in balance above — whatever the payout
+  // didn't "spend" clearing that carryover (cashBalanceAsOfYesterday −
+  // yesterdayBalanceForDisplay is 0 when nothing was cleared, or the whole
+  // carryover when it was). This is what a same-day-net figure (see
+  // telegramReports.ts's own dailyBalance) still needs to subtract even
+  // though the carryover itself is handled via the yesterday line above —
+  // otherwise a payout larger than what was carried in, or one made on a
+  // day with no carryover at all, would silently vanish from both figures.
+  const referenceDayPayoutFromOwnCash =
+    referenceDayPayoutTotal - (cashBalanceAsOfYesterday - yesterdayBalanceForDisplay);
 
   return {
     pointPending,
@@ -1005,6 +1025,7 @@ export async function getCashLedgerSummary(period: Period, referenceDate: Date):
       dateLabel: yesterdayDetail.rangeLabel,
       balance: yesterdayBalanceForDisplay,
     },
+    referenceDayPayoutFromOwnCash,
   };
 }
 
