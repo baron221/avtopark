@@ -203,19 +203,8 @@ export async function buildDailySummaryReport(referenceDate: Date = new Date()):
   // twice — once as the total, once as that row's own breakdown line).
   const otherOutsideLines = otherOutsideRows.map((r) => `Бошқа - ${r.note || r.subtitle}: ${formatSom(r.amount)}`);
 
-  // cashDetail never carries OwnerPayout rows (see computeCashDetail) — an
-  // owner payout made on `day` would otherwise be invisible in this figure,
-  // same bug getCashLedgerSummary's own `yesterday` field had before it
-  // switched to balanceLedger's balanceAfter. balanceLedger already covers
-  // this exact day (fetched since the opening balance, which predates any
-  // day this report runs for), so filter it down instead of another query.
-  const dayPayoutTotal = ledger.balanceLedger
-    .filter((r) => r.category === "Эгасига тўланган" && utcDayStart(r.time).getTime() === day.getTime())
-    .reduce((s, r) => s + r.amount, 0);
-
   const tripIncome = cashDetail.income.fargona.total + cashDetail.income.quva.total;
   const totalExpense = fargonaPoint + quvaPoint + lunchTotal + advanceTotal + ishxonaTotal + yoldaTotal + otherOutsideTotal;
-  const dailyBalance = tripIncome + cashDetail.income.other.total - totalExpense - dayPayoutTotal;
 
   // Broken down by category (Солиқ/Ойлик тўлов/ГПС/...) instead of one lump
   // sum, per explicit request — cashDetail.income.other.rows already
@@ -253,9 +242,15 @@ export async function buildDailySummaryReport(referenceDate: Date = new Date()):
     `Жами кирим: ${formatSom(tripIncome + cashDetail.income.other.total)} сум\n\n` +
     `<b>Расходлар</b>\n${expenseLines.join("\n")}\n\n` +
     `Жами расход: ${formatSom(totalExpense)} сум\n\n` +
-    `${dayMonthLabel(day)} − Қолдиқ: ${signed(dailyBalance)} сум\n\n` +
-    `${ledger.yesterday.dateLabel} − Қолдиқ: ${signed(ledger.yesterday.balance)} сум\n\n` +
-    `Жами кассадаги пул: ${formatSom(ledger.balance)} сум.`;
+    // Both lines are the actual cash-on-hand at that day's close (ledger.
+    // balance is "as of right now", meaningful as "end of `day`" only when
+    // this report runs for today) — not a same-day income-minus-expense
+    // net, which used to make a day with a large owner payout read as a
+    // large loss even though the register was never actually short. Per
+    // explicit request: this reads as "how much is in the register", same
+    // question both days answer, not "what did today's business net".
+    `${dayMonthLabel(day)} − Қолдиқ: ${signed(ledger.balance)} сум\n\n` +
+    `${ledger.yesterday.dateLabel} − Қолдиқ: ${signed(ledger.yesterday.balance)} сум.`;
 
   return { message };
 }
