@@ -167,8 +167,10 @@ export type CashLedgerSummary = {
    * before referenceDate — not that day's own income-minus-expense net,
    * since a net figure would ignore whatever the accountant already paid
    * out to the owner that same day (see getCashLedgerSummary's own
-   * comment). Always DAY-scoped regardless of the page's selected period,
-   * since this is specifically "yesterday", not "the previous period". */
+   * comment) — except reads as 0 once referenceDate's own payout(s) fully
+   * settle it (see referenceDayPayoutTotal in getCashLedgerSummary). Always
+   * DAY-scoped regardless of the page's selected period, since this is
+   * specifically "yesterday", not "the previous period". */
   yesterday: { dateLabel: string; balance: number };
 };
 
@@ -960,6 +962,20 @@ export async function getCashLedgerSummary(period: Period, referenceDate: Date):
       ? openingBalance.amount
       : 0;
 
+  // Per explicit request: once referenceDay's own owner payout(s) fully
+  // clear what was carried in from the day before (the accountant handing
+  // the whole thing over the same day it's reported), this reads as 0 —
+  // "nothing left over from yesterday" — rather than the real historical
+  // figure, which would otherwise still show as if that money were still
+  // sitting there. A payout smaller than the carried-in balance leaves the
+  // real figure showing, unreduced — this is a full-settlement flag, not a
+  // running subtraction.
+  const referenceDayPayoutTotal = balanceLedger
+    .filter((r) => r.category === "Эгасига тўланган" && r.time >= referenceDay && r.time < new Date(referenceDay.getTime() + 86_400_000))
+    .reduce((s, r) => s + r.amount, 0);
+  const yesterdayBalanceForDisplay =
+    cashBalanceAsOfYesterday > 0 && referenceDayPayoutTotal >= cashBalanceAsOfYesterday ? 0 : cashBalanceAsOfYesterday;
+
   return {
     pointPending,
     balance,
@@ -987,7 +1003,7 @@ export async function getCashLedgerSummary(period: Period, referenceDate: Date):
     handoverSubmittedByPoint,
     yesterday: {
       dateLabel: yesterdayDetail.rangeLabel,
-      balance: cashBalanceAsOfYesterday,
+      balance: yesterdayBalanceForDisplay,
     },
   };
 }
