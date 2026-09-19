@@ -20,7 +20,7 @@ export default async function OwnerBalancePage() {
   return (
     <div className="max-w-[1000px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
       <div>
-        <div className="font-heading font-bold text-xl text-heading">Эгасининг қолдиғи</div>
+        <div className="font-heading font-bold text-xl text-heading">Жак ҳаққи</div>
         <div className="text-[13px] text-muted-2 font-semibold">
           Эгасига топширилган пул + қарздан келган пул − ёқилғи, мой ва қуйида ёзилган бошқа сарфлар
         </div>
@@ -29,7 +29,7 @@ export default async function OwnerBalancePage() {
       <OwnerBalanceCards summary={summary} />
 
       <Card className="p-5 flex flex-col gap-3">
-        <div className="font-heading font-bold text-base text-heading">Эгасининг ҳисобидан сарф қўшиш</div>
+        <div className="font-heading font-bold text-base text-heading">Жак ҳаққидан сарф қўшиш</div>
         <div className="text-xs text-muted-2 font-semibold">
           Ёқилғи заправка тўловлари ва мой алмаштириш механик киритганда ўзи ҳисобга тушади — уларни бу ерга
           ёзманг. Бу ерга фақат бошқа сарфларни ёзинг.
