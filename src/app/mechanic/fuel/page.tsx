@@ -73,7 +73,12 @@ export default async function MechanicFuelPage() {
           мексаникка тўғридан-тўғри тўланадиган харажатлар (буxгалтернинг
           ўз кассасига тегмайди — see ownerPayout.ts's getMechanicCostSummary
           own comment). */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <div
+        className={`grid grid-cols-1 gap-4 ${mechanicCostSummary.debtSettled > 0 ? "sm:grid-cols-5" : "sm:grid-cols-4"}`}
+      >
+        {mechanicCostSummary.debtSettled > 0 && (
+          <KpiCard label="Насиядан келган (эгага)" value={formatMillions(mechanicCostSummary.debtSettled)} />
+        )}
         <KpiCard label="Ёқилғи учун сарфланган" value={formatMillions(mechanicCostSummary.fuelSpent)} />
         <KpiCard label="Мой учун сарфланган" value={formatMillions(mechanicCostSummary.oilSpent)} />
         <KpiCard label="Жами сарфланган" value={formatMillions(mechanicCostSummary.totalSpent)} />

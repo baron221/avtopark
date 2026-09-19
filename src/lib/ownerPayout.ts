@@ -283,7 +283,6 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
     confirmedHandovers,
     dailyCashAmounts,
     buxgalterIncomeAgg,
-    debtSettlementAgg,
     payoutAgg,
     expenseAgg,
     staffExpenseAgg,
@@ -329,17 +328,6 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
         _sum: { amount: true },
         where: { point: "BUXGALTERIYA", incomeDate: { gte: since } },
       }),
-      // An ORDER's remaining (revenue − collectedAmount) an accountant later
-      // marks collected (see settleTripDebtAction) — cash that, like
-      // buxgalterIncome above, reaches the accountant directly rather than
-      // through a dispatcher's handover, so it needs its own line here too.
-      // collectedAmount itself never changes at settlement (see Trip's own
-      // schema comment), so revenue−collectedAmount still yields the correct
-      // owed amount even after debtSettledAt is set.
-      prisma.trip.aggregate({
-        _sum: { revenue: true, collectedAmount: true },
-        where: { debtSettledAt: { gte: since } },
-      }),
       prisma.ownerPayout.aggregate({ _sum: { amount: true }, where: { payoutDate: { gte: sincePayoutCutoff } } }),
       // FUEL/post-cutoff REPAIR excluded — see NOT_MECHANIC_PAID_EXPENSE's
       // own comment (paid by the owner directly, never out of this cash).
@@ -384,8 +372,6 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
     0
   );
   const buxgalterIncome = Number(buxgalterIncomeAgg._sum.amount ?? BigInt(0));
-  const debtSettled =
-    Number(debtSettlementAgg._sum.revenue ?? BigInt(0)) - Number(debtSettlementAgg._sum.collectedAmount ?? BigInt(0));
   const paidToOwner = Number(payoutAgg._sum.amount ?? BigInt(0));
   const expenses = Number(expenseAgg._sum.amount ?? BigInt(0));
   const staffExpenses = Number(staffExpenseAgg._sum.amount ?? BigInt(0));
@@ -396,8 +382,7 @@ async function computeCashBalance(opening?: { amount: number; setDate: Date } | 
   return (
     openingBalance.amount +
     confirmed +
-    buxgalterIncome +
-    debtSettled -
+    buxgalterIncome -
     paidToOwner -
     expenses -
     staffExpenses -
@@ -429,7 +414,7 @@ const BALANCE_POINT_LABELS: Record<string, string> = {
  * sum to (balance − openingBalance.amount).
  */
 async function computeBalanceLedger(since: Date, openingAmount: number): Promise<BalanceLedgerRow[]> {
-  const [confirmed, dailyCashAmounts, buxgalterIncomes, debtSettlements, payouts, expenses, staffExpenses, advances, salaries, stationPayments] =
+  const [confirmed, dailyCashAmounts, buxgalterIncomes, payouts, expenses, staffExpenses, advances, salaries, stationPayments] =
     await Promise.all([
       prisma.cashHandover.findMany({
         where: { accountantConfirmedAt: { gte: since } },
@@ -442,11 +427,6 @@ async function computeBalanceLedger(since: Date, openingAmount: number): Promise
       prisma.otherIncome.findMany({
         where: { point: "BUXGALTERIYA", incomeDate: { gte: since } },
         include: { enteredByUser: true },
-      }),
-      // Same reasoning as computeCashBalance's own debtSettlementAgg query.
-      prisma.trip.findMany({
-        where: { debtSettledAt: { gte: since } },
-        include: { vehicle: true, debtSettledByUser: true },
       }),
       // Same widened same-day cutoff as computeCashBalance — see utcDayStart.
       prisma.ownerPayout.findMany({
@@ -518,14 +498,6 @@ async function computeBalanceLedger(since: Date, openingAmount: number): Promise
         ? `${i.plateNumber} · ${i.enteredByUser.fullName}${i.note ? ` · ${i.note}` : ""}`
         : `${i.enteredByUser.fullName}${i.note ? ` · ${i.note}` : ""}`,
       amount: Number(i.amount),
-    })),
-    ...debtSettlements.map((t) => ({
-      id: t.id,
-      time: t.debtSettledAt as Date,
-      sign: "IN" as const,
-      category: "Насия ёпилди",
-      subtitle: `${t.vehicle.plate}${t.note ? ` · ${t.note}` : ""} · ${t.debtSettledByUser?.fullName ?? "—"}`,
-      amount: Number(t.revenue) - Number(t.collectedAmount),
     })),
     ...payouts.map((p) => ({
       id: p.id,
@@ -640,7 +612,6 @@ async function computeCashDetail(period: Period, referenceDate: Date): Promise<C
     drivers,
     vehicles,
     otherIncomes,
-    debtSettlements,
     staffExpenses,
     lunches,
     expenses,
@@ -668,14 +639,6 @@ async function computeCashDetail(period: Period, referenceDate: Date): Promise<C
       where: { incomeDate: { gte: from, lte: to } },
       include: { enteredByUser: true },
       orderBy: { createdAt: "desc" },
-    }),
-    // Same reasoning as computeCashBalance's own debtSettlementAgg query —
-    // shown as a synthetic "Бошқа кирим" row (below) so the existing
-    // PDF/Excel/Telegram exports, which already iterate income.other.rows,
-    // pick it up with no further changes.
-    prisma.trip.findMany({
-      where: { debtSettledAt: { gte: from, lte: to } },
-      include: { vehicle: true, debtSettledByUser: true },
     }),
     prisma.staffExpense.findMany({
       where: { expenseDate: { gte: from, lte: to }, category: { not: "OBED" } },
@@ -728,8 +691,10 @@ async function computeCashDetail(period: Period, referenceDate: Date): Promise<C
       // collectedAmount, not revenue — this report is about cash that
       // actually moved, same as the balance ledger (see Trip.collectedAmount's
       // own schema comment). An ORDER still owing money says so right in its
-      // note, so the gap against revenue is never silently invisible here;
-      // once settled it shows up as its own "Насия ёпилди" row instead.
+      // note, so the gap against revenue is never silently invisible here.
+      // Once settled it doesn't show up here at all: that money goes
+      // straight to the owner (see getMechanicCostSummary's debtSettled),
+      // never through the accountant's cash.
       const owed = Number(t.revenue) - Number(t.collectedAmount);
       return {
         id: t.id,
@@ -746,28 +711,16 @@ async function computeCashDetail(period: Period, referenceDate: Date): Promise<C
   const fargonaTripRows = tripRows.filter((t) => t.point === "FARGONA");
   const quvaTripRows = tripRows.filter((t) => t.point === "QUVA");
 
-  const otherIncomeRows: OtherIncomeDetailRow[] = [
-    ...otherIncomes.map((i) => ({
-      id: i.id,
-      time: i.createdAt,
-      point: i.point,
-      category: OTHER_INCOME_CATEGORY_LABELS[i.category] ?? i.category,
-      amount: Number(i.amount),
-      plateNumber: i.plateNumber,
-      note: i.note,
-      enteredByName: i.enteredByUser.fullName,
-    })),
-    ...debtSettlements.map((t) => ({
-      id: t.id,
-      time: t.debtSettledAt as Date,
-      point: "BUXGALTERIYA" as const,
-      category: "Насия ёпилди",
-      amount: Number(t.revenue) - Number(t.collectedAmount),
-      plateNumber: t.vehicle.plate,
-      note: t.note,
-      enteredByName: t.debtSettledByUser?.fullName ?? "—",
-    })),
-  ];
+  const otherIncomeRows: OtherIncomeDetailRow[] = otherIncomes.map((i) => ({
+    id: i.id,
+    time: i.createdAt,
+    point: i.point,
+    category: OTHER_INCOME_CATEGORY_LABELS[i.category] ?? i.category,
+    amount: Number(i.amount),
+    plateNumber: i.plateNumber,
+    note: i.note,
+    enteredByName: i.enteredByUser.fullName,
+  }));
 
   const fargonaExpenseRows: PointExpenseDetailRow[] = [
     ...staffExpenses
@@ -1096,6 +1049,12 @@ export type MechanicCostSummary = {
    * running total: what the owner has received, minus what's been spent
    * from that same pool on fuel/oil since. */
   paidToOwner: number;
+  /** All-time sum of ORDER debts (revenue − collectedAmount) the accountant
+   * marked collected (see settleTripDebtAction) — cash that goes straight to
+   * the owner, never through the accountant's own balance, so it counts on
+   * this side instead. Already included in `balance`; shown separately so
+   * the owner can see where it came from. */
+  debtSettled: number;
   /** All-time StationPayment.paidAmount — real cash already handed over to
    * a fuel station, regardless of whether that bill is fully settled yet
    * (a partial payment is still real money already spent). */
@@ -1104,7 +1063,7 @@ export type MechanicCostSummary = {
    * other vehicle repairs. */
   oilSpent: number;
   totalSpent: number;
-  /** paidToOwner − totalSpent — visible to owner/admin/mechanic (not the
+  /** paidToOwner + debtSettled − totalSpent — visible to owner/admin/mechanic (not the
    * accountant, who has no stake in this flow — see getMechanicCostSummary's
    * own comment). */
   balance: number;
@@ -1126,16 +1085,24 @@ export type MechanicCostSummary = {
  * this just reads the same two sources computeCashBalance excludes.
  */
 export async function getMechanicCostSummary(): Promise<MechanicCostSummary> {
-  const [payoutAgg, stationPaymentAgg, repairAgg] = await Promise.all([
+  const [payoutAgg, debtSettlementAgg, stationPaymentAgg, repairAgg] = await Promise.all([
     prisma.ownerPayout.aggregate({ _sum: { amount: true } }),
+    prisma.trip.aggregate({
+      _sum: { revenue: true, collectedAmount: true },
+      where: { debtSettledAt: { not: null } },
+    }),
     prisma.stationPayment.aggregate({ _sum: { paidAmount: true } }),
     prisma.expense.aggregate({ _sum: { amount: true }, where: { category: "REPAIR" } }),
   ]);
 
   const paidToOwner = Number(payoutAgg._sum.amount ?? BigInt(0));
+  // collectedAmount never changes at settlement (see Trip's own schema
+  // comment), so revenue − collectedAmount still yields the settled amount.
+  const debtSettled =
+    Number(debtSettlementAgg._sum.revenue ?? BigInt(0)) - Number(debtSettlementAgg._sum.collectedAmount ?? BigInt(0));
   const fuelSpent = Number(stationPaymentAgg._sum.paidAmount ?? BigInt(0));
   const oilSpent = Number(repairAgg._sum.amount ?? BigInt(0));
   const totalSpent = fuelSpent + oilSpent;
 
-  return { paidToOwner, fuelSpent, oilSpent, totalSpent, balance: paidToOwner - totalSpent };
+  return { paidToOwner, debtSettled, fuelSpent, oilSpent, totalSpent, balance: paidToOwner + debtSettled - totalSpent };
 }
