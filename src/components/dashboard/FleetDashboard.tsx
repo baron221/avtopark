@@ -6,6 +6,8 @@ import { DatePicker } from "@/components/ui/DatePicker";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { WeeklyBarChart } from "@/components/charts/WeeklyBarChart";
 import { OwnerPayoutForm } from "@/components/dashboard/OwnerPayoutForm";
+import { OwnerBalanceCards } from "@/components/dashboard/OwnerBalanceCards";
+import { OwnerBalanceHistory } from "@/components/dashboard/OwnerBalanceHistory";
 import { CashBreakdown } from "@/components/dashboard/CashBreakdown";
 import { CashOpeningBalanceForm } from "@/components/dashboard/CashOpeningBalanceForm";
 import { CashHistorySection } from "@/components/dashboard/CashHistorySection";
@@ -16,7 +18,13 @@ import { ConfirmReceiptRow } from "@/components/dashboard/ConfirmReceiptRow";
 import { SendDailyClosingButton } from "@/components/dashboard/SendDailyClosingButton";
 import { OutsideExpensesCard } from "@/components/dashboard/OutsideExpensesCard";
 import type { OwnerDashboardVM, Period } from "@/lib/dashboard";
-import type { CashLedgerSummary, OwnerPayoutState, MonthlyPayoutPoint, MechanicCostSummary } from "@/lib/ownerPayout";
+import type {
+  CashLedgerSummary,
+  OwnerPayoutState,
+  MonthlyPayoutPoint,
+  MechanicCostSummary,
+  OwnerBalanceExpenseRow,
+} from "@/lib/ownerPayout";
 import { formatMillions, formatSom, formatTime } from "@/lib/format";
 import { logoutAction } from "@/app/actions";
 import type { Point } from "@prisma/client";
@@ -51,6 +59,7 @@ export function FleetDashboard({
   ownerPayoutSummary,
   deleteOtherIncomeAction,
   mechanicCostSummary,
+  ownerBalanceExpenses,
   sendDailyClosingAction,
   pointContributions,
 }: {
@@ -88,6 +97,8 @@ export function FleetDashboard({
    * own comment for why this tracks a separate direction of cash from
    * cashLedger's own accountant-facing balance. */
   mechanicCostSummary?: MechanicCostSummary;
+  /** Read-only list of what was spent out of the owner's balance by hand — passed alongside mechanicCostSummary. */
+  ownerBalanceExpenses?: OwnerBalanceExpenseRow[];
   /** Accountant-only — sends today's report to the owner's Telegram on
    * demand (see sendDailyClosingReportAction). Passed only by
    * /accountant/report, same as cashLedger's own action props; no cron or
@@ -563,19 +574,8 @@ export function FleetDashboard({
             money the mechanic draws directly from the owner for fuel/oil,
             a different direction of cash from cashLedger's own accountant
             balance above (see getMechanicCostSummary's own comment). */}
-        {mechanicCostSummary && (
-          <div
-            className={`grid grid-cols-1 gap-4 ${mechanicCostSummary.debtSettled > 0 ? "sm:grid-cols-5" : "sm:grid-cols-4"}`}
-          >
-            {mechanicCostSummary.debtSettled > 0 && (
-              <KpiCard label="Насиядан келган (эгага)" value={formatMillions(mechanicCostSummary.debtSettled)} />
-            )}
-            <KpiCard label="Ёқилғи учун сарфланган" value={formatMillions(mechanicCostSummary.fuelSpent)} />
-            <KpiCard label="Мой учун сарфланган" value={formatMillions(mechanicCostSummary.oilSpent)} />
-            <KpiCard label="Жами сарфланган" value={formatMillions(mechanicCostSummary.totalSpent)} />
-            <KpiCard variant="primary" label="Эгасининг қолдиғи" value={formatMillions(mechanicCostSummary.balance)} />
-          </div>
-        )}
+        {mechanicCostSummary && <OwnerBalanceCards summary={mechanicCostSummary} />}
+        {ownerBalanceExpenses && ownerBalanceExpenses.length > 0 && <OwnerBalanceHistory rows={ownerBalanceExpenses} />}
 
         {/* Point vehicles — per-point income breakdown by vehicle. Expense/
             profit aren't shown here: a vehicle's repair/fuel cost isn't tied

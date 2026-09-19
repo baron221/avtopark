@@ -1062,6 +1062,10 @@ export type MechanicCostSummary = {
   /** All-time REPAIR-category Expense — mechanic-entered oil changes and
    * other vehicle repairs. */
   oilSpent: number;
+  /** All-time OwnerBalanceExpense — anything else spent out of the owner's
+   * balance that the accountant recorded by hand (see addOwnerBalanceExpense
+   * Action). */
+  otherSpent: number;
   totalSpent: number;
   /** paidToOwner + debtSettled − totalSpent — visible to owner/admin/mechanic (not the
    * accountant, who has no stake in this flow — see getMechanicCostSummary's
@@ -1085,7 +1089,7 @@ export type MechanicCostSummary = {
  * this just reads the same two sources computeCashBalance excludes.
  */
 export async function getMechanicCostSummary(): Promise<MechanicCostSummary> {
-  const [payoutAgg, debtSettlementAgg, stationPaymentAgg, repairAgg] = await Promise.all([
+  const [payoutAgg, debtSettlementAgg, stationPaymentAgg, repairAgg, otherAgg] = await Promise.all([
     prisma.ownerPayout.aggregate({ _sum: { amount: true } }),
     prisma.trip.aggregate({
       _sum: { revenue: true, collectedAmount: true },
@@ -1093,6 +1097,7 @@ export async function getMechanicCostSummary(): Promise<MechanicCostSummary> {
     }),
     prisma.stationPayment.aggregate({ _sum: { paidAmount: true } }),
     prisma.expense.aggregate({ _sum: { amount: true }, where: { category: "REPAIR" } }),
+    prisma.ownerBalanceExpense.aggregate({ _sum: { amount: true } }),
   ]);
 
   const paidToOwner = Number(payoutAgg._sum.amount ?? BigInt(0));
@@ -1102,7 +1107,40 @@ export async function getMechanicCostSummary(): Promise<MechanicCostSummary> {
     Number(debtSettlementAgg._sum.revenue ?? BigInt(0)) - Number(debtSettlementAgg._sum.collectedAmount ?? BigInt(0));
   const fuelSpent = Number(stationPaymentAgg._sum.paidAmount ?? BigInt(0));
   const oilSpent = Number(repairAgg._sum.amount ?? BigInt(0));
-  const totalSpent = fuelSpent + oilSpent;
+  const otherSpent = Number(otherAgg._sum.amount ?? BigInt(0));
+  const totalSpent = fuelSpent + oilSpent + otherSpent;
 
-  return { paidToOwner, debtSettled, fuelSpent, oilSpent, totalSpent, balance: paidToOwner + debtSettled - totalSpent };
+  return {
+    paidToOwner,
+    debtSettled,
+    fuelSpent,
+    oilSpent,
+    otherSpent,
+    totalSpent,
+    balance: paidToOwner + debtSettled - totalSpent,
+  };
+}
+
+export type OwnerBalanceExpenseRow = {
+  id: string;
+  expenseDate: Date;
+  amount: number;
+  note: string;
+  enteredByName: string;
+};
+
+/** Most recent first — see OwnerBalanceExpense's schema comment. */
+export async function getOwnerBalanceExpenses(limit = 30): Promise<OwnerBalanceExpenseRow[]> {
+  const rows = await prisma.ownerBalanceExpense.findMany({
+    orderBy: [{ expenseDate: "desc" }, { createdAt: "desc" }],
+    take: limit,
+    include: { enteredByUser: true },
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    expenseDate: r.expenseDate,
+    amount: Number(r.amount),
+    note: r.note,
+    enteredByName: r.enteredByUser.fullName,
+  }));
 }

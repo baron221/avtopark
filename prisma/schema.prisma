@@ -146,33 +146,34 @@ model User {
   lockedUntil         DateTime? @map("locked_until")
   createdAt           DateTime  @default(now()) @map("created_at")
 
-  driver                     Driver?
-  enteredTrips               Trip[]               @relation("TripEnteredBy")
-  settledTripDebts           Trip[]               @relation("TripDebtSettledBy")
-  enteredOtherIncomes        OtherIncome[]        @relation("OtherIncomeEnteredBy")
-  externalVehiclesCreated    ExternalVehicle[]    @relation("ExternalVehicleCreatedBy")
-  enteredExpenses            Expense[]            @relation("ExpenseEnteredBy")
-  finesReceived              Fine[]               @relation("FineUser")
-  finesEntered               Fine[]               @relation("FineEnteredBy")
-  lunches                    Lunch[]              @relation("LunchUser")
-  lunchesEntered             Lunch[]              @relation("LunchEnteredBy")
-  fuelLogsEntered            FuelLog[]            @relation("FuelLogEnteredBy")
-  stationPaymentsEntered     StationPayment[]     @relation("StationPaymentEnteredBy")
-  staffExpenses              StaffExpense[]       @relation("StaffExpenseUser")
-  staffExpensesEntered       StaffExpense[]       @relation("StaffExpenseEnteredBy")
-  salaries                   Salary[]             @relation("SalaryUser")
-  salariesApproved           Salary[]             @relation("SalaryApprovedBy")
-  salariesPaid               Salary[]             @relation("SalaryPaidBy")
-  planPaymentsReceived       PlanPayment[]        @relation("PlanPaymentReceivedBy")
-  advances                   Advance[]            @relation("AdvanceUser")
-  advancesEntered            Advance[]            @relation("AdvanceEnteredBy")
-  oilChangesEntered          OilChange[]          @relation("OilChangeEnteredBy")
-  deletionsPerformed         DeletionLog[]        @relation("DeletionLogDeletedBy")
-  editsPerformed             EditLog[]            @relation("EditLogEditedBy")
-  cashHandoversAsDispatcher  CashHandover[]       @relation("CashHandoverDispatcher")
-  cashHandoversAsAccountant  CashHandover[]       @relation("CashHandoverAccountant")
-  ownerPayoutsEntered        OwnerPayout[]        @relation("OwnerPayoutEnteredBy")
-  cashOpeningBalancesEntered CashOpeningBalance[] @relation("CashOpeningBalanceEnteredBy")
+  driver                      Driver?
+  enteredTrips                Trip[]                @relation("TripEnteredBy")
+  settledTripDebts            Trip[]                @relation("TripDebtSettledBy")
+  enteredOtherIncomes         OtherIncome[]         @relation("OtherIncomeEnteredBy")
+  externalVehiclesCreated     ExternalVehicle[]     @relation("ExternalVehicleCreatedBy")
+  enteredExpenses             Expense[]             @relation("ExpenseEnteredBy")
+  finesReceived               Fine[]                @relation("FineUser")
+  finesEntered                Fine[]                @relation("FineEnteredBy")
+  lunches                     Lunch[]               @relation("LunchUser")
+  lunchesEntered              Lunch[]               @relation("LunchEnteredBy")
+  fuelLogsEntered             FuelLog[]             @relation("FuelLogEnteredBy")
+  stationPaymentsEntered      StationPayment[]      @relation("StationPaymentEnteredBy")
+  staffExpenses               StaffExpense[]        @relation("StaffExpenseUser")
+  staffExpensesEntered        StaffExpense[]        @relation("StaffExpenseEnteredBy")
+  salaries                    Salary[]              @relation("SalaryUser")
+  salariesApproved            Salary[]              @relation("SalaryApprovedBy")
+  salariesPaid                Salary[]              @relation("SalaryPaidBy")
+  planPaymentsReceived        PlanPayment[]         @relation("PlanPaymentReceivedBy")
+  advances                    Advance[]             @relation("AdvanceUser")
+  advancesEntered             Advance[]             @relation("AdvanceEnteredBy")
+  oilChangesEntered           OilChange[]           @relation("OilChangeEnteredBy")
+  deletionsPerformed          DeletionLog[]         @relation("DeletionLogDeletedBy")
+  editsPerformed              EditLog[]             @relation("EditLogEditedBy")
+  cashHandoversAsDispatcher   CashHandover[]        @relation("CashHandoverDispatcher")
+  cashHandoversAsAccountant   CashHandover[]        @relation("CashHandoverAccountant")
+  ownerPayoutsEntered         OwnerPayout[]         @relation("OwnerPayoutEnteredBy")
+  ownerBalanceExpensesEntered OwnerBalanceExpense[] @relation("OwnerBalanceExpenseEnteredBy")
+  cashOpeningBalancesEntered  CashOpeningBalance[]  @relation("CashOpeningBalanceEnteredBy")
 
   @@index([role])
   @@index([point])
@@ -402,20 +403,20 @@ model Route {
 }
 
 model Trip {
-  id             String   @id @default(uuid())
-  vehicleId      String   @map("vehicle_id")
-  driverId       String   @map("driver_id")
-  routeId        String   @map("route_id")
+  id              String    @id @default(uuid())
+  vehicleId       String    @map("vehicle_id")
+  driverId        String    @map("driver_id")
+  routeId         String    @map("route_id")
   // Which point's dispatcher collected/entered this trip's revenue. Kept
   // separate from Vehicle.point because the same shared fleet shuttles both
   // Farg'ona and Quva — a vehicle has no single "home" point, so the point
   // that matters for cash-collection reporting has to live on the Trip itself.
-  point          Point
-  tripDate       DateTime @map("trip_date")
-  departureTime  DateTime @map("departure_time")
-  passengerCount Int      @map("passenger_count")
-  tripNumber     Int?     @map("trip_number")
-  revenue        BigInt
+  point           Point
+  tripDate        DateTime  @map("trip_date")
+  departureTime   DateTime  @map("departure_time")
+  passengerCount  Int       @map("passenger_count")
+  tripNumber      Int?      @map("trip_number")
+  revenue         BigInt
   // How much of `revenue` was actually collected in hand when this Trip was
   // entered — equal to `revenue` for every TRIP-kind row and for a fully-paid
   // ORDER, lower than `revenue` for an ORDER taken as an advance/credit sale
@@ -424,24 +425,24 @@ model Trip {
   // `revenue` itself stays the full sale price everywhere else (owner
   // reports, driver pay, vehicle reports), since that's real business
   // volume regardless of when the cash physically arrives.
-  collectedAmount BigInt  @map("collected_amount")
+  collectedAmount BigInt    @map("collected_amount")
   // Set once an accountant marks an ORDER's remaining (revenue -
   // collectedAmount) as finally collected — see settleTripDebtAction. NULL
   // means either nothing is owed, or it's owed and still outstanding;
   // distinguishing those two only ever requires comparing collectedAmount
   // to revenue, so no separate "is this a debt" flag is needed.
-  debtSettledAt  DateTime? @map("debt_settled_at")
-  debtSettledBy  String?   @map("debt_settled_by")
-  kind           TripKind @default(TRIP)
-  note           String?
-  enteredBy      String   @map("entered_by")
-  createdAt      DateTime @default(now()) @map("created_at")
+  debtSettledAt   DateTime? @map("debt_settled_at")
+  debtSettledBy   String?   @map("debt_settled_by")
+  kind            TripKind  @default(TRIP)
+  note            String?
+  enteredBy       String    @map("entered_by")
+  createdAt       DateTime  @default(now()) @map("created_at")
 
-  vehicle         Vehicle @relation(fields: [vehicleId], references: [id])
-  driver          Driver  @relation(fields: [driverId], references: [id])
-  route           Route   @relation(fields: [routeId], references: [id])
-  enteredByUser   User    @relation("TripEnteredBy", fields: [enteredBy], references: [id])
-  debtSettledByUser User? @relation("TripDebtSettledBy", fields: [debtSettledBy], references: [id])
+  vehicle           Vehicle @relation(fields: [vehicleId], references: [id])
+  driver            Driver  @relation(fields: [driverId], references: [id])
+  route             Route   @relation(fields: [routeId], references: [id])
+  enteredByUser     User    @relation("TripEnteredBy", fields: [enteredBy], references: [id])
+  debtSettledByUser User?   @relation("TripDebtSettledBy", fields: [debtSettledBy], references: [id])
 
   @@index([vehicleId, tripDate])
   @@index([driverId])
@@ -835,6 +836,24 @@ model OwnerPayout {
 
   @@index([payoutDate])
   @@map("owner_payouts")
+}
+
+// Money spent out of the owner's own balance (see getMechanicCostSummary) —
+// anything the owner pays for that isn't already tracked by a fuel-station
+// payment or an oil change (those two are read straight from their own
+// tables). Entered by the accountant; visible to owner/admin/mechanic.
+model OwnerBalanceExpense {
+  id          String   @id @default(uuid())
+  amount      BigInt
+  expenseDate DateTime @map("expense_date")
+  note        String
+  enteredBy   String   @map("entered_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  enteredByUser User @relation("OwnerBalanceExpenseEnteredBy", fields: [enteredBy], references: [id])
+
+  @@index([expenseDate])
+  @@map("owner_balance_expenses")
 }
 
 // A reconciliation point: the accountant physically counts the cash on

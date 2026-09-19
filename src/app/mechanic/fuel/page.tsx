@@ -3,11 +3,12 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
-import { KpiCard } from "@/components/ui/KpiCard";
 import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
-import { formatSom, formatMillions } from "@/lib/format";
+import { formatSom } from "@/lib/format";
 import { hasModuleAccess } from "@/lib/access";
-import { getMechanicCostSummary } from "@/lib/ownerPayout";
+import { getMechanicCostSummary, getOwnerBalanceExpenses } from "@/lib/ownerPayout";
+import { OwnerBalanceCards } from "@/components/dashboard/OwnerBalanceCards";
+import { OwnerBalanceHistory } from "@/components/dashboard/OwnerBalanceHistory";
 import { DISPATCHABLE_STATUSES } from "@/lib/vehicleStatus";
 import { FuelLogForm } from "./FuelLogForm";
 import { AddStationForm } from "./AddStationForm";
@@ -30,7 +31,7 @@ export default async function MechanicFuelPage() {
   if (!session) redirect("/login");
   if (session.user.role !== "MECHANIC" && !(await hasModuleAccess(session.user.role, "FUEL"))) redirect("/coming-soon");
 
-  const [stations, payments, fuelLogs, vehicles, mechanicCostSummary] = await Promise.all([
+  const [stations, payments, fuelLogs, vehicles, mechanicCostSummary, ownerBalanceExpenses] = await Promise.all([
     prisma.fuelStation.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
     prisma.stationPayment.findMany({ include: { station: true }, orderBy: { periodEnd: "desc" }, take: 10 }),
     prisma.fuelLog.findMany({
@@ -44,6 +45,7 @@ export default async function MechanicFuelPage() {
       orderBy: { plate: "asc" },
     }),
     getMechanicCostSummary(),
+    getOwnerBalanceExpenses(),
   ]);
 
   const grandTotal = payments.reduce((s, p) => s + Number(p.amount), 0);
@@ -73,17 +75,8 @@ export default async function MechanicFuelPage() {
           мексаникка тўғридан-тўғри тўланадиган харажатлар (буxгалтернинг
           ўз кассасига тегмайди — see ownerPayout.ts's getMechanicCostSummary
           own comment). */}
-      <div
-        className={`grid grid-cols-1 gap-4 ${mechanicCostSummary.debtSettled > 0 ? "sm:grid-cols-5" : "sm:grid-cols-4"}`}
-      >
-        {mechanicCostSummary.debtSettled > 0 && (
-          <KpiCard label="Насиядан келган (эгага)" value={formatMillions(mechanicCostSummary.debtSettled)} />
-        )}
-        <KpiCard label="Ёқилғи учун сарфланган" value={formatMillions(mechanicCostSummary.fuelSpent)} />
-        <KpiCard label="Мой учун сарфланган" value={formatMillions(mechanicCostSummary.oilSpent)} />
-        <KpiCard label="Жами сарфланган" value={formatMillions(mechanicCostSummary.totalSpent)} />
-        <KpiCard variant="primary" label="Эгасининг қолдиғи" value={formatMillions(mechanicCostSummary.balance)} />
-      </div>
+      <OwnerBalanceCards summary={mechanicCostSummary} />
+      {ownerBalanceExpenses.length > 0 && <OwnerBalanceHistory rows={ownerBalanceExpenses} />}
 
       <Card className="overflow-hidden">
         {/* Desktop */}
