@@ -271,7 +271,9 @@ export function FleetDashboard({
         {vm.pointBreakdown.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {vm.pointBreakdown.map((p) => {
-              const totalIncome = p.tripIncome + p.orderIncome + p.otherIncome;
+              // What actually reaches the accountant: credit/unpaid ORDER money
+              // (p.uncollected) is income on paper but never handed over.
+              const totalIncome = p.tripIncome + p.orderIncome + p.otherIncome - p.uncollected;
               return (
                 <Card key={p.point} className="p-6 flex flex-col gap-3.5">
                   <div className="font-heading font-bold text-base text-heading">
@@ -326,6 +328,13 @@ export function FleetDashboard({
                       <p className="text-xs text-muted-2">Бу даврда харажат ёзилмаган</p>
                     )}
                   </div>
+
+                  {p.uncollected > 0 && (
+                    <div className="flex justify-between items-center text-[12px] font-bold text-muted-2">
+                      <span>Насия (топширилмайди)</span>
+                      <span>−{formatSom(p.uncollected)}</span>
+                    </div>
+                  )}
 
                   <div className="flex justify-between items-center text-[13px] font-extrabold pt-1 border-t border-row-divider">
                     <span className="text-heading">Бухгалтерга топшириладиган қолдиқ</span>

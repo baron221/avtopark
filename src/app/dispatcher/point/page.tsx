@@ -99,7 +99,7 @@ export default async function DispatcherPointPage({
     // from allVehicles/drivers instead, so this stays a single flat query.
     prisma.trip.findMany({
       where: { tripDate: { gte: from, lte: to }, point },
-      select: { id: true, createdAt: true, kind: true, tripNumber: true, revenue: true, driverId: true, vehicleId: true },
+      select: { id: true, createdAt: true, kind: true, tripNumber: true, revenue: true, collectedAmount: true, driverId: true, vehicleId: true },
       orderBy: { createdAt: "asc" },
     }),
     prisma.otherIncome.findMany({ where: { point, incomeDate: { gte: from, lte: to } }, orderBy: { createdAt: "asc" } }),
@@ -144,7 +144,8 @@ export default async function DispatcherPointPage({
   const driverById = new Map(drivers.map((d) => [d.id, d]));
 
   const otherIncomeTotal = otherIncomeToday.reduce((s, i) => s + Number(i.amount), 0);
-  const collectedToday = tripsToday.reduce((s, t) => s + Number(t.revenue), 0) + otherIncomeTotal;
+  // collectedAmount, not revenue: an ORDER taken on credit isn't cash this point collected.
+  const collectedToday = tripsToday.reduce((s, t) => s + Number(t.collectedAmount), 0) + otherIncomeTotal;
   const vehiclesWithMoney = new Set(tripsToday.map((t) => t.vehicleId));
   const myExpenseToday = Number(myExpenseAgg._sum.amount ?? BigInt(0));
   const pointLunchToday = Number(pointLunchAgg._sum.amount ?? BigInt(0));

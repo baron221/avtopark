@@ -125,7 +125,7 @@ export default async function DispatcherJournalPage({
   ];
 
   const kirim =
-    trips.reduce((s, t) => s + Number(t.revenue), 0) + otherIncomes.reduce((s, i) => s + Number(i.amount), 0);
+    trips.reduce((s, t) => s + Number(t.collectedAmount), 0) + otherIncomes.reduce((s, i) => s + Number(i.amount), 0);
   const chiqim = expenses.reduce((s, e) => s + Number(e.amount), 0) + lunches.reduce((s, l) => s + Number(l.amount), 0);
   const qoldiq = kirim - chiqim;
 

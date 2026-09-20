@@ -14,6 +14,8 @@ export type PointBreakdownRow = {
   tripIncome: number;
   orderCount: number;
   orderIncome: number;
+  /** Part of tripIncome+orderIncome NOT collected in cash (an ORDER taken on credit, or the unpaid rest of an advance) — never handed over to the accountant, so the "to hand over" figure subtracts it. */
+  uncollected: number;
   otherIncomeCount: number;
   otherIncome: number;
   expenseCount: number;
@@ -412,6 +414,7 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
         vehicleId: true,
         driverId: true,
         revenue: true,
+        collectedAmount: true,
         kind: true,
         point: true,
         note: true,
@@ -641,6 +644,7 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
       tripIncome: trips.reduce((s, t) => s + Number(t.revenue), 0),
       orderCount: orders.length,
       orderIncome: orders.reduce((s, t) => s + Number(t.revenue), 0),
+      uncollected: pointTrips.reduce((s, t) => s + Number(t.revenue - t.collectedAmount), 0),
       otherIncomeCount: pointOtherIncome.length,
       otherIncome: pointOtherIncome.reduce((s, i) => s + Number(i.amount), 0),
       expenseCount: pointExpenses.length + pointLunches.length,
