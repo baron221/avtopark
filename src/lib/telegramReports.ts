@@ -316,7 +316,7 @@ export async function sendDailyClosingReport(): Promise<void> {
 
 /** The owner's-balance ("Жак ҳаққи") counterpart of the daily report — same
  * layout (date header, кирим lines, "<b>Расходлар</b>" lines, totals, the
- * day's net, then the running balance), one "<label>: <amount>" line per
+ * closing balance), one "<label>: <amount>" line per
  * movement instead of category lumps. For the given day (default today);
  * see getOwnerBalanceDay for how the figures are grouped. */
 export async function buildOwnerBalanceReport(referenceDate: Date = new Date()): Promise<{ message: string }> {
@@ -335,7 +335,6 @@ export async function buildOwnerBalanceReport(referenceDate: Date = new Date()):
     `Жами кирим: ${formatSom(totalIncome)} сум\n\n` +
     (expense.length > 0 ? `<b>Расходлар</b>\n${expense.map(line).join("\n")}\n\n` : "") +
     `Жами расход: ${formatSom(totalExpense)} сум\n\n` +
-    `${dayMonthLabel(day)} − Қолдиқ: ${signed(totalIncome - totalExpense)} сум\n\n` +
     `Жами Жак ҳаққи: ${formatSom(closing)} сум.`;
 
   return { message };
