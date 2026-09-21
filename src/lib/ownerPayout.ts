@@ -1066,8 +1066,10 @@ export type MechanicCostSummary = {
    * balance that the accountant recorded by hand (see addOwnerBalanceExpense
    * Action). */
   otherSpent: number;
+  /** Reconciliation entries (OwnerBalanceExpense.isCorrection) — added to the balance, not counted as spending. */
+  corrections: number;
   totalSpent: number;
-  /** paidToOwner + debtSettled − totalSpent — visible to owner/admin/mechanic (not the
+  /** paidToOwner + debtSettled + corrections − totalSpent — visible to owner/admin/mechanic (not the
    * accountant, who has no stake in this flow — see getMechanicCostSummary's
    * own comment). */
   balance: number;
@@ -1097,7 +1099,7 @@ export async function getMechanicCostSummary(): Promise<MechanicCostSummary> {
     }),
     prisma.stationPayment.aggregate({ _sum: { paidAmount: true } }),
     prisma.expense.aggregate({ _sum: { amount: true }, where: { category: "REPAIR" } }),
-    prisma.ownerBalanceExpense.aggregate({ _sum: { amount: true } }),
+    prisma.ownerBalanceExpense.groupBy({ by: ["isCorrection"], _sum: { amount: true } }),
   ]);
 
   const paidToOwner = Number(payoutAgg._sum.amount ?? BigInt(0));
@@ -1107,7 +1109,8 @@ export async function getMechanicCostSummary(): Promise<MechanicCostSummary> {
     Number(debtSettlementAgg._sum.revenue ?? BigInt(0)) - Number(debtSettlementAgg._sum.collectedAmount ?? BigInt(0));
   const fuelSpent = Number(stationPaymentAgg._sum.paidAmount ?? BigInt(0));
   const oilSpent = Number(repairAgg._sum.amount ?? BigInt(0));
-  const otherSpent = Number(otherAgg._sum.amount ?? BigInt(0));
+  const otherSpent = Number(otherAgg.find((r) => !r.isCorrection)?._sum.amount ?? BigInt(0));
+  const corrections = Number(otherAgg.find((r) => r.isCorrection)?._sum.amount ?? BigInt(0));
   const totalSpent = fuelSpent + oilSpent + otherSpent;
 
   return {
@@ -1116,8 +1119,9 @@ export async function getMechanicCostSummary(): Promise<MechanicCostSummary> {
     fuelSpent,
     oilSpent,
     otherSpent,
+    corrections,
     totalSpent,
-    balance: paidToOwner + debtSettled - totalSpent,
+    balance: paidToOwner + debtSettled + corrections - totalSpent,
   };
 }
 
@@ -1126,6 +1130,7 @@ export type OwnerBalanceExpenseRow = {
   expenseDate: Date;
   amount: number;
   note: string;
+  isCorrection: boolean;
   enteredByName: string;
 };
 
@@ -1141,6 +1146,7 @@ export async function getOwnerBalanceExpenses(limit = 30): Promise<OwnerBalanceE
     expenseDate: r.expenseDate,
     amount: Number(r.amount),
     note: r.note,
+    isCorrection: r.isCorrection,
     enteredByName: r.enteredByUser.fullName,
   }));
 }

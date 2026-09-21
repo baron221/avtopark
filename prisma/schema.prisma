@@ -843,12 +843,15 @@ model OwnerPayout {
 // payment or an oil change (those two are read straight from their own
 // tables). Entered by the accountant; visible to owner/admin/mechanic.
 model OwnerBalanceExpense {
-  id          String   @id @default(uuid())
-  amount      BigInt
-  expenseDate DateTime @map("expense_date")
-  note        String
-  enteredBy   String   @map("entered_by")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id           String   @id @default(uuid())
+  amount       BigInt
+  expenseDate  DateTime @map("expense_date")
+  note         String
+  // true = a reconciliation entry that ADDS `amount` to the balance instead of
+  // subtracting it (e.g. bringing it in line with the accountant's own count).
+  isCorrection Boolean  @default(false) @map("is_correction")
+  enteredBy    String   @map("entered_by")
+  createdAt    DateTime @default(now()) @map("created_at")
 
   enteredByUser User @relation("OwnerBalanceExpenseEnteredBy", fields: [enteredBy], references: [id])
 

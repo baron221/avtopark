@@ -32,7 +32,10 @@ export function OwnerBalanceHistory({
             <div className="text-body font-semibold">{r.note}</div>
             <div className="text-xs text-muted-2 font-semibold">{r.enteredByName}</div>
           </div>
-          <div className="font-extrabold text-heading text-right">−{formatSom(r.amount)}</div>
+          <div className={`font-extrabold text-right ${r.isCorrection ? "text-success" : "text-heading"}`}>
+            {r.isCorrection ? "+" : "−"}
+            {formatSom(r.amount)}
+          </div>
           {deleteAction ? (
             <ConfirmDeleteButton
               action={deleteAction}
