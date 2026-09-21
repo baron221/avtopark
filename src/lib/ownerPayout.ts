@@ -1154,32 +1154,18 @@ export async function getOwnerBalanceExpenses(limit = 30): Promise<OwnerBalanceE
 export type OwnerBalanceDayLine = { label: string; amount: number };
 
 export type OwnerBalanceDay = {
-  /** Balance right before today's movements: closing − (income − expense). */
+  /** Balance right before that day's movements: closing − (income − expense). */
   opening: number;
-  /** The current balance (getMechanicCostSummary) — this report is always for today. */
+  /** Balance at the end of that day: the current balance minus whatever moved it afterwards. */
   closing: number;
   income: OwnerBalanceDayLine[];
   expense: OwnerBalanceDayLine[];
 };
 
-/**
- * What moved the owner's balance ("Жак ҳаққи") today, for the Telegram
- * report. Manual records (payouts, hand-entered expenses) are grouped by when
- * they were *entered* (createdAt), not the date typed on them — the point of
- * the report is to reconcile against the previous one, and a backdated entry
- * still changes today's figure. Station payments use paidAt (only set once a
- * bill is fully paid; earlier partial installments aren't separately dated,
- * so they simply sit inside `opening`), repairs their own expenseDate.
- * `opening` is derived from the current balance rather than summed up
- * independently, so opening + income − expense always equals closing.
- */
-export async function getOwnerBalanceToday(): Promise<OwnerBalanceDay> {
-  const from = utcDayStart(new Date());
-  const to = new Date(from.getTime() + 24 * 60 * 60 * 1000 - 1);
-  const range = { gte: from, lte: to };
+type DateRange = { gte?: Date; lte?: Date; gt?: Date };
 
-  const [summary, payouts, debts, manual, stations, repairs] = await Promise.all([
-    getMechanicCostSummary(),
+async function collectOwnerBalanceMovements(range: DateRange) {
+  const [payouts, debts, manual, stations, repairs] = await Promise.all([
     prisma.ownerPayout.findMany({ where: { createdAt: range }, orderBy: { createdAt: "asc" } }),
     prisma.trip.findMany({ where: { debtSettledAt: range }, include: { vehicle: true }, orderBy: { debtSettledAt: "asc" } }),
     prisma.ownerBalanceExpense.findMany({ where: { createdAt: range }, orderBy: { createdAt: "asc" } }),
@@ -1209,7 +1195,33 @@ export async function getOwnerBalanceToday(): Promise<OwnerBalanceDay> {
     ...repairs.map((r) => ({ label: `Мой - ${r.vehicle.plate}`, amount: Number(r.amount) })),
     ...manual.filter((m) => !m.isCorrection).map((m) => ({ label: `Бошқа - ${m.note}`, amount: Number(m.amount) })),
   ];
-
   const net = income.reduce((s, l) => s + l.amount, 0) - expense.reduce((s, l) => s + l.amount, 0);
-  return { opening: summary.balance - net, closing: summary.balance, income, expense };
+  return { income, expense, net };
+}
+
+/**
+ * What moved the owner's balance ("Жак ҳаққи") on a given day, for the
+ * Telegram report. Manual records (payouts, hand-entered expenses,
+ * corrections) are grouped by when they were *entered* (createdAt), not the
+ * date typed on them — the point of the report is to reconcile against the
+ * previous one, and a backdated entry still changes that day's figure.
+ * Station payments use paidAt (only set once a bill is fully paid; earlier
+ * partial installments aren't separately dated, so they simply sit inside
+ * `opening`), repairs their own expenseDate. `closing` and `opening` are
+ * derived from the current balance (minus everything dated after the day,
+ * then minus the day's own net) rather than summed up independently, so
+ * opening + income − expense always equals closing.
+ */
+export async function getOwnerBalanceDay(day: Date): Promise<OwnerBalanceDay> {
+  const from = utcDayStart(day);
+  const to = new Date(from.getTime() + 24 * 60 * 60 * 1000 - 1);
+
+  const [summary, ofDay, after] = await Promise.all([
+    getMechanicCostSummary(),
+    collectOwnerBalanceMovements({ gte: from, lte: to }),
+    collectOwnerBalanceMovements({ gt: to }),
+  ]);
+
+  const closing = summary.balance - after.net;
+  return { opening: closing - ofDay.net, closing, income: ofDay.income, expense: ofDay.expense };
 }

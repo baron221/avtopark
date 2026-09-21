@@ -5,16 +5,25 @@ import { OwnerBalanceCards } from "@/components/dashboard/OwnerBalanceCards";
 import { OwnerBalanceHistory } from "@/components/dashboard/OwnerBalanceHistory";
 import { getMechanicCostSummary, getOwnerBalanceExpenses } from "@/lib/ownerPayout";
 import { SendDailyClosingButton } from "@/components/dashboard/SendDailyClosingButton";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { AddOwnerExpenseForm } from "./AddOwnerExpenseForm";
 import { deleteOwnerBalanceExpenseAction, sendOwnerBalanceReportAction } from "./actions";
 
 /** Accountant-only, like /accountant/debtors — recording what was spent out
  * of the owner's balance is the accountant's job; owner/admin/mechanic see
  * the same figures (and this list, read-only) on their own pages. */
-export default async function OwnerBalancePage() {
+const DATE_RE = /^d{4}-d{2}-d{2}$/;
+
+export default async function OwnerBalancePage({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
   const session = await auth();
   if (!session) redirect("/login");
   if (session.user.role !== "ACCOUNTANT") redirect("/coming-soon");
+
+  // Which day the Telegram report covers — defaults to today, but the
+  // accountant often sends yesterday's after the fact.
+  const { date: dateParam } = await searchParams;
+  const dateStr = dateParam && DATE_RE.test(dateParam) ? dateParam : new Date().toISOString().slice(0, 10);
+  const reportLabel = dateStr.slice(8, 10) + "." + dateStr.slice(5, 7);
 
   const [summary, expenses] = await Promise.all([getMechanicCostSummary(), getOwnerBalanceExpenses()]);
 
@@ -27,11 +36,14 @@ export default async function OwnerBalancePage() {
             Эгасига топширилган пул + қарздан келган пул − ёқилғи, мой ва қуйида ёзилган бошқа сарфлар
           </div>
         </div>
-        <SendDailyClosingButton
-          action={sendOwnerBalanceReportAction}
-          label="Telegram'га жўнатиш"
-          confirmText="Бугунги Жак ҳаққи ҳисоботини Telegram орқали эгасига жўнатишни тасдиқлайсизми?"
-        />
+        <div className="flex flex-col items-end gap-2">
+          <DatePicker basePath="/accountant/owner-balance" value={dateStr} />
+          <SendDailyClosingButton
+            action={sendOwnerBalanceReportAction.bind(null, dateStr)}
+            label={"Telegram'га жўнатиш · " + reportLabel}
+            confirmText={reportLabel + " кунги Жак ҳаққи ҳисоботини Telegram орқали эгасига жўнатишни тасдиқлайсизми?"}
+          />
+        </div>
       </div>
 
       <OwnerBalanceCards summary={summary} />

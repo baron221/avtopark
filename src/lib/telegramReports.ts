@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getCashLedgerSummary, getOwnerBalanceToday } from "@/lib/ownerPayout";
+import { getCashLedgerSummary, getOwnerBalanceDay } from "@/lib/ownerPayout";
 import { formatSom } from "@/lib/format";
 import { notifyRole } from "@/lib/telegram";
 import { estimateCurrentOdometerKm, resolveOdometerBase } from "@/lib/oilChange";
@@ -317,11 +317,11 @@ export async function sendDailyClosingReport(): Promise<void> {
 /** The owner's-balance ("Жак ҳаққи") counterpart of the daily report — same
  * layout (date header, кирим lines, "<b>Расходлар</b>" lines, totals, the
  * day's net, then the running balance), one "<label>: <amount>" line per
- * movement instead of category lumps. Always for today; see
- * getOwnerBalanceToday for how the figures are grouped. */
-export async function buildOwnerBalanceReport(): Promise<{ message: string }> {
-  const day = utcDayStart(new Date());
-  const { opening, closing, income, expense } = await getOwnerBalanceToday();
+ * movement instead of category lumps. For the given day (default today);
+ * see getOwnerBalanceDay for how the figures are grouped. */
+export async function buildOwnerBalanceReport(referenceDate: Date = new Date()): Promise<{ message: string }> {
+  const day = utcDayStart(referenceDate);
+  const { opening, closing, income, expense } = await getOwnerBalanceDay(day);
 
   const totalIncome = income.reduce((s, l) => s + l.amount, 0);
   const totalExpense = expense.reduce((s, l) => s + l.amount, 0);
@@ -343,7 +343,7 @@ export async function buildOwnerBalanceReport(): Promise<{ message: string }> {
 
 /** The accountant's "Telegram'га жўнатиш" button on the Жак ҳаққи page —
  * sends to the owner, like sendDailyClosingReport. */
-export async function sendOwnerBalanceReport(): Promise<void> {
-  const { message } = await buildOwnerBalanceReport();
+export async function sendOwnerBalanceReport(referenceDate: Date = new Date()): Promise<void> {
+  const { message } = await buildOwnerBalanceReport(referenceDate);
   await notifyRole("OWNER", message);
 }
