@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getCashLedgerSummary } from "@/lib/ownerPayout";
+import { getCashLedgerSummary, getOwnerBalanceToday } from "@/lib/ownerPayout";
 import { formatSom } from "@/lib/format";
 import { notifyRole } from "@/lib/telegram";
 import { estimateCurrentOdometerKm, resolveOdometerBase } from "@/lib/oilChange";
@@ -311,5 +311,39 @@ export async function buildOnDemandDailySummary(): Promise<{ message: string }> 
  * day is actually done. */
 export async function sendDailyClosingReport(): Promise<void> {
   const { message } = await buildDailySummaryReport();
+  await notifyRole("OWNER", message);
+}
+
+/** The owner's-balance ("Жак ҳаққи") counterpart of the daily report — same
+ * layout (date header, кирим lines, "<b>Расходлар</b>" lines, totals, the
+ * day's net, then the running balance), one "<label>: <amount>" line per
+ * movement instead of category lumps. Always for today; see
+ * getOwnerBalanceToday for how the figures are grouped. */
+export async function buildOwnerBalanceReport(): Promise<{ message: string }> {
+  const day = utcDayStart(new Date());
+  const { opening, closing, income, expense } = await getOwnerBalanceToday();
+
+  const totalIncome = income.reduce((s, l) => s + l.amount, 0);
+  const totalExpense = expense.reduce((s, l) => s + l.amount, 0);
+  const line = (l: { label: string; amount: number }) => `${l.label}: ${formatSom(l.amount)}`;
+
+  const message =
+    `<b>${fullDateLabel(day)}</b>\n\n` +
+    `<b>Жак ҳаққи</b>\n\n` +
+    `Олдинги қолдиқ: ${formatSom(opening)} сум\n\n` +
+    (income.length > 0 ? `${income.map(line).join("\n")}\n\n` : "") +
+    `Жами кирим: ${formatSom(totalIncome)} сум\n\n` +
+    (expense.length > 0 ? `<b>Расходлар</b>\n${expense.map(line).join("\n")}\n\n` : "") +
+    `Жами расход: ${formatSom(totalExpense)} сум\n\n` +
+    `${dayMonthLabel(day)} − Қолдиқ: ${signed(totalIncome - totalExpense)} сум\n\n` +
+    `Жами Жак ҳаққи: ${formatSom(closing)} сум.`;
+
+  return { message };
+}
+
+/** The accountant's "Telegram'га жўнатиш" button on the Жак ҳаққи page —
+ * sends to the owner, like sendDailyClosingReport. */
+export async function sendOwnerBalanceReport(): Promise<void> {
+  const { message } = await buildOwnerBalanceReport();
   await notifyRole("OWNER", message);
 }

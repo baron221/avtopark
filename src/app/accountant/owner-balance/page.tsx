@@ -4,8 +4,9 @@ import { Card } from "@/components/ui/Card";
 import { OwnerBalanceCards } from "@/components/dashboard/OwnerBalanceCards";
 import { OwnerBalanceHistory } from "@/components/dashboard/OwnerBalanceHistory";
 import { getMechanicCostSummary, getOwnerBalanceExpenses } from "@/lib/ownerPayout";
+import { SendDailyClosingButton } from "@/components/dashboard/SendDailyClosingButton";
 import { AddOwnerExpenseForm } from "./AddOwnerExpenseForm";
-import { deleteOwnerBalanceExpenseAction } from "./actions";
+import { deleteOwnerBalanceExpenseAction, sendOwnerBalanceReportAction } from "./actions";
 
 /** Accountant-only, like /accountant/debtors — recording what was spent out
  * of the owner's balance is the accountant's job; owner/admin/mechanic see
@@ -19,11 +20,18 @@ export default async function OwnerBalancePage() {
 
   return (
     <div className="max-w-[1000px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
-      <div>
-        <div className="font-heading font-bold text-xl text-heading">Жак ҳаққи</div>
-        <div className="text-[13px] text-muted-2 font-semibold">
-          Эгасига топширилган пул + қарздан келган пул − ёқилғи, мой ва қуйида ёзилган бошқа сарфлар
+      <div className="flex justify-between items-start gap-3 flex-wrap">
+        <div>
+          <div className="font-heading font-bold text-xl text-heading">Жак ҳаққи</div>
+          <div className="text-[13px] text-muted-2 font-semibold">
+            Эгасига топширилган пул + қарздан келган пул − ёқилғи, мой ва қуйида ёзилган бошқа сарфлар
+          </div>
         </div>
+        <SendDailyClosingButton
+          action={sendOwnerBalanceReportAction}
+          label="Telegram'га жўнатиш"
+          confirmText="Бугунги Жак ҳаққи ҳисоботини Telegram орқали эгасига жўнатишни тасдиқлайсизми?"
+        />
       </div>
 
       <OwnerBalanceCards summary={summary} />

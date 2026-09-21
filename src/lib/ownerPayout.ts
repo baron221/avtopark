@@ -1150,3 +1150,66 @@ export async function getOwnerBalanceExpenses(limit = 30): Promise<OwnerBalanceE
     enteredByName: r.enteredByUser.fullName,
   }));
 }
+
+export type OwnerBalanceDayLine = { label: string; amount: number };
+
+export type OwnerBalanceDay = {
+  /** Balance right before today's movements: closing − (income − expense). */
+  opening: number;
+  /** The current balance (getMechanicCostSummary) — this report is always for today. */
+  closing: number;
+  income: OwnerBalanceDayLine[];
+  expense: OwnerBalanceDayLine[];
+};
+
+/**
+ * What moved the owner's balance ("Жак ҳаққи") today, for the Telegram
+ * report. Manual records (payouts, hand-entered expenses) are grouped by when
+ * they were *entered* (createdAt), not the date typed on them — the point of
+ * the report is to reconcile against the previous one, and a backdated entry
+ * still changes today's figure. Station payments use paidAt (only set once a
+ * bill is fully paid; earlier partial installments aren't separately dated,
+ * so they simply sit inside `opening`), repairs their own expenseDate.
+ * `opening` is derived from the current balance rather than summed up
+ * independently, so opening + income − expense always equals closing.
+ */
+export async function getOwnerBalanceToday(): Promise<OwnerBalanceDay> {
+  const from = utcDayStart(new Date());
+  const to = new Date(from.getTime() + 24 * 60 * 60 * 1000 - 1);
+  const range = { gte: from, lte: to };
+
+  const [summary, payouts, debts, manual, stations, repairs] = await Promise.all([
+    getMechanicCostSummary(),
+    prisma.ownerPayout.findMany({ where: { createdAt: range }, orderBy: { createdAt: "asc" } }),
+    prisma.trip.findMany({ where: { debtSettledAt: range }, include: { vehicle: true }, orderBy: { debtSettledAt: "asc" } }),
+    prisma.ownerBalanceExpense.findMany({ where: { createdAt: range }, orderBy: { createdAt: "asc" } }),
+    prisma.stationPayment.findMany({ where: { paidAt: range }, include: { station: true }, orderBy: { paidAt: "asc" } }),
+    prisma.expense.findMany({
+      where: { category: "REPAIR", expenseDate: range },
+      include: { vehicle: true },
+      orderBy: { expenseDate: "asc" },
+    }),
+  ]);
+
+  const income: OwnerBalanceDayLine[] = [
+    ...payouts.map((p) => ({
+      label: p.note ? `Топширилган - ${p.note}` : "Топширилган",
+      amount: Number(p.amount),
+    })),
+    ...debts.map((t) => ({
+      label: `Насиядан келган - ${t.vehicle.plate}${t.note ? ` (${t.note})` : ""}`,
+      amount: Number(t.revenue) - Number(t.collectedAmount),
+    })),
+    ...manual
+      .filter((m) => m.isCorrection)
+      .map((m) => ({ label: `Тузатиш - ${m.note.replace(/^Тузатиш:\s*/, "")}`, amount: Number(m.amount) })),
+  ];
+  const expense: OwnerBalanceDayLine[] = [
+    ...stations.map((s) => ({ label: `Ёқилғи - ${s.station.name}`, amount: Number(s.paidAmount) })),
+    ...repairs.map((r) => ({ label: `Мой - ${r.vehicle.plate}`, amount: Number(r.amount) })),
+    ...manual.filter((m) => !m.isCorrection).map((m) => ({ label: `Бошқа - ${m.note}`, amount: Number(m.amount) })),
+  ];
+
+  const net = income.reduce((s, l) => s + l.amount, 0) - expense.reduce((s, l) => s + l.amount, 0);
+  return { opening: summary.balance - net, closing: summary.balance, income, expense };
+}

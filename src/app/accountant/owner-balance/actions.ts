@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { logDeletion } from "@/lib/deletionLog";
 import { formatSom } from "@/lib/format";
+import { sendOwnerBalanceReport } from "@/lib/telegramReports";
 
 export type OwnerBalanceExpenseState = { error: string };
 
@@ -61,4 +62,16 @@ export async function deleteOwnerBalanceExpenseAction(formData: FormData) {
   await prisma.ownerBalanceExpense.delete({ where: { id } });
 
   revalidateEveryone();
+}
+
+/** Sends today's Жак ҳаққи report to the owner's Telegram on demand. */
+export async function sendOwnerBalanceReportAction(): Promise<{ error: string }> {
+  await requireAccountant();
+  try {
+    await sendOwnerBalanceReport();
+    return { error: "" };
+  } catch (err) {
+    console.error("Жак ҳаққи ҳисоботини жўнатишда хато:", err);
+    return { error: "Жўнатишда хато юз берди" };
+  }
 }
