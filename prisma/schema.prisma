@@ -147,33 +147,34 @@ model User {
   createdAt           DateTime  @default(now()) @map("created_at")
 
   driver                      Driver?
-  enteredTrips                Trip[]                @relation("TripEnteredBy")
-  settledTripDebts            Trip[]                @relation("TripDebtSettledBy")
-  enteredOtherIncomes         OtherIncome[]         @relation("OtherIncomeEnteredBy")
-  externalVehiclesCreated     ExternalVehicle[]     @relation("ExternalVehicleCreatedBy")
-  enteredExpenses             Expense[]             @relation("ExpenseEnteredBy")
-  finesReceived               Fine[]                @relation("FineUser")
-  finesEntered                Fine[]                @relation("FineEnteredBy")
-  lunches                     Lunch[]               @relation("LunchUser")
-  lunchesEntered              Lunch[]               @relation("LunchEnteredBy")
-  fuelLogsEntered             FuelLog[]             @relation("FuelLogEnteredBy")
-  stationPaymentsEntered      StationPayment[]      @relation("StationPaymentEnteredBy")
-  staffExpenses               StaffExpense[]        @relation("StaffExpenseUser")
-  staffExpensesEntered        StaffExpense[]        @relation("StaffExpenseEnteredBy")
-  salaries                    Salary[]              @relation("SalaryUser")
-  salariesApproved            Salary[]              @relation("SalaryApprovedBy")
-  salariesPaid                Salary[]              @relation("SalaryPaidBy")
-  planPaymentsReceived        PlanPayment[]         @relation("PlanPaymentReceivedBy")
-  advances                    Advance[]             @relation("AdvanceUser")
-  advancesEntered             Advance[]             @relation("AdvanceEnteredBy")
-  oilChangesEntered           OilChange[]           @relation("OilChangeEnteredBy")
-  deletionsPerformed          DeletionLog[]         @relation("DeletionLogDeletedBy")
-  editsPerformed              EditLog[]             @relation("EditLogEditedBy")
-  cashHandoversAsDispatcher   CashHandover[]        @relation("CashHandoverDispatcher")
-  cashHandoversAsAccountant   CashHandover[]        @relation("CashHandoverAccountant")
-  ownerPayoutsEntered         OwnerPayout[]         @relation("OwnerPayoutEnteredBy")
-  ownerBalanceExpensesEntered OwnerBalanceExpense[] @relation("OwnerBalanceExpenseEnteredBy")
-  cashOpeningBalancesEntered  CashOpeningBalance[]  @relation("CashOpeningBalanceEnteredBy")
+  enteredTrips                Trip[]                  @relation("TripEnteredBy")
+  settledTripDebts            Trip[]                  @relation("TripDebtSettledBy")
+  enteredOtherIncomes         OtherIncome[]           @relation("OtherIncomeEnteredBy")
+  externalVehiclesCreated     ExternalVehicle[]       @relation("ExternalVehicleCreatedBy")
+  enteredExpenses             Expense[]               @relation("ExpenseEnteredBy")
+  finesReceived               Fine[]                  @relation("FineUser")
+  finesEntered                Fine[]                  @relation("FineEnteredBy")
+  lunches                     Lunch[]                 @relation("LunchUser")
+  lunchesEntered              Lunch[]                 @relation("LunchEnteredBy")
+  fuelLogsEntered             FuelLog[]               @relation("FuelLogEnteredBy")
+  stationPaymentsEntered      StationPayment[]        @relation("StationPaymentEnteredBy")
+  staffExpenses               StaffExpense[]          @relation("StaffExpenseUser")
+  staffExpensesEntered        StaffExpense[]          @relation("StaffExpenseEnteredBy")
+  salaries                    Salary[]                @relation("SalaryUser")
+  salariesApproved            Salary[]                @relation("SalaryApprovedBy")
+  salariesPaid                Salary[]                @relation("SalaryPaidBy")
+  planPaymentsReceived        PlanPayment[]           @relation("PlanPaymentReceivedBy")
+  advances                    Advance[]               @relation("AdvanceUser")
+  advancesEntered             Advance[]               @relation("AdvanceEnteredBy")
+  oilChangesEntered           OilChange[]             @relation("OilChangeEnteredBy")
+  deletionsPerformed          DeletionLog[]           @relation("DeletionLogDeletedBy")
+  editsPerformed              EditLog[]               @relation("EditLogEditedBy")
+  cashHandoversAsDispatcher   CashHandover[]          @relation("CashHandoverDispatcher")
+  cashHandoversAsAccountant   CashHandover[]          @relation("CashHandoverAccountant")
+  ownerPayoutsEntered         OwnerPayout[]           @relation("OwnerPayoutEnteredBy")
+  ownerBalanceExpensesEntered OwnerBalanceExpense[]   @relation("OwnerBalanceExpenseEnteredBy")
+  ownerBalanceReportsSent     OwnerBalanceReportLog[] @relation("OwnerBalanceReportSentBy")
+  cashOpeningBalancesEntered  CashOpeningBalance[]    @relation("CashOpeningBalanceEnteredBy")
 
   @@index([role])
   @@index([point])
@@ -836,6 +837,21 @@ model OwnerPayout {
 
   @@index([payoutDate])
   @@map("owner_payouts")
+}
+
+// One row per Жак ҳаққи Telegram report actually sent — the next report
+// covers everything that moved the balance after the latest row's sentAt, so
+// the accountant sees just the new income/expenses since the previous one.
+model OwnerBalanceReportLog {
+  id      String   @id @default(uuid())
+  sentAt  DateTime @default(now()) @map("sent_at")
+  closing BigInt
+  sentBy  String   @map("sent_by")
+
+  sentByUser User @relation("OwnerBalanceReportSentBy", fields: [sentBy], references: [id])
+
+  @@index([sentAt])
+  @@map("owner_balance_report_logs")
 }
 
 // Money spent out of the owner's own balance (see getMechanicCostSummary) —

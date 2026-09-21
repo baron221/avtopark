@@ -64,15 +64,14 @@ export async function deleteOwnerBalanceExpenseAction(formData: FormData) {
   revalidateEveryone();
 }
 
-/** Sends the Жак ҳаққи report for `dateStr` (yyyy-mm-dd, the page's picked
- * day) to the owner's Telegram on demand. Bound to the date by the page, so
- * the client button itself stays argument-free. */
-export async function sendOwnerBalanceReportAction(dateStr: string): Promise<{ error: string }> {
-  await requireAccountant();
-  const parsed = /^\d{4}-\d{2}-\d{2}$/.test(dateStr) ? new Date(`${dateStr}T00:00:00Z`) : null;
-  if (!parsed || Number.isNaN(parsed.getTime())) return { error: "Санани танланг" };
+/** Sends the Жак ҳаққи report — everything new since the previous one — to
+ * the owner's Telegram on demand. */
+export async function sendOwnerBalanceReportAction(): Promise<{ error: string }> {
+  const userId = await requireAccountant();
   try {
-    await sendOwnerBalanceReport(parsed);
+    const sent = await sendOwnerBalanceReport(userId);
+    if (!sent) return { error: "Охирги ҳисоботдан кейин янги кирим ёки расход йўқ" };
+    revalidatePath("/accountant/owner-balance");
     return { error: "" };
   } catch (err) {
     console.error("Жак ҳаққи ҳисоботини жўнатишда хато:", err);

@@ -1157,9 +1157,9 @@ export async function getOwnerBalanceExpenses(limit = 30): Promise<OwnerBalanceE
 export type OwnerBalanceDayLine = { date: Date; label: string; amount: number };
 
 export type OwnerBalanceDay = {
-  /** Balance right before that day's movements: closing − (income − expense). */
+  /** Balance right before these movements: closing − (income − expense). */
   opening: number;
-  /** Balance at the end of that day: the current balance minus whatever moved it afterwards. */
+  /** The current balance (getMechanicCostSummary). */
   closing: number;
   income: OwnerBalanceDayLine[];
   expense: OwnerBalanceDayLine[];
@@ -1214,29 +1214,26 @@ async function collectOwnerBalanceMovements(range: DateRange) {
   return { income, expense, net };
 }
 
+/** The latest Жак ҳаққи Telegram report actually sent, if any. */
+export async function getLastOwnerBalanceReport(): Promise<{ sentAt: Date; closing: number } | null> {
+  const row = await prisma.ownerBalanceReportLog.findFirst({ orderBy: { sentAt: "desc" } });
+  return row ? { sentAt: row.sentAt, closing: Number(row.closing) } : null;
+}
+
 /**
- * What moved the owner's balance ("Жак ҳаққи") on a given day, for the
- * Telegram report. Manual records (payouts, hand-entered expenses,
- * corrections) are grouped by when they were *entered* (createdAt), not the
- * date typed on them — the point of the report is to reconcile against the
- * previous one, and a backdated entry still changes that day's figure.
- * Station payments use paidAt (only set once a bill is fully paid; earlier
- * partial installments aren't separately dated, so they simply sit inside
- * `opening`), repairs their own expenseDate. `closing` and `opening` are
- * derived from the current balance (minus everything dated after the day,
- * then minus the day's own net) rather than summed up independently, so
- * opening + income − expense always equals closing.
+ * Everything that moved the owner's balance ("Жак ҳаққи") after `since` —
+ * normally the previous report's sentAt — for the Telegram report, so the
+ * accountant only sees what's new. Manual records (payouts, hand-entered
+ * expenses, corrections) are matched by when they were *entered* (createdAt),
+ * not the date typed on them: a backdated entry still changes the balance
+ * since the last report, and each line carries its own typed date for
+ * display anyway. Station payments use paidAt (only set once a bill is fully
+ * paid; earlier partial installments aren't separately dated, so they simply
+ * sit inside `opening`), repairs their own expenseDate. `opening` is derived
+ * from the current balance rather than summed up independently, so opening +
+ * income − expense always equals closing.
  */
-export async function getOwnerBalanceDay(day: Date): Promise<OwnerBalanceDay> {
-  const from = utcDayStart(day);
-  const to = new Date(from.getTime() + 24 * 60 * 60 * 1000 - 1);
-
-  const [summary, ofDay, after] = await Promise.all([
-    getMechanicCostSummary(),
-    collectOwnerBalanceMovements({ gte: from, lte: to }),
-    collectOwnerBalanceMovements({ gt: to }),
-  ]);
-
-  const closing = summary.balance - after.net;
-  return { opening: closing - ofDay.net, closing, income: ofDay.income, expense: ofDay.expense };
+export async function getOwnerBalanceSince(since: Date): Promise<OwnerBalanceDay> {
+  const [summary, moved] = await Promise.all([getMechanicCostSummary(), collectOwnerBalanceMovements({ gt: since })]);
+  return { opening: summary.balance - moved.net, closing: summary.balance, income: moved.income, expense: moved.expense };
 }

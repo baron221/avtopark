@@ -3,29 +3,24 @@ import { redirect } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { OwnerBalanceCards } from "@/components/dashboard/OwnerBalanceCards";
 import { OwnerBalanceHistory } from "@/components/dashboard/OwnerBalanceHistory";
-import { getMechanicCostSummary, getOwnerBalanceExpenses } from "@/lib/ownerPayout";
+import { getLastOwnerBalanceReport, getMechanicCostSummary, getOwnerBalanceExpenses } from "@/lib/ownerPayout";
 import { SendDailyClosingButton } from "@/components/dashboard/SendDailyClosingButton";
-import { DatePicker } from "@/components/ui/DatePicker";
 import { AddOwnerExpenseForm } from "./AddOwnerExpenseForm";
 import { deleteOwnerBalanceExpenseAction, sendOwnerBalanceReportAction } from "./actions";
 
 /** Accountant-only, like /accountant/debtors — recording what was spent out
  * of the owner's balance is the accountant's job; owner/admin/mechanic see
  * the same figures (and this list, read-only) on their own pages. */
-const DATE_RE = /^d{4}-d{2}-d{2}$/;
-
-export default async function OwnerBalancePage({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
+export default async function OwnerBalancePage() {
   const session = await auth();
   if (!session) redirect("/login");
   if (session.user.role !== "ACCOUNTANT") redirect("/coming-soon");
 
-  // Which day the Telegram report covers — defaults to today, but the
-  // accountant often sends yesterday's after the fact.
-  const { date: dateParam } = await searchParams;
-  const dateStr = dateParam && DATE_RE.test(dateParam) ? dateParam : new Date().toISOString().slice(0, 10);
-  const reportLabel = dateStr.slice(8, 10) + "." + dateStr.slice(5, 7);
-
-  const [summary, expenses] = await Promise.all([getMechanicCostSummary(), getOwnerBalanceExpenses()]);
+  const [summary, expenses, lastReport] = await Promise.all([
+    getMechanicCostSummary(),
+    getOwnerBalanceExpenses(),
+    getLastOwnerBalanceReport(),
+  ]);
 
   return (
     <div className="max-w-[1000px] mx-auto w-full p-4 sm:p-7 flex flex-col gap-5">
@@ -36,13 +31,17 @@ export default async function OwnerBalancePage({ searchParams }: { searchParams:
             Эгасига топширилган пул + қарздан келган пул − ёқилғи, мой ва қуйида ёзилган бошқа сарфлар
           </div>
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <DatePicker basePath="/accountant/owner-balance" value={dateStr} />
+        <div className="flex flex-col items-end gap-1.5">
           <SendDailyClosingButton
-            action={sendOwnerBalanceReportAction.bind(null, dateStr)}
-            label={"Telegram'га жўнатиш · " + reportLabel}
-            confirmText={reportLabel + " кунги Жак ҳаққи ҳисоботини Telegram орқали эгасига жўнатишни тасдиқлайсизми?"}
+            action={sendOwnerBalanceReportAction}
+            label="Telegram'га жўнатиш"
+            confirmText="Охирги ҳисоботдан кейинги янги кирим ва расходларни Telegram орқали эгасига жўнатишни тасдиқлайсизми?"
           />
+          <div className="text-[11px] text-muted-2 font-semibold">
+            {lastReport
+              ? `Охирги ҳисобот: ${lastReport.sentAt.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit", year: "numeric" })}`
+              : "Ҳисобот ҳали жўнатилмаган"}
+          </div>
         </div>
       </div>
 

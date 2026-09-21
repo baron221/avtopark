@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getCashLedgerSummary, getOwnerBalanceDay } from "@/lib/ownerPayout";
+import { getCashLedgerSummary, getLastOwnerBalanceReport, getOwnerBalanceSince } from "@/lib/ownerPayout";
 import { formatSom } from "@/lib/format";
 import { notifyRole } from "@/lib/telegram";
 import { estimateCurrentOdometerKm, resolveOdometerBase } from "@/lib/oilChange";
@@ -314,37 +314,46 @@ export async function sendDailyClosingReport(): Promise<void> {
   await notifyRole("OWNER", message);
 }
 
-/** The owner's-balance ("Жак ҳаққи") counterpart of the daily report — same
- * layout (date header, кирим lines, "<b>Расходлар</b>" lines, totals, the
- * closing balance), one "<label>: <amount>" line per
- * movement instead of category lumps. For the given day (default today);
- * see getOwnerBalanceDay for how the figures are grouped. */
-export async function buildOwnerBalanceReport(referenceDate: Date = new Date()): Promise<{ message: string }> {
-  const day = utcDayStart(referenceDate);
-  const { opening, closing, income, expense } = await getOwnerBalanceDay(day);
+/** The owner's-balance ("Жак ҳаққи") report — laid out like the accountant's
+ * own sheet: the previous report's date and balance, the new кирим and
+ * расход lines since then (each with its own date and purpose), totals, and
+ * the balance now. Not tied to a calendar day: it covers everything after
+ * the previous report that was actually sent (see getLastOwnerBalanceReport),
+ * or just today if none was ever sent. `empty` is true when nothing moved, so
+ * the caller can skip sending a report with no news in it. */
+export async function buildOwnerBalanceReport(): Promise<{ message: string; empty: boolean; closing: number }> {
+  const now = new Date();
+  const last = await getLastOwnerBalanceReport();
+  const since = last?.sentAt ?? utcDayStart(now);
+  const { opening, closing, income, expense } = await getOwnerBalanceSince(since);
 
   const totalIncome = income.reduce((s, l) => s + l.amount, 0);
   const totalExpense = expense.reduce((s, l) => s + l.amount, 0);
-  // Same shape as the accountant's own sheet: the record's date, its purpose, the amount.
   const line = (l: { date: Date; label: string; amount: number }) =>
     `${fullDateLabel(l.date)} - ${l.label}: ${formatSom(l.amount)}`;
-  const previousDay = new Date(day.getTime() - 24 * 60 * 60 * 1000);
 
   const message =
     `<b>Жак ҳаққи</b>\n\n` +
-    `${fullDateLabel(previousDay)} ҳолатига: ${formatSom(opening)} сум\n\n` +
+    `${fullDateLabel(since)} ҳолатига: ${formatSom(opening)} сум\n\n` +
     (income.length > 0 ? `<b>Кирим</b>\n${income.map(line).join("\n")}\n\n` : "") +
     `Жами кирим: ${formatSom(totalIncome)} сум\n\n` +
     (expense.length > 0 ? `<b>Расходлар</b>\n${expense.map(line).join("\n")}\n\n` : "") +
     `Жами расход: ${formatSom(totalExpense)} сум\n\n` +
-    `${fullDateLabel(day)} қолдиқ Жак ҳаққи: ${formatSom(closing)} сум.`;
+    `${fullDateLabel(now)} қолдиқ Жак ҳаққи: ${formatSom(closing)} сум.`;
 
-  return { message };
+  return { message, empty: income.length === 0 && expense.length === 0, closing };
 }
 
 /** The accountant's "Telegram'га жўнатиш" button on the Жак ҳаққи page —
- * sends to the owner, like sendDailyClosingReport. */
-export async function sendOwnerBalanceReport(referenceDate: Date = new Date()): Promise<void> {
-  const { message } = await buildOwnerBalanceReport(referenceDate);
+ * sends to the owner like sendDailyClosingReport, then remembers this send
+ * so the next report starts from here. Returns false (and sends nothing)
+ * when nothing moved since the previous report. */
+export async function sendOwnerBalanceReport(sentBy: string): Promise<boolean> {
+  const { message, empty, closing } = await buildOwnerBalanceReport();
+  if (empty) return false;
   await notifyRole("OWNER", message);
+  // Only after the send succeeded — a failed send must not swallow the
+  // movements from the next attempt.
+  await prisma.ownerBalanceReportLog.create({ data: { closing: BigInt(closing), sentBy } });
+  return true;
 }
