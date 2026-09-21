@@ -325,17 +325,19 @@ export async function buildOwnerBalanceReport(referenceDate: Date = new Date()):
 
   const totalIncome = income.reduce((s, l) => s + l.amount, 0);
   const totalExpense = expense.reduce((s, l) => s + l.amount, 0);
-  const line = (l: { label: string; amount: number }) => `${l.label}: ${formatSom(l.amount)}`;
+  // Same shape as the accountant's own sheet: the record's date, its purpose, the amount.
+  const line = (l: { date: Date; label: string; amount: number }) =>
+    `${fullDateLabel(l.date)} - ${l.label}: ${formatSom(l.amount)}`;
+  const previousDay = new Date(day.getTime() - 24 * 60 * 60 * 1000);
 
   const message =
-    `<b>${fullDateLabel(day)}</b>\n\n` +
     `<b>Жак ҳаққи</b>\n\n` +
-    `Олдинги қолдиқ: ${formatSom(opening)} сум\n\n` +
-    (income.length > 0 ? `${income.map(line).join("\n")}\n\n` : "") +
+    `${fullDateLabel(previousDay)} ҳолатига: ${formatSom(opening)} сум\n\n` +
+    (income.length > 0 ? `<b>Кирим</b>\n${income.map(line).join("\n")}\n\n` : "") +
     `Жами кирим: ${formatSom(totalIncome)} сум\n\n` +
     (expense.length > 0 ? `<b>Расходлар</b>\n${expense.map(line).join("\n")}\n\n` : "") +
     `Жами расход: ${formatSom(totalExpense)} сум\n\n` +
-    `Жами Жак ҳаққи: ${formatSom(closing)} сум.`;
+    `${fullDateLabel(day)} қолдиқ Жак ҳаққи: ${formatSom(closing)} сум.`;
 
   return { message };
 }

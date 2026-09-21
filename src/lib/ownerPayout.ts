@@ -1151,7 +1151,10 @@ export async function getOwnerBalanceExpenses(limit = 30): Promise<OwnerBalanceE
   }));
 }
 
-export type OwnerBalanceDayLine = { label: string; amount: number };
+/** `date` is the date the record itself carries (what the accountant typed
+ * or the event's own date), shown next to the purpose — separate from the
+ * entry time the day's grouping uses. */
+export type OwnerBalanceDayLine = { date: Date; label: string; amount: number };
 
 export type OwnerBalanceDay = {
   /** Balance right before that day's movements: closing − (income − expense). */
@@ -1179,21 +1182,33 @@ async function collectOwnerBalanceMovements(range: DateRange) {
 
   const income: OwnerBalanceDayLine[] = [
     ...payouts.map((p) => ({
-      label: p.note ? `Топширилган - ${p.note}` : "Топширилган",
+      date: p.payoutDate,
+      label: p.note ?? "Эгасига топширилган",
       amount: Number(p.amount),
     })),
     ...debts.map((t) => ({
+      date: t.debtSettledAt as Date,
       label: `Насиядан келган - ${t.vehicle.plate}${t.note ? ` (${t.note})` : ""}`,
       amount: Number(t.revenue) - Number(t.collectedAmount),
     })),
     ...manual
       .filter((m) => m.isCorrection)
-      .map((m) => ({ label: `Тузатиш - ${m.note.replace(/^Тузатиш:\s*/, "")}`, amount: Number(m.amount) })),
+      .map((m) => ({
+        date: m.expenseDate,
+        label: `Тузатиш - ${m.note.replace(/^Тузатиш:\s*/, "")}`,
+        amount: Number(m.amount),
+      })),
   ];
   const expense: OwnerBalanceDayLine[] = [
-    ...stations.map((s) => ({ label: `Ёқилғи - ${s.station.name}`, amount: Number(s.paidAmount) })),
-    ...repairs.map((r) => ({ label: `Мой - ${r.vehicle.plate}`, amount: Number(r.amount) })),
-    ...manual.filter((m) => !m.isCorrection).map((m) => ({ label: `Бошқа - ${m.note}`, amount: Number(m.amount) })),
+    ...stations.map((s) => ({
+      date: s.paidAt as Date,
+      label: `Ёқилғи - ${s.station.name}`,
+      amount: Number(s.paidAmount),
+    })),
+    ...repairs.map((r) => ({ date: r.expenseDate, label: `Мой - ${r.vehicle.plate}`, amount: Number(r.amount) })),
+    ...manual
+      .filter((m) => !m.isCorrection)
+      .map((m) => ({ date: m.expenseDate, label: m.note, amount: Number(m.amount) })),
   ];
   const net = income.reduce((s, l) => s + l.amount, 0) - expense.reduce((s, l) => s + l.amount, 0);
   return { income, expense, net };
