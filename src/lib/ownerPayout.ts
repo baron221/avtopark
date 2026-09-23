@@ -1214,14 +1214,14 @@ async function collectOwnerBalanceMovements(range: DateRange) {
   return { income, expense, net };
 }
 
-/** The latest Жак ҳаққи Telegram report actually sent, if any. */
+/** The latest Банкдаги пул Telegram report actually sent, if any. */
 export async function getLastOwnerBalanceReport(): Promise<{ sentAt: Date; closing: number } | null> {
   const row = await prisma.ownerBalanceReportLog.findFirst({ orderBy: { sentAt: "desc" } });
   return row ? { sentAt: row.sentAt, closing: Number(row.closing) } : null;
 }
 
 /**
- * Everything that moved the owner's balance ("Жак ҳаққи") after `since` —
+ * Everything that moved the owner's balance ("Банкдаги пул") after `since` —
  * normally the previous report's sentAt — for the Telegram report, so the
  * accountant only sees what's new. Manual records (payouts, hand-entered
  * expenses, corrections) are matched by when they were *entered* (createdAt),

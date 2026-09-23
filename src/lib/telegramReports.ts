@@ -314,7 +314,7 @@ export async function sendDailyClosingReport(): Promise<void> {
   await notifyRole("OWNER", message);
 }
 
-/** The owner's-balance ("Жак ҳаққи") report — laid out like the accountant's
+/** The owner's-balance ("Банкдаги пул") report — laid out like the accountant's
  * own sheet: the previous report's date and balance, the new кирим and
  * расход lines since then (each with its own date and purpose), totals, and
  * the balance now. Not tied to a calendar day: it covers everything after
@@ -333,18 +333,18 @@ export async function buildOwnerBalanceReport(): Promise<{ message: string; empt
     `${fullDateLabel(l.date)} - ${l.label}: ${formatSom(l.amount)}`;
 
   const message =
-    `<b>Жак ҳаққи</b>\n\n` +
+    `<b>Банкдаги пул</b>\n\n` +
     `${fullDateLabel(since)} ҳолатига: ${formatSom(opening)} сум\n\n` +
     (income.length > 0 ? `<b>Кирим</b>\n${income.map(line).join("\n")}\n\n` : "") +
     `Жами кирим: ${formatSom(totalIncome)} сум\n\n` +
     (expense.length > 0 ? `<b>Расходлар</b>\n${expense.map(line).join("\n")}\n\n` : "") +
     `Жами расход: ${formatSom(totalExpense)} сум\n\n` +
-    `${fullDateLabel(now)} қолдиқ Жак ҳаққи: ${formatSom(closing)} сум.`;
+    `${fullDateLabel(now)} қолдиқ Банкдаги пул: ${formatSom(closing)} сум.`;
 
   return { message, empty: income.length === 0 && expense.length === 0, closing };
 }
 
-/** The accountant's "Telegram'га жўнатиш" button on the Жак ҳаққи page —
+/** The accountant's "Telegram'га жўнатиш" button on the Банкдаги пул page —
  * sends to the owner like sendDailyClosingReport, then remembers this send
  * so the next report starts from here. Returns false (and sends nothing)
  * when nothing moved since the previous report. */

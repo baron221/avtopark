@@ -18,7 +18,7 @@ export function OwnerBalanceHistory({
   return (
     <Card className="overflow-hidden">
       <div className="px-6 py-3.5 font-heading font-bold text-base text-heading">
-        Жак ҳаққидан қилинган бошқа сарфлар
+        Банкдаги пулдан қилинган бошқа сарфлар
       </div>
       {rows.map((r) => (
         <div

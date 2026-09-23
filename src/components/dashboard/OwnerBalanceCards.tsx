@@ -20,7 +20,7 @@ export function OwnerBalanceCards({ summary }: { summary: MechanicCostSummary })
       <KpiCard label="Мой учун сарфланган" value={formatMillions(summary.oilSpent)} />
       {summary.otherSpent > 0 && <KpiCard label="Бошқа сарфлар" value={formatMillions(summary.otherSpent)} />}
       <KpiCard label="Жами сарфланган" value={formatMillions(summary.totalSpent)} />
-      <KpiCard variant="primary" label="Жак ҳаққи" value={formatMillions(summary.balance)} />
+      <KpiCard variant="primary" label="Банкдаги пул" value={formatMillions(summary.balance)} />
     </div>
   );
 }

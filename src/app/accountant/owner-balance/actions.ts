@@ -64,7 +64,7 @@ export async function deleteOwnerBalanceExpenseAction(formData: FormData) {
   revalidateEveryone();
 }
 
-/** Sends the Жак ҳаққи report — everything new since the previous one — to
+/** Sends the Банкдаги пул report — everything new since the previous one — to
  * the owner's Telegram on demand. */
 export async function sendOwnerBalanceReportAction(): Promise<{ error: string }> {
   const userId = await requireAccountant();
@@ -74,7 +74,7 @@ export async function sendOwnerBalanceReportAction(): Promise<{ error: string }>
     revalidatePath("/accountant/owner-balance");
     return { error: "" };
   } catch (err) {
-    console.error("Жак ҳаққи ҳисоботини жўнатишда хато:", err);
+    console.error("Банкдаги пул ҳисоботини жўнатишда хато:", err);
     return { error: "Жўнатишда хато юз берди" };
   }
 }
