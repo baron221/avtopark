@@ -308,10 +308,12 @@ export async function buildOnDemandDailySummary(): Promise<{ message: string }> 
  * cron and no auto-send-on-confirm anymore (both removed per request):
  * pushing this at a fixed time or the moment both points happened to get
  * confirmed was more noise than signal — the accountant decides when the
- * day is actually done. */
+ * day is actually done. Also sent to the accountant themselves — per
+ * explicit request, everything the owner gets over Telegram goes to the
+ * accountant too. */
 export async function sendDailyClosingReport(): Promise<void> {
   const { message } = await buildDailySummaryReport();
-  await notifyRole("OWNER", message);
+  await notifyRole(["OWNER", "ACCOUNTANT"], message);
 }
 
 /** The owner's-balance ("Банкдаги пул") report — laid out like the accountant's
@@ -345,13 +347,15 @@ export async function buildOwnerBalanceReport(): Promise<{ message: string; empt
 }
 
 /** The accountant's "Telegram'га жўнатиш" button on the Банкдаги пул page —
- * sends to the owner like sendDailyClosingReport, then remembers this send
- * so the next report starts from here. Returns false (and sends nothing)
- * when nothing moved since the previous report. */
+ * sends to the owner (and, per explicit request, the accountant themselves —
+ * everything the owner gets over Telegram goes to the accountant too) like
+ * sendDailyClosingReport, then remembers this send so the next report starts
+ * from here. Returns false (and sends nothing) when nothing moved since the
+ * previous report. */
 export async function sendOwnerBalanceReport(sentBy: string): Promise<boolean> {
   const { message, empty, closing } = await buildOwnerBalanceReport();
   if (empty) return false;
-  await notifyRole("OWNER", message);
+  await notifyRole(["OWNER", "ACCOUNTANT"], message);
   // Only after the send succeeded — a failed send must not swallow the
   // movements from the next attempt.
   await prisma.ownerBalanceReportLog.create({ data: { closing: BigInt(closing), sentBy } });

@@ -61,7 +61,7 @@ export async function GET(request: Request) {
     if (moved && !alreadyAlerted) {
       const mapsUrl = `https://maps.google.com/?q=${unit.lat},${unit.lon}`;
       await notifyRole(
-        ["OWNER", "MECHANIC"],
+        ["OWNER", "MECHANIC", "ACCOUNTANT"],
         `⚠️ <b>${vehicle.plate}</b> (${vehicle.model}) линияда эмас деб белгиланган, лекин жойидан қўзғалди.\n\n` +
           `Ҳозирги жойлашуви: ${mapsUrl}\n` +
           `Тезлик: ${unit.speedKmh} км/соат`
