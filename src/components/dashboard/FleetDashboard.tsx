@@ -524,7 +524,7 @@ export function FleetDashboard({
                       ⬇ Ҳисобот PDF
                     </a>
                   )}
-                  {recordPayoutAction && cashLedger.balance > 0 && (
+                  {recordPayoutAction && (
                     <OwnerPayoutForm balance={cashLedger.balance} action={recordPayoutAction} />
                   )}
                   {setOpeningBalanceAction && (

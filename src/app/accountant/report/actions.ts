@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hasModuleAccess } from "@/lib/access";
-import { getCashBalance, type OwnerPayoutState } from "@/lib/ownerPayout";
+import type { OwnerPayoutState } from "@/lib/ownerPayout";
 import { sendDailyClosingReport } from "@/lib/telegramReports";
 
 export async function confirmCashReceiptAction(formData: FormData) {
@@ -110,13 +110,12 @@ export async function recordOwnerPayoutAction(
   if (!(amount > 0)) return { error: "Суммани тўғри киритинг" };
   if (Number.isNaN(payoutDate.getTime())) return { error: "Санани тўғри киритинг" };
 
-  // Re-derive the balance server-side rather than trusting anything the
-  // client could have submitted — this directly guards real cash-on-hand.
-  const balance = await getCashBalance();
-  if (amount > balance) {
-    return { error: `Қолдиқдан (${balance.toLocaleString("uz-UZ")} сўм) ортиқ бўлиши мумкин эмас` };
-  }
-
+  // No longer capped at the current balance — a negative "Кассадаги пул" is
+  // a real, expected state here (most of what the owner is paid doesn't
+  // flow through the confirmed-handover cash this balance tracks), so
+  // blocking a real payout just because the balance was already negative
+  // would make the button unusable exactly when it's needed, per explicit
+  // request.
   await prisma.ownerPayout.create({
     data: { amount: BigInt(amount), payoutDate, note, enteredBy: session.user.id },
   });

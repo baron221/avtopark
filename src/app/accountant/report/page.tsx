@@ -12,7 +12,7 @@ import {
   revertCashReceiptAction,
   recordOwnerPayoutAction,
   cancelOwnerPayoutAction,
-  setCashOpeningBalanceAction,
+  // setCashOpeningBalanceAction, — see its usage below for why this is disabled
   sendDailyClosingReportAction,
 } from "./actions";
 import { IncomeEntryCard } from "./IncomeEntryCard";
@@ -82,7 +82,11 @@ export default async function AccountantReportPage({
         revertReceiptAction={revertCashReceiptAction}
         recordPayoutAction={recordOwnerPayoutAction}
         cancelPayoutAction={cancelOwnerPayoutAction}
-        setOpeningBalanceAction={setCashOpeningBalanceAction}
+        // Disabled per explicit request after a real mis-click here (used
+        // for an owner payout by accident) corrupted the cash balance —
+        // uncomment this and the setCashOpeningBalanceAction import above
+        // when it's needed again.
+        // setOpeningBalanceAction={setCashOpeningBalanceAction}
         deleteOtherIncomeAction={isAccountant ? deleteOtherIncomeAction : undefined}
         sendDailyClosingAction={sendDailyClosingReportAction}
         pointContributions={pointContributions}
