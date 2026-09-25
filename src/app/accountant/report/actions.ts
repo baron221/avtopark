@@ -124,7 +124,7 @@ export async function recordOwnerPayoutAction(
   return { error: "" };
 }
 
-/** Undoes an accidental "Эгасига тўладим" entry — deletes the OwnerPayout
+/** Undoes an accidental "Банкка тўлаш" entry — deletes the OwnerPayout
  * row, so it drops out of both the payout history and the balance
  * subtraction (the balance goes back up by that amount). */
 export async function cancelOwnerPayoutAction(formData: FormData) {

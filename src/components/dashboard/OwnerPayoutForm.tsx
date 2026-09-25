@@ -29,9 +29,9 @@ export function OwnerPayoutForm({
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="w-60 text-center bg-card border border-border text-body text-xs font-extrabold px-3 py-1.5 rounded-lg hover:border-primary hover:text-primary transition-colors whitespace-nowrap"
+        className="w-60 text-center bg-blue-600 border border-blue-600 text-white text-xs font-extrabold px-3 py-1.5 rounded-lg hover:bg-blue-700 hover:border-blue-700 transition-colors whitespace-nowrap"
       >
-        Эгасига тўладим
+        Банкка тўлаш
       </button>
       {expanded && (
         <form action={formAction} className="mt-2 flex flex-col gap-1.5 bg-page rounded-xl p-3 w-60">
