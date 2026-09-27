@@ -128,12 +128,55 @@ export async function computeDailyCashAmounts(since: Date, until: Date): Promise
   ]);
 
   const map = new Map<string, bigint>();
+  // Keys any trip/otherIncome touched — used below to tell a dispatcher's
+  // real "home" bucket for the day apart from one that's pure expense.
+  const hasIncome = new Set<string>();
   const add = (k: string, delta: bigint) => map.set(k, (map.get(k) ?? BigInt(0)) + delta);
 
-  for (const t of trips) add(dayKey(t.point, t.tripDate, t.enteredBy), t.collectedAmount);
-  for (const i of otherIncomes) add(dayKey(i.point, i.incomeDate, i.enteredBy), i.amount);
+  for (const t of trips) {
+    const k = dayKey(t.point, t.tripDate, t.enteredBy);
+    add(k, t.collectedAmount);
+    hasIncome.add(k);
+  }
+  for (const i of otherIncomes) {
+    const k = dayKey(i.point, i.incomeDate, i.enteredBy);
+    add(k, i.amount);
+    hasIncome.add(k);
+  }
   for (const e of staffExpenses) add(dayKey(e.point, e.expenseDate, e.enteredBy), -e.amount);
   for (const l of lunches) add(dayKey(l.point, l.lunchDate, l.enteredBy), -l.amount);
+
+  // A dispatcher who briefly switches their active point to log one lunch/
+  // expense for the other side (see ACTIVE_POINT_COOKIE) — without ever
+  // collecting anything there — leaves a pure-expense bucket with no
+  // handover to ever come off of, since nobody submits a handover for a
+  // point they never actually worked that day. Left alone, that spending
+  // would just vanish from the balance entirely (caught on real production
+  // data: a dispatcher's one stray 50,000 lunch for the other point's
+  // driver never reduced anyone's handover, overstating the cash balance
+  // by exactly that). Folding it into the dispatcher's own real (income-
+  // bearing) bucket for that day fixes this without touching the case a
+  // dispatcher genuinely worked both points the same day — that still has
+  // two income-bearing buckets, so it's left exactly as-is.
+  const byDayDispatcher = new Map<string, string[]>();
+  for (const k of map.keys()) {
+    const [, dayMs, dispatcherId] = k.split("|");
+    const groupKey = `${dayMs}|${dispatcherId}`;
+    const keys = byDayDispatcher.get(groupKey);
+    if (keys) keys.push(k);
+    else byDayDispatcher.set(groupKey, [k]);
+  }
+  for (const keys of byDayDispatcher.values()) {
+    if (keys.length < 2) continue;
+    const homeKeys = keys.filter((k) => hasIncome.has(k));
+    const orphanKeys = keys.filter((k) => !hasIncome.has(k));
+    if (homeKeys.length !== 1 || orphanKeys.length === 0) continue;
+    const [homeKey] = homeKeys;
+    for (const orphanKey of orphanKeys) {
+      add(homeKey, map.get(orphanKey)!);
+      map.set(orphanKey, BigInt(0));
+    }
+  }
 
   // Same floor as createHandoverForDate, now applied per dispatcher: one
   // dispatcher's point-level costs outrunning their own collections that
