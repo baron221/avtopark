@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/Card";
 import { formatSom } from "@/lib/format";
 import { SettleDebtButton } from "./SettleDebtButton";
+import { RevertDebtButton } from "./RevertDebtButton";
 
 /** Accountant-only (see AccountantNav's own scoping: a granted non-accountant
  * guest never gets this nav link at all) — settling a debt is specifically
@@ -24,6 +25,14 @@ export default async function DebtorsPage() {
     orderBy: { tripDate: "desc" },
   });
   const debtors = orders.filter((t) => t.collectedAmount < t.revenue);
+  // Recently settled ones stay listed with an undo button — a mis-click on
+  // "Тўланди" would otherwise be unfixable from the UI.
+  const settled = await prisma.trip.findMany({
+    where: { kind: "ORDER", debtSettledAt: { not: null } },
+    include: { vehicle: true, debtSettledByUser: true },
+    orderBy: { debtSettledAt: "desc" },
+    take: 20,
+  });
   const totalOwed = debtors.reduce((s, t) => s + Number(t.revenue - t.collectedAmount), 0);
 
   return (
@@ -98,6 +107,38 @@ export default async function DebtorsPage() {
 
         {debtors.length === 0 && <p className="text-[13px] text-muted-2 px-6 py-4">Ҳозирча қарздорлик йўқ</p>}
       </Card>
+
+      {settled.length > 0 && (
+        <Card className="overflow-hidden">
+          <div className="px-6 py-3.5 font-heading font-bold text-base text-heading">Охирги тўланган қарзлар</div>
+          {settled.map((t) => {
+            const amount = Number(t.revenue - t.collectedAmount);
+            return (
+              <div
+                key={t.id}
+                className="flex items-center justify-between gap-3 px-6 py-3 border-t border-row-divider text-sm"
+              >
+                <div className="min-w-0">
+                  <div className="font-extrabold text-heading truncate">{t.vehicle.plate}</div>
+                  <div className="text-xs text-muted-2 font-semibold mt-0.5 truncate">
+                    {t.note ? `${t.note} · ` : ""}
+                    {t.debtSettledByUser?.fullName ?? "—"} ·{" "}
+                    {(t.debtSettledAt as Date).toLocaleDateString("uz-UZ", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    })}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="font-extrabold text-success whitespace-nowrap">{formatSom(amount)}</div>
+                  <RevertDebtButton id={t.id} amount={amount} />
+                </div>
+              </div>
+            );
+          })}
+        </Card>
+      )}
     </div>
   );
 }
