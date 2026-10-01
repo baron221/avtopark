@@ -1,0 +1,22 @@
+name: Keep Neon warm
+
+# /api/ping's own comment says it's "hit by an external cron pinger every
+# few minutes" — nothing in this repo (or, it turned out, anywhere else)
+# actually did that, so there was nothing keeping Neon's compute from
+# autosuspending between the twice-daily crons and gps-watch's own 10-minute
+# interval (longer than Neon's ~5-minute autosuspend window) — the gap is
+# exactly what let it go idle and cold-start on the next real request,
+# which is what made GPS checks (and everything else) intermittently slow
+# or fail right after a quiet stretch. Same pattern as gps-watch.yml, just
+# for this unauthenticated health-check route instead.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call /api/ping
+        run: curl -sf "${{ vars.APP_URL }}/api/ping"
