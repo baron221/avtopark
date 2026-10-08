@@ -32,6 +32,33 @@ import type { Point } from "@prisma/client";
 const CATEGORY_COLORS = ["#4F46E5", "#FFB84D", "#1B9E6B", "#D9534F", "#C9CBE3", "#8A8CA0", "#6B6D82"];
 const POINT_LABELS: Record<string, string> = { FARGONA: "Фарғона", QUVA: "Қува", BUXGALTERIYA: "Бухгалтер" };
 
+/** To'liq / already-settled / still-owed badge for one OrderRow — owed <= 0
+ * covers both a fully-paid order and a partial one whose collectedAmount
+ * was never actually reduced, debtSettled covers a credit/advance order the
+ * accountant has since marked collected (see settleTripDebtAction) — see
+ * OrderRow's own comment on why both are needed. */
+function OrderPaymentBadge({ owed, debtSettled }: { owed: number; debtSettled: boolean }) {
+  if (owed <= 0) {
+    return (
+      <span className="bg-success-tint text-success text-[11px] font-extrabold px-2 py-0.5 rounded-full whitespace-nowrap">
+        Тўлиқ
+      </span>
+    );
+  }
+  if (debtSettled) {
+    return (
+      <span className="bg-success-tint text-success text-[11px] font-extrabold px-2 py-0.5 rounded-full whitespace-nowrap">
+        Тўланди
+      </span>
+    );
+  }
+  return (
+    <span className="bg-danger-tint text-danger text-[11px] font-extrabold px-2 py-0.5 rounded-full whitespace-nowrap">
+      Насия · {formatSom(owed)}
+    </span>
+  );
+}
+
 /** One dispatcher's own share of a point's day — see getPointDayContributions
  * (src/lib/cashHandover.ts). Defined here rather than imported from a
  * dispatcher-route-local file, since this shared dashboard component must
@@ -668,18 +695,19 @@ export function FleetDashboard({
             }
           >
             {/* Desktop */}
-            <div className="hidden lg:grid grid-cols-[0.9fr_0.7fr_0.9fr_1.1fr_0.9fr_1.6fr] px-5 py-2.5 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
+            <div className="hidden lg:grid grid-cols-[0.9fr_0.7fr_0.9fr_1.1fr_0.9fr_1fr_1.3fr] px-5 py-2.5 bg-page text-xs font-extrabold text-muted-2 uppercase tracking-wide">
               <div>Вақт</div>
               <div>Пункт</div>
               <div>Машина</div>
               <div>Ҳайдовчи</div>
               <div>Сумма</div>
+              <div>Ҳолат</div>
               <div>Изоҳ</div>
             </div>
             {vm.orders.map((o) => (
               <div
                 key={o.id}
-                className="hidden lg:grid grid-cols-[0.9fr_0.7fr_0.9fr_1.1fr_0.9fr_1.6fr] gap-x-2 px-5 py-3 border-t border-row-divider items-center text-sm"
+                className="hidden lg:grid grid-cols-[0.9fr_0.7fr_0.9fr_1.1fr_0.9fr_1fr_1.3fr] gap-x-2 px-5 py-3 border-t border-row-divider items-center text-sm"
               >
                 <div className="text-muted-2 font-bold">
                   {o.time.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" })} · {formatTime(o.time)}
@@ -692,6 +720,9 @@ export function FleetDashboard({
                 <div className="font-extrabold text-primary font-heading">{o.plate}</div>
                 <div className="text-body font-semibold">{o.driverName}</div>
                 <div className="font-extrabold text-heading">{formatSom(o.amount)}</div>
+                <div>
+                  <OrderPaymentBadge owed={o.owed} debtSettled={o.debtSettled} />
+                </div>
                 <div className="text-muted-2 font-semibold break-words">{o.note ?? "—"}</div>
               </div>
             ))}
@@ -718,6 +749,9 @@ export function FleetDashboard({
                       <div className="text-body font-semibold text-xs">{o.driverName}</div>
                     </div>
                     {o.note && <div className="text-muted-2 text-xs font-semibold text-right">{o.note}</div>}
+                  </div>
+                  <div>
+                    <OrderPaymentBadge owed={o.owed} debtSettled={o.debtSettled} />
                   </div>
                 </div>
               ))}

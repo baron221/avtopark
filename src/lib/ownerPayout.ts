@@ -1093,8 +1093,11 @@ export type MechanicCostSummary = {
    * cutoff. This is a brand-new figure with no prior on-screen value to
    * protect from jumping (unlike computeCashBalance's own MECHANIC_COST_
    * CUTOFF split), so it's simplest and most honest as a genuine all-time
-   * running total: what the owner has received, minus what's been spent
-   * from that same pool on fuel/oil since. */
+   * running total: what the owner has received, plus corrections, minus
+   * what the accountant has spent out of it by hand (otherSpent) — per
+   * explicit request, fuel/oil-change costs (fuelSpent/oilSpent) no longer
+   * draw against this balance at all; they're shown purely as reference
+   * figures (see OwnerBalanceCards), not subtracted anywhere below. */
   paidToOwner: number;
   /** All-time StationPayment.paidAmount — real cash already handed over to
    * a fuel station, regardless of whether that bill is fully settled yet
@@ -1109,6 +1112,11 @@ export type MechanicCostSummary = {
   otherSpent: number;
   /** Reconciliation entries (OwnerBalanceExpense.isCorrection) — added to the balance, not counted as spending. */
   corrections: number;
+  /** Equal to otherSpent — fuelSpent/oilSpent no longer count against the
+   * balance, per explicit request (see this type's own paidToOwner
+   * comment), so this is kept only so balance's own formula still reads as
+   * "paidToOwner + corrections − totalSpent" rather than hiding otherSpent
+   * under a different name. */
   totalSpent: number;
   /** paidToOwner + corrections − totalSpent — visible to owner/admin/mechanic (not the
    * accountant, who has no stake in this flow — see getMechanicCostSummary's
@@ -1144,7 +1152,9 @@ export async function getMechanicCostSummary(): Promise<MechanicCostSummary> {
   const oilSpent = Number(repairAgg._sum.amount ?? BigInt(0));
   const otherSpent = Number(otherAgg.find((r) => !r.isCorrection)?._sum.amount ?? BigInt(0));
   const corrections = Number(otherAgg.find((r) => r.isCorrection)?._sum.amount ?? BigInt(0));
-  const totalSpent = fuelSpent + oilSpent + otherSpent;
+  // fuelSpent/oilSpent deliberately excluded — see this function's own
+  // return type comment.
+  const totalSpent = otherSpent;
 
   return {
     paidToOwner,
@@ -1199,16 +1209,15 @@ export type OwnerBalanceDay = {
 
 type DateRange = { gte?: Date; lte?: Date; gt?: Date };
 
+// fuelSpent/oilSpent (StationPayment/REPAIR Expense) no longer draw against
+// the balance (see MechanicCostSummary's own comment), so they don't belong
+// in this movements list either — including them here while balance ignores
+// them would break the opening+income−expense=closing identity this
+// function's callers rely on (see getOwnerBalanceSince's own comment).
 async function collectOwnerBalanceMovements(range: DateRange) {
-  const [payouts, manual, stations, repairs] = await Promise.all([
+  const [payouts, manual] = await Promise.all([
     prisma.ownerPayout.findMany({ where: { createdAt: range }, orderBy: { createdAt: "asc" } }),
     prisma.ownerBalanceExpense.findMany({ where: { createdAt: range }, orderBy: { createdAt: "asc" } }),
-    prisma.stationPayment.findMany({ where: { paidAt: range }, include: { station: true }, orderBy: { paidAt: "asc" } }),
-    prisma.expense.findMany({
-      where: { category: "REPAIR", expenseDate: range },
-      include: { vehicle: true },
-      orderBy: { expenseDate: "asc" },
-    }),
   ]);
 
   const income: OwnerBalanceDayLine[] = [
@@ -1225,17 +1234,9 @@ async function collectOwnerBalanceMovements(range: DateRange) {
         amount: Number(m.amount),
       })),
   ];
-  const expense: OwnerBalanceDayLine[] = [
-    ...stations.map((s) => ({
-      date: s.paidAt as Date,
-      label: `Ёқилғи - ${s.station.name}`,
-      amount: Number(s.paidAmount),
-    })),
-    ...repairs.map((r) => ({ date: r.expenseDate, label: `Мой - ${r.vehicle.plate}`, amount: Number(r.amount) })),
-    ...manual
-      .filter((m) => !m.isCorrection)
-      .map((m) => ({ date: m.expenseDate, label: m.note, amount: Number(m.amount) })),
-  ];
+  const expense: OwnerBalanceDayLine[] = manual
+    .filter((m) => !m.isCorrection)
+    .map((m) => ({ date: m.expenseDate, label: m.note, amount: Number(m.amount) }));
   const net = income.reduce((s, l) => s + l.amount, 0) - expense.reduce((s, l) => s + l.amount, 0);
   return { income, expense, net };
 }

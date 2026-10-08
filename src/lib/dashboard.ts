@@ -42,6 +42,16 @@ export type OrderRow = {
   driverName: string;
   amount: number;
   note: string | null;
+  /** revenue − collectedAmount at entry — what's still owed on this order.
+   * 0 means it was paid in full up front; see Trip.collectedAmount's own
+   * schema comment. */
+  owed: number;
+  /** Whether an order that still shows `owed` > 0 has since had its debt
+   * marked collected by the accountant (see settleTripDebtAction) —
+   * collectedAmount itself is never rewritten on settlement, so `owed`
+   * alone can't distinguish "still outstanding" from "already paid later"
+   * without this flag. */
+  debtSettled: boolean;
 };
 
 export type OtherIncomeRow = {
@@ -415,6 +425,7 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
         driverId: true,
         revenue: true,
         collectedAmount: true,
+        debtSettledAt: true,
         kind: true,
         point: true,
         note: true,
@@ -697,6 +708,8 @@ export async function getOwnerDashboardVM(period: Period, referenceDate: Date = 
       driverName: driverById.get(t.driverId)?.user.fullName ?? "—",
       amount: Number(t.revenue),
       note: t.note,
+      owed: Number(t.revenue - t.collectedAmount),
+      debtSettled: !!t.debtSettledAt,
     }))
     .sort((a, b) => b.time.getTime() - a.time.getTime());
 
