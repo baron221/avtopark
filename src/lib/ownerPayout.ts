@@ -254,6 +254,18 @@ function utcDayStart(d: Date): Date {
 export const MECHANIC_COST_CUTOFF = new Date("2026-09-04T00:00:00Z");
 
 /**
+ * Fuel/oil-change costs stop drawing against "Банкдаги пул" (see
+ * getMechanicCostSummary) only from this date on — per explicit follow-up
+ * request, narrowing an earlier change that excluded them all-time.
+ * Everything dated BEFORE this still nets out of the balance exactly as it
+ * always has, so the already-settled historical balance doesn't jump; only
+ * new fuel/oil spending from today onward stops affecting it. Same
+ * reasoning as MECHANIC_COST_CUTOFF's own fixed-date approach, just for a
+ * different transition.
+ */
+export const OWNER_BALANCE_FUEL_OIL_CUTOFF = new Date("2026-10-08T00:00:00Z");
+
+/**
  * Every vehicle Expense row the owner pays the mechanic directly for,
  * never out of the accountant's own collected cash: FUEL always (a
  * per-fill-up consumption log, not a cash-out-of-pocket event — see
@@ -1094,10 +1106,11 @@ export type MechanicCostSummary = {
    * protect from jumping (unlike computeCashBalance's own MECHANIC_COST_
    * CUTOFF split), so it's simplest and most honest as a genuine all-time
    * running total: what the owner has received, plus corrections, minus
-   * what the accountant has spent out of it by hand (otherSpent) — per
-   * explicit request, fuel/oil-change costs (fuelSpent/oilSpent) no longer
-   * draw against this balance at all; they're shown purely as reference
-   * figures (see OwnerBalanceCards), not subtracted anywhere below. */
+   * what the accountant has spent out of it by hand (otherSpent), minus
+   * pre-OWNER_BALANCE_FUEL_OIL_CUTOFF fuel/oil-change costs only — from
+   * that date on, fuel/oil no longer draws against this balance at all
+   * (per explicit follow-up request), though fuelSpent/oilSpent below stay
+   * genuine all-time totals for their own reference cards regardless. */
   paidToOwner: number;
   /** All-time StationPayment.paidAmount — real cash already handed over to
    * a fuel station, regardless of whether that bill is fully settled yet
@@ -1112,11 +1125,10 @@ export type MechanicCostSummary = {
   otherSpent: number;
   /** Reconciliation entries (OwnerBalanceExpense.isCorrection) — added to the balance, not counted as spending. */
   corrections: number;
-  /** Equal to otherSpent — fuelSpent/oilSpent no longer count against the
-   * balance, per explicit request (see this type's own paidToOwner
-   * comment), so this is kept only so balance's own formula still reads as
-   * "paidToOwner + corrections − totalSpent" rather than hiding otherSpent
-   * under a different name. */
+  /** otherSpent + pre-cutoff fuel/oil only (see this type's own
+   * paidToOwner comment) — kept so balance's own formula still reads as
+   * "paidToOwner + corrections − totalSpent" rather than hiding the
+   * pre-cutoff carryover under a different name. */
   totalSpent: number;
   /** paidToOwner + corrections − totalSpent — visible to owner/admin/mechanic (not the
    * accountant, who has no stake in this flow — see getMechanicCostSummary's
@@ -1140,21 +1152,32 @@ export type MechanicCostSummary = {
  * this just reads the same two sources computeCashBalance excludes.
  */
 export async function getMechanicCostSummary(): Promise<MechanicCostSummary> {
-  const [payoutAgg, stationPaymentAgg, repairAgg, otherAgg] = await Promise.all([
-    prisma.ownerPayout.aggregate({ _sum: { amount: true } }),
-    prisma.stationPayment.aggregate({ _sum: { paidAmount: true } }),
-    prisma.expense.aggregate({ _sum: { amount: true }, where: { category: "REPAIR" } }),
-    prisma.ownerBalanceExpense.groupBy({ by: ["isCorrection"], _sum: { amount: true } }),
-  ]);
+  const [payoutAgg, stationPaymentAgg, repairAgg, preCutoffStationAgg, preCutoffRepairAgg, otherAgg] =
+    await Promise.all([
+      prisma.ownerPayout.aggregate({ _sum: { amount: true } }),
+      prisma.stationPayment.aggregate({ _sum: { paidAmount: true } }),
+      prisma.expense.aggregate({ _sum: { amount: true }, where: { category: "REPAIR" } }),
+      // Only these two feed totalSpent/balance — see OWNER_BALANCE_FUEL_OIL_
+      // CUTOFF's own comment.
+      prisma.stationPayment.aggregate({
+        _sum: { paidAmount: true },
+        where: { paidAt: { lt: OWNER_BALANCE_FUEL_OIL_CUTOFF } },
+      }),
+      prisma.expense.aggregate({
+        _sum: { amount: true },
+        where: { category: "REPAIR", expenseDate: { lt: OWNER_BALANCE_FUEL_OIL_CUTOFF } },
+      }),
+      prisma.ownerBalanceExpense.groupBy({ by: ["isCorrection"], _sum: { amount: true } }),
+    ]);
 
   const paidToOwner = Number(payoutAgg._sum.amount ?? BigInt(0));
   const fuelSpent = Number(stationPaymentAgg._sum.paidAmount ?? BigInt(0));
   const oilSpent = Number(repairAgg._sum.amount ?? BigInt(0));
+  const preCutoffFuelOil =
+    Number(preCutoffStationAgg._sum.paidAmount ?? BigInt(0)) + Number(preCutoffRepairAgg._sum.amount ?? BigInt(0));
   const otherSpent = Number(otherAgg.find((r) => !r.isCorrection)?._sum.amount ?? BigInt(0));
   const corrections = Number(otherAgg.find((r) => r.isCorrection)?._sum.amount ?? BigInt(0));
-  // fuelSpent/oilSpent deliberately excluded — see this function's own
-  // return type comment.
-  const totalSpent = otherSpent;
+  const totalSpent = otherSpent + preCutoffFuelOil;
 
   return {
     paidToOwner,
@@ -1209,15 +1232,25 @@ export type OwnerBalanceDay = {
 
 type DateRange = { gte?: Date; lte?: Date; gt?: Date };
 
-// fuelSpent/oilSpent (StationPayment/REPAIR Expense) no longer draw against
-// the balance (see MechanicCostSummary's own comment), so they don't belong
-// in this movements list either — including them here while balance ignores
-// them would break the opening+income−expense=closing identity this
-// function's callers rely on (see getOwnerBalanceSince's own comment).
+// Station/repair movements are scoped to strictly before OWNER_BALANCE_
+// FUEL_OIL_CUTOFF — from that date on they no longer draw against the
+// balance (see MechanicCostSummary's own comment), so including a post-
+// cutoff one here would break the opening+income−expense=closing identity
+// this function's callers rely on (see getOwnerBalanceSince's own comment).
 async function collectOwnerBalanceMovements(range: DateRange) {
-  const [payouts, manual] = await Promise.all([
+  const [payouts, manual, stations, repairs] = await Promise.all([
     prisma.ownerPayout.findMany({ where: { createdAt: range }, orderBy: { createdAt: "asc" } }),
     prisma.ownerBalanceExpense.findMany({ where: { createdAt: range }, orderBy: { createdAt: "asc" } }),
+    prisma.stationPayment.findMany({
+      where: { paidAt: { ...range, lt: OWNER_BALANCE_FUEL_OIL_CUTOFF } },
+      include: { station: true },
+      orderBy: { paidAt: "asc" },
+    }),
+    prisma.expense.findMany({
+      where: { category: "REPAIR", expenseDate: { ...range, lt: OWNER_BALANCE_FUEL_OIL_CUTOFF } },
+      include: { vehicle: true },
+      orderBy: { expenseDate: "asc" },
+    }),
   ]);
 
   const income: OwnerBalanceDayLine[] = [
@@ -1234,9 +1267,17 @@ async function collectOwnerBalanceMovements(range: DateRange) {
         amount: Number(m.amount),
       })),
   ];
-  const expense: OwnerBalanceDayLine[] = manual
-    .filter((m) => !m.isCorrection)
-    .map((m) => ({ date: m.expenseDate, label: m.note, amount: Number(m.amount) }));
+  const expense: OwnerBalanceDayLine[] = [
+    ...stations.map((s) => ({
+      date: s.paidAt as Date,
+      label: `Ёқилғи - ${s.station.name}`,
+      amount: Number(s.paidAmount),
+    })),
+    ...repairs.map((r) => ({ date: r.expenseDate, label: `Мой - ${r.vehicle.plate}`, amount: Number(r.amount) })),
+    ...manual
+      .filter((m) => !m.isCorrection)
+      .map((m) => ({ date: m.expenseDate, label: m.note, amount: Number(m.amount) })),
+  ];
   const net = income.reduce((s, l) => s + l.amount, 0) - expense.reduce((s, l) => s + l.amount, 0);
   return { income, expense, net };
 }
