@@ -259,11 +259,17 @@ export const MECHANIC_COST_CUTOFF = new Date("2026-09-04T00:00:00Z");
  * request, narrowing an earlier change that excluded them all-time.
  * Everything dated BEFORE this still nets out of the balance exactly as it
  * always has, so the already-settled historical balance doesn't jump; only
- * new fuel/oil spending from today onward stops affecting it. Same
+ * fuel/oil spending from this date onward stops affecting it. Same
  * reasoning as MECHANIC_COST_CUTOFF's own fixed-date approach, just for a
  * different transition.
+ *
+ * Originally set to 2026-10-08 (the day this feature shipped), then moved
+ * back to 2026-10-02 per an explicit follow-up request to also return the
+ * 02.10/03.10/07.10 REPAIR costs (437,637 + 2,625,185 + 437,637 so'm) to
+ * the balance — 04.10-06.10 had no mechanic spending at all, so moving the
+ * boundary here affects only those three dates' rows.
  */
-export const OWNER_BALANCE_FUEL_OIL_CUTOFF = new Date("2026-10-08T00:00:00Z");
+export const OWNER_BALANCE_FUEL_OIL_CUTOFF = new Date("2026-10-02T00:00:00Z");
 
 /**
  * Every vehicle Expense row the owner pays the mechanic directly for,
